@@ -13,3 +13,6 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 export interface Certificate { id: number; kind: string; status: string; gross: string; deductions: string; net: string; payment_ref: string | null }
 export interface Building { id: number; name_en: string; name_ar: string; legacy_blcd: string | null; governorate_code: number | null }
+export interface Allocation { id: number; fiscal_year: string; chapter: number; item: number; allocated: string; committed: string; spent: string; available: string }
+export interface Tender { id: number; title: string; stage: string; legacy_type: number | null; legacy_no: number | null }
+export interface ExCase { id: number; stage: string; decree_no: string | null; decree_date: string | null; gazette_no: string | null; compensation: string | null }

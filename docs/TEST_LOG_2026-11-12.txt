@@ -1,37 +1,41 @@
 
 > gaeb-platform@1.0.0-production-scaffold test
-> npm run build && cp tests/testvectors.json tests/codepage_vectors.json dist/tests/ && node --test "dist/tests/*.test.js"
+> npm run build && cp tests/testvectors.json tests/codepage_vectors.json tests/fixture_extract.bin dist/tests/ && node --test "dist/tests/*.test.js"
 
 
 > gaeb-platform@1.0.0-production-scaffold build
 > tsc -p tsconfig.json && cp -r src/codepages dist/src/
 
-✔ windows-1256 decodes to the exact original Arabic (independent Python-generated vector) (1.736526ms)
-✔ ibm420 (CCSID 420) EBCDIC bytes decode to the exact original Arabic (glibc charmap vector) (0.229785ms)
-✔ ibm864 decodes shaped presentation forms back to standard letters (0.442364ms)
-✔ ibm425 fails loudly instead of silently corrupting (no verified table) (0.65315ms)
-✔ mojibake is flagged, never auto-repaired (0.349284ms)
-✔ search normalization is separate from the preserved original (0.359369ms)
-✔ password hashing is salted, verifies, and rejects wrong passwords (552.624917ms)
-✔ RBAC: viewer cannot write; certifier cannot authorize payment (separation of duties) (0.398248ms)
-✔ tender stages cannot be skipped (0.25346ms)
-✔ certificate: 'paid' requires a payment reference; sequence is enforced (0.308523ms)
-✔ expropriation: decree gate blocks post-decree actions before the decree exists (0.278048ms)
-✔ CHK5DAYS implementation: 5 working days skip Fri/Sat weekend (0.896536ms)
-✔ estimates: draft -> reviewed requires the review permission (1.369895ms)
-✔ estimates: approval is a separate permission from review (separation of duties) (0.277036ms)
-✔ estimates: no skipping — draft cannot jump to approved; approved is terminal (0.517337ms)
-✔ estimates: reviewed can be returned for correction (new revision) (0.275383ms)
-✔ packed decimal decodes value, scale and sign (1.71262ms)
-✔ zoned decimal (EBCDIC) decodes with negative sign zone (0.326159ms)
-✔ certificate valuation is exact decimal (no float error) (1.54612ms)
-✔ certificate with deductions exceeding gross is rejected, not silently negative (0.252539ms)
-✔ large packed-decimal contract value keeps full precision (0.277807ms)
-ℹ tests 21
+✔ windows-1256 decodes to the exact original Arabic (independent Python-generated vector) (1.446831ms)
+✔ ibm420 (CCSID 420) EBCDIC bytes decode to the exact original Arabic (glibc charmap vector) (0.227812ms)
+✔ ibm864 decodes shaped presentation forms back to standard letters (0.299419ms)
+✔ ibm425 fails loudly instead of silently corrupting (no verified table) (0.693651ms)
+✔ mojibake is flagged, never auto-repaired (0.350076ms)
+✔ search normalization is separate from the preserved original (0.330757ms)
+✔ password hashing is salted, verifies, and rejects wrong passwords (676.203413ms)
+✔ RBAC: viewer cannot write; certifier cannot authorize payment (separation of duties) (0.401452ms)
+✔ tender stages cannot be skipped (0.229003ms)
+✔ certificate: 'paid' requires a payment reference; sequence is enforced (0.281362ms)
+✔ expropriation: decree gate blocks post-decree actions before the decree exists (0.269394ms)
+✔ CHK5DAYS implementation: 5 working days skip Fri/Sat weekend (0.818549ms)
+✔ estimates: draft -> reviewed requires the review permission (1.422725ms)
+✔ estimates: approval is a separate permission from review (separation of duties) (0.318928ms)
+✔ estimates: no skipping — draft cannot jump to approved; approved is terminal (0.165007ms)
+✔ estimates: reviewed can be returned for correction (new revision) (0.122844ms)
+✔ offline extract import: decodes Arabic + packed money, quarantines duplicate and corrupt records (4.141485ms)
+✔ reconciliation: control totals are exact decimals over loaded records (0.95975ms)
+✔ resume: a second run with the saved job state loads nothing twice (idempotent) (0.608853ms)
+✔ lineage: report carries the source file hash and every record keeps its raw form (2.25901ms)
+✔ packed decimal decodes value, scale and sign (1.678038ms)
+✔ zoned decimal (EBCDIC) decodes with negative sign zone (0.398578ms)
+✔ certificate valuation is exact decimal (no float error) (1.838318ms)
+✔ certificate with deductions exceeding gross is rejected, not silently negative (0.264227ms)
+✔ large packed-decimal contract value keeps full precision (0.262074ms)
+ℹ tests 25
 ℹ suites 0
-ℹ pass 21
+ℹ pass 25
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 842.205021
+ℹ duration_ms 946.21474

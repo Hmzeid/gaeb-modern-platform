@@ -2,7 +2,7 @@ import express from "express";
 import { pool, audit } from "./db.js";
 import { verifyPassword, newSessionToken, sessionKey, SESSION_TTL_MS, can, type Role, type Session } from "./auth.js";
 import { money, moneyOut, certificateTotals, type Deduction } from "./money.js";
-import { certTransition, tenderTransition, estimateTransition, type CertStatus, type TenderStage, type EstimateStatus } from "./workflow.js";
+import { certTransition, tenderTransition, estimateTransition, recordDecree, type CertStatus, type TenderStage, type EstimateStatus, type ExpropriationCase } from "./workflow.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -173,6 +173,69 @@ app.post("/api/estimates/:id/transition", requireAuth, async (req, res) => {
   }
   await audit(s.userId, "transition", "estimate", req.params.id, { from, to });
   res.json({ ok: true });
+});
+
+// Budget allocations (operational view over the Budget module; full posting logic awaits B-01 evidence).
+app.get("/api/budget", requireAuth, requirePerm("budget.read"), async (_req, res) => {
+  const { rows } = await pool.query("SELECT id, fiscal_year, chapter, item, governorate_code, allocated, committed, spent FROM app.budget_allocations ORDER BY fiscal_year DESC, chapter, item");
+  res.json(rows.map(r => ({ ...r, allocated: String(r.allocated), committed: String(r.committed), spent: String(r.spent),
+    available: money(String(r.allocated)).minus(String(r.committed)).minus(String(r.spent)).toString() })));
+});
+app.post("/api/budget", requireAuth, requirePerm("budget.write"), async (req, res) => {
+  const b = req.body ?? {};
+  const { rows } = await pool.query(
+    "INSERT INTO app.budget_allocations (fiscal_year, chapter, item, governorate_code, allocated) VALUES ($1,$2,$3,$4,$5) RETURNING id",
+    [b.fiscal_year, b.chapter, b.item, b.governorate_code ?? null, money(String(b.allocated ?? "0")).toString()]);
+  await audit((req as any).session.userId, "create", "budget_allocation", String(rows[0].id));
+  res.status(201).json({ id: rows[0].id });
+});
+// Tenders: creation + stage advancement through the enforced stage machine.
+app.get("/api/tenders", requireAuth, requirePerm("tenders.read"), async (_req, res) => {
+  const { rows } = await pool.query("SELECT id, legacy_type, legacy_no, title, stage FROM app.tenders ORDER BY id DESC");
+  res.json(rows);
+});
+app.post("/api/tenders", requireAuth, requirePerm("tenders.write"), async (req, res) => {
+  const b = req.body ?? {};
+  const { rows } = await pool.query("INSERT INTO app.tenders (legacy_type, legacy_no, title) VALUES ($1,$2,$3) RETURNING id",
+    [b.legacy_type ?? null, b.legacy_no ?? null, b.title ?? ""]);
+  await audit((req as any).session.userId, "create", "tender", String(rows[0].id));
+  res.status(201).json({ id: rows[0].id, stage: "draft" });
+});
+app.post("/api/tenders/:id/transition", requireAuth, async (req, res) => {
+  const s = (req as any).session as Session;
+  const { rows } = await pool.query("SELECT stage FROM app.tenders WHERE id = $1", [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: "tender not found" });
+  try { tenderTransition(rows[0].stage as TenderStage, req.body.to as TenderStage, s.role); }
+  catch (e: any) { return res.status(422).json({ error: e.message }); }
+  await pool.query("UPDATE app.tenders SET stage = $2 WHERE id = $1", [req.params.id, req.body.to]);
+  await audit(s.userId, "transition", "tender", req.params.id, { to: req.body.to });
+  res.json({ ok: true });
+});
+// Real estate: expropriation cases + the decree gate (REMV01 -> REMV02).
+app.get("/api/realestate/cases", requireAuth, requirePerm("realestate.read"), async (_req, res) => {
+  const { rows } = await pool.query("SELECT id, building_id, stage, decree_no, decree_date, gazette_no, compensation FROM app.expropriation_cases ORDER BY id DESC");
+  res.json(rows.map(r => ({ ...r, compensation: r.compensation == null ? null : String(r.compensation) })));
+});
+app.post("/api/realestate/cases", requireAuth, requirePerm("realestate.write"), async (req, res) => {
+  const b = req.body ?? {};
+  const { rows } = await pool.query("INSERT INTO app.expropriation_cases (building_id, compensation) VALUES ($1,$2) RETURNING id",
+    [b.building_id ?? null, b.compensation != null ? money(String(b.compensation)).toString() : null]);
+  await audit((req as any).session.userId, "create", "expropriation_case", String(rows[0].id));
+  res.status(201).json({ id: rows[0].id, stage: "pre_decree" });
+});
+app.post("/api/realestate/cases/:id/decree", requireAuth, requirePerm("realestate.approve"), async (req, res) => {
+  const s = (req as any).session as Session;
+  const { rows } = await pool.query("SELECT stage, decree_no, decree_date, gazette_no FROM app.expropriation_cases WHERE id = $1", [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: "case not found" });
+  const current: ExpropriationCase = { stage: rows[0].stage, decreeNo: rows[0].decree_no ?? undefined,
+    decreeDate: rows[0].decree_date ? String(rows[0].decree_date) : undefined, gazetteNo: rows[0].gazette_no ?? undefined };
+  let updated: ExpropriationCase;
+  try { updated = recordDecree(current, req.body.decree_no, req.body.decree_date, req.body.gazette_no); }
+  catch (e: any) { return res.status(422).json({ error: e.message }); }
+  await pool.query("UPDATE app.expropriation_cases SET stage = 'post_decree', decree_no = $2, decree_date = $3, gazette_no = $4 WHERE id = $1",
+    [req.params.id, updated.decreeNo, updated.decreeDate, updated.gazetteNo]);
+  await audit(s.userId, "record_decree", "expropriation_case", req.params.id, { decreeNo: updated.decreeNo });
+  res.json({ ok: true, stage: updated.stage });
 });
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(JSON.stringify({ level: "error", message: String(err?.message || err) }));

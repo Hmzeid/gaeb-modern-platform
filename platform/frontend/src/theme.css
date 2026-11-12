@@ -8,3 +8,5 @@ label { display:block; margin:8px 0; font-size:13px; } input { display:block; wi
 button { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:8px 14px; cursor:pointer; margin-inline-start:6px; }
 table { width:100%; border-collapse:collapse; font-size:13px; } th, td { border-bottom:1px solid var(--line); padding:6px; text-align:start; }
 .err { color:#b00020; }
+.tabs { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
+.tab { background:#e4e9f0; color:var(--ink); } .tab.active { background:var(--accent); color:#fff; }

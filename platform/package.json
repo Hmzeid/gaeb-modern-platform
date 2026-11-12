@@ -6,10 +6,11 @@
   "description": "GAEB Modern Enterprise Platform \u2014 standalone production backend (Milestone 2 scaffold). Independent of Meta/Hatch runtime.",
   "scripts": {
     "build": "tsc -p tsconfig.json && cp -r src/codepages dist/src/",
-    "test": "npm run build && cp tests/testvectors.json tests/codepage_vectors.json dist/tests/ && node --test \"dist/tests/*.test.js\"",
+    "test": "npm run build && cp tests/testvectors.json tests/codepage_vectors.json tests/fixture_extract.bin dist/tests/ && node --test \"dist/tests/*.test.js\"",
     "start": "node dist/src/server.js",
     "migrate": "node dist/src/cli/migrate.js",
-    "create-admin": "node dist/src/cli/create-admin.js"
+    "create-admin": "node dist/src/cli/create-admin.js",
+    "import-extract": "node dist/src/cli/import-extract.js"
   },
   "dependencies": {
     "decimal.js": "^10.4.3",

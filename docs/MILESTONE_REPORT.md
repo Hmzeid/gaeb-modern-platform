@@ -70,3 +70,26 @@ preparation all remain, gated on the blockers in docs/BLOCKERS.md where noted.
   docker-compose stack on any standard host — `docker compose up`, `npm run migrate`,
   `npm run create-admin` — then exercise login → certificate → transition → paid.
   Status 2 (technical tests) remains "started" until that run is evidenced.
+
+## Addendum 2 — Session 2026-11-12 (continued)
+
+- **Migration engine, offline path implemented** (Milestone 4, first slice):
+  `platform/src/migration/engine.ts` — fixed-width extract importer for the V6R1-safe
+  route (customer-side extract → transfer → import; never writes to the source).
+  Per-field decoding (char with per-field encoding, packed, zoned), duplicate-key and
+  undecodable-record quarantine with reasons and raw hex preserved, checkpoint/resume
+  with idempotent re-runs, SHA-256 source fingerprint, and exact-decimal control totals
+  computed over both loaded records and all parseable records so reconciliation deltas
+  are visible rather than hidden. CLI: `npm run import-extract`. 4 tests on a synthetic
+  fixture (generated data only) — **suite now 25/25 passing**. Not yet done: DB loading
+  into the staging schema (needs the PostgreSQL verification environment), journal-based
+  CDC, and the mapping-studio UI.
+- **API completed for the remaining modules**: Budget allocations (with exact available
+  balance = allocated − committed − spent), Tenders (create + stage advancement through
+  the enforced machine), Real Estate (case creation + decree recording through the
+  REMV gate, requiring realestate.approve).
+- **Frontend now covers all six modules**: tabbed client — Dashboard, Certificates,
+  School Map (buildings), Budget, Tenders (with stage advancement), Real Estate
+  (with decree recording) — EN/AR with RTL. Production build verified (154.52 kB).
+  Remaining frontend depth: estimates screens, catalogue management, migration center UI,
+  reports — tracked, not yet built.
