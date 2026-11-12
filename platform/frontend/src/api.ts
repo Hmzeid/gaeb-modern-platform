@@ -16,3 +16,7 @@ export interface Building { id: number; name_en: string; name_ar: string; legacy
 export interface Allocation { id: number; fiscal_year: string; chapter: number; item: number; allocated: string; committed: string; spent: string; available: string }
 export interface Tender { id: number; title: string; stage: string; legacy_type: number | null; legacy_no: number | null }
 export interface ExCase { id: number; stage: string; decree_no: string | null; decree_date: string | null; gazette_no: string | null; compensation: string | null }
+export interface Estimate { id: number; title: string; status: string; revision: number; total: string }
+export interface CatalogueItem { id: number; code: string; name_en: string; name_ar: string; unit: string; standard_price: string }
+export interface BudgetUtil { fiscal_year: string; lines: number; allocated: string; committed: string; spent: string; available: string }
+export interface CertSummary { status: string; count: number; gross: string; deductions: string; net: string }

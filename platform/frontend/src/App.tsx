@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import { api, getToken, setToken, type Certificate, type Building, type Allocation, type Tender, type ExCase } from "./api";
+import { api, getToken, setToken, type Certificate, type Building, type Allocation, type Tender, type ExCase, type Estimate, type CatalogueItem, type BudgetUtil, type CertSummary } from "./api";
 
 const T = {
   en: { title: "GAEB Modern Platform", login: "Sign in", user: "Username", pass: "Password", logout: "Sign out", role: "Role", err: "Error",
-    dash: "Dashboard", certs: "Certificates", map: "School Map", budget: "Budget", tenders: "Tenders", estate: "Real Estate",
+    dash: "Dashboard", certs: "Certificates", map: "School Map", budget: "Budget", tenders: "Tenders", estate: "Real Estate", estimates: "Estimates", reports: "Reports", catalogue: "Item catalogue", code: "Code", unit: "Unit", total: "Total", revision: "Rev.",
     gross: "Gross", ded: "Deductions", net: "Net", status: "Status", kind: "Kind", advance: "Advance",
     newCert: "New certificate", qty: "Qty", price: "Price", retention: "Retention %", payRef: "Payment ref", create: "Create",
     nameEn: "Name (EN)", nameAr: "Name (AR)", blcd: "Legacy code (BLCD)", buildings: "Buildings",
     fy: "Fiscal year", chapter: "Chapter", item: "Item", allocated: "Allocated", committed: "Committed", spent: "Spent", available: "Available",
     tenderTitle: "Tender title", stage: "Stage", cases: "Expropriation cases", decree: "Decree no.", decreeDate: "Decree date", gazette: "Gazette no.", recordDecree: "Record decree", compensation: "Compensation" },
   ar: { title: "منصة الهيئة العامة للأبنية التعليمية", login: "تسجيل الدخول", user: "اسم المستخدم", pass: "كلمة المرور", logout: "تسجيل الخروج", role: "الدور", err: "خطأ",
-    dash: "لوحة المتابعة", certs: "المستخلصات", map: "الخريطة المدرسية", budget: "الموازنة", tenders: "المناقصات", estate: "الملكية العقارية",
+    dash: "لوحة المتابعة", certs: "المستخلصات", map: "الخريطة المدرسية", budget: "الموازنة", tenders: "المناقصات", estate: "الملكية العقارية", estimates: "المقايسات", reports: "التقارير", catalogue: "دليل البنود", code: "الكود", unit: "الوحدة", total: "الإجمالي", revision: "مراجعة",
     gross: "الإجمالي", ded: "الاستقطاعات", net: "الصافي", status: "الحالة", kind: "النوع", advance: "تقديم",
     newCert: "مستخلص جديد", qty: "الكمية", price: "السعر", retention: "نسبة الاحتجاز %", payRef: "مرجع السداد", create: "إنشاء",
     nameEn: "الاسم (إنجليزي)", nameAr: "الاسم (عربي)", blcd: "الكود القديم", buildings: "المباني",
@@ -18,7 +18,7 @@ const T = {
     tenderTitle: "عنوان المناقصة", stage: "المرحلة", cases: "قضايا نزع الملكية", decree: "رقم القرار", decreeDate: "تاريخ القرار", gazette: "رقم الجريدة الرسمية", recordDecree: "تسجيل القرار", compensation: "التعويض" },
 } as const;
 type Lang = keyof typeof T;
-type Tab = "dash" | "certs" | "map" | "budget" | "tenders" | "estate";
+type Tab = "dash" | "certs" | "map" | "budget" | "tenders" | "estate" | "estimates" | "reports";
 const CERT_NEXT: Record<string, string> = { draft: "certified", certified: "billed", billed: "payment_authorized", payment_authorized: "paid" };
 const TENDER_NEXT: Record<string, string> = { draft: "booklet", booklet: "published", published: "bids_open", bids_open: "bids_closed", bids_closed: "exclusion_review", exclusion_review: "envelope_committee", envelope_committee: "financial_evaluation", financial_evaluation: "award_committee", award_committee: "negotiation", negotiation: "awarded", awarded: "contracted" };
 
@@ -29,6 +29,10 @@ export default function App() {
   const [certs, setCerts] = useState<Certificate[]>([]); const [buildings, setBuildings] = useState<Building[]>([]);
   const [allocs, setAllocs] = useState<Allocation[]>([]); const [tenders, setTenders] = useState<Tender[]>([]);
   const [cases, setCases] = useState<ExCase[]>([]);
+  const [estimates, setEstimates] = useState<Estimate[]>([]); const [catalogue, setCatalogue] = useState<CatalogueItem[]>([]);
+  const [budgetUtil, setBudgetUtil] = useState<BudgetUtil[]>([]); const [certSummary, setCertSummary] = useState<CertSummary[]>([]);
+  const [catForm, setCatForm] = useState({ code: "", name_en: "", name_ar: "", unit: "m2", standard_price: "100" });
+  const [estForm, setEstForm] = useState({ title: "", catalogue_item_id: "", qty: "10" });
   const [form, setForm] = useState({ username: "", password: "" });
   const [line, setLine] = useState({ qty: "100", price: "250.50", retention: "10" });
   const [payRef, setPayRef] = useState("");
@@ -40,11 +44,13 @@ export default function App() {
   useEffect(() => { document.documentElement.lang = lang; document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"; }, [lang]);
   async function load() {
     try {
-      const [c, b, a, tn, cs] = await Promise.all([
+      const [c, b, a, tn, cs, es, cat, bu, csum] = await Promise.all([
         api<Certificate[]>("/api/certificates").catch(() => []), api<Building[]>("/api/buildings").catch(() => []),
         api<Allocation[]>("/api/budget").catch(() => []), api<Tender[]>("/api/tenders").catch(() => []),
-        api<ExCase[]>("/api/realestate/cases").catch(() => [])]);
-      setCerts(c); setBuildings(b); setAllocs(a); setTenders(tn); setCases(cs);
+        api<ExCase[]>("/api/realestate/cases").catch(() => []),
+        api<Estimate[]>("/api/estimates").catch(() => []), api<CatalogueItem[]>("/api/catalogue").catch(() => []),
+        api<BudgetUtil[]>("/api/reports/budget-utilization").catch(() => []), api<CertSummary[]>("/api/reports/certificates-summary").catch(() => [])]);
+      setCerts(c); setBuildings(b); setAllocs(a); setTenders(tn); setCases(cs); setEstimates(es); setCatalogue(cat); setBudgetUtil(bu); setCertSummary(csum);
     } catch (e: any) { setErr(e.message); }
   }
   useEffect(() => { if (authed) load(); }, [authed]);
@@ -61,7 +67,7 @@ export default function App() {
       <label>{t.pass}<input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required /></label>
       {err && <p className="err">{t.err}: {err}</p>}<button type="submit">{t.login}</button></form></main>);
 
-  const tabs: [Tab, string][] = [["dash", t.dash], ["certs", t.certs], ["map", t.map], ["budget", t.budget], ["tenders", t.tenders], ["estate", t.estate]];
+  const tabs: [Tab, string][] = [["dash", t.dash], ["certs", t.certs], ["map", t.map], ["budget", t.budget], ["tenders", t.tenders], ["estate", t.estate], ["estimates", t.estimates], ["reports", t.reports]];
   return (<main className="wrap"><header><h1>{t.title}</h1><div><span>{t.role}: {role} </span>
     <button onClick={() => setLang(lang === "en" ? "ar" : "en")}>{lang === "en" ? "العربية" : "English"}</button>
     <button onClick={logout}>{t.logout}</button></div></header>
@@ -119,5 +125,35 @@ export default function App() {
       <tbody>{cases.map(c => <tr key={c.id}><td>{c.id}</td><td>{c.stage}</td><td>{c.decree_no ?? ""}</td><td>{c.compensation ?? ""}</td>
         <td>{c.stage === "pre_decree" && <button onClick={() => act(() => api(`/api/realestate/cases/${c.id}/decree`, { method: "POST",
           body: JSON.stringify(dForm) }))}>{t.recordDecree}</button>}</td></tr>)}</tbody></table></section></>}
+
+    {tab === "estimates" && <><section className="card"><h2>{t.catalogue}</h2>
+      <label>{t.code}<input value={catForm.code} onChange={e => setCatForm({ ...catForm, code: e.target.value })} /></label>
+      <label>{t.nameEn}<input value={catForm.name_en} onChange={e => setCatForm({ ...catForm, name_en: e.target.value })} /></label>
+      <label>{t.nameAr}<input value={catForm.name_ar} onChange={e => setCatForm({ ...catForm, name_ar: e.target.value })} /></label>
+      <label>{t.unit}<input value={catForm.unit} onChange={e => setCatForm({ ...catForm, unit: e.target.value })} /></label>
+      <label>{t.price}<input value={catForm.standard_price} onChange={e => setCatForm({ ...catForm, standard_price: e.target.value })} /></label>
+      <button onClick={() => act(() => api("/api/catalogue", { method: "POST", body: JSON.stringify(catForm) }))}>{t.create}</button>
+      <table><thead><tr><th>{t.code}</th><th>{t.nameEn}</th><th>{t.nameAr}</th><th>{t.unit}</th><th>{t.price}</th></tr></thead>
+      <tbody>{catalogue.map(i => <tr key={i.id}><td>{i.code}</td><td>{i.name_en}</td><td>{i.name_ar}</td><td>{i.unit}</td><td>{i.standard_price}</td></tr>)}</tbody></table></section>
+      <section className="card"><h2>{t.estimates}</h2>
+      <label>{t.tenderTitle}<input value={estForm.title} onChange={e => setEstForm({ ...estForm, title: e.target.value })} /></label>
+      <label>{t.catalogue}<select value={estForm.catalogue_item_id} onChange={e => setEstForm({ ...estForm, catalogue_item_id: e.target.value })}>
+        <option value="">—</option>{catalogue.map(i => <option key={i.id} value={i.id}>{i.code} — {lang === "ar" ? i.name_ar : i.name_en}</option>)}</select></label>
+      <label>{t.qty}<input value={estForm.qty} onChange={e => setEstForm({ ...estForm, qty: e.target.value })} /></label>
+      <button onClick={() => act(() => api("/api/estimates", { method: "POST", body: JSON.stringify({ title: estForm.title,
+        items: [{ catalogue_item_id: Number(estForm.catalogue_item_id), qty: estForm.qty }] }) }))}>{t.create}</button>
+      <table><thead><tr><th>#</th><th>{t.tenderTitle}</th><th>{t.status}</th><th>{t.revision}</th><th>{t.total}</th><th></th></tr></thead>
+      <tbody>{estimates.map(x => <tr key={x.id}><td>{x.id}</td><td>{x.title}</td><td>{x.status}</td><td>{x.revision}</td><td>{x.total}</td>
+        <td>{x.status === "draft" && <button onClick={() => act(() => api(`/api/estimates/${x.id}/transition`, { method: "POST", body: JSON.stringify({ to: "reviewed" }) }))}>{t.advance} → reviewed</button>}
+        {x.status === "reviewed" && <><button onClick={() => act(() => api(`/api/estimates/${x.id}/transition`, { method: "POST", body: JSON.stringify({ to: "approved" }) }))}>{t.advance} → approved</button>
+        <button onClick={() => act(() => api(`/api/estimates/${x.id}/transition`, { method: "POST", body: JSON.stringify({ to: "draft" }) }))}>↩ draft</button></>}</td></tr>)}</tbody></table></section></>}
+
+    {tab === "reports" && <><section className="card"><h2>{t.budget} — {t.reports}</h2>
+      <table><thead><tr><th>{t.fy}</th><th>{t.allocated}</th><th>{t.committed}</th><th>{t.spent}</th><th>{t.available}</th></tr></thead>
+      <tbody>{budgetUtil.map(r => <tr key={r.fiscal_year}><td>{r.fiscal_year}</td><td>{r.allocated}</td><td>{r.committed}</td><td>{r.spent}</td><td>{r.available}</td></tr>)}</tbody></table>
+      <p><a href="/api/reports/budget-utilization.csv" target="_blank" rel="noreferrer">CSV ↓</a></p></section>
+      <section className="card"><h2>{t.certs} — {t.reports}</h2>
+      <table><thead><tr><th>{t.status}</th><th>#</th><th>{t.gross}</th><th>{t.ded}</th><th>{t.net}</th></tr></thead>
+      <tbody>{certSummary.map(r => <tr key={r.status}><td>{r.status}</td><td>{r.count}</td><td>{r.gross}</td><td>{r.deductions}</td><td>{r.net}</td></tr>)}</tbody></table></section></>}
   </main>);
 }

@@ -6,36 +6,40 @@
 > gaeb-platform@1.0.0-production-scaffold build
 > tsc -p tsconfig.json && cp -r src/codepages dist/src/
 
-✔ windows-1256 decodes to the exact original Arabic (independent Python-generated vector) (1.446831ms)
-✔ ibm420 (CCSID 420) EBCDIC bytes decode to the exact original Arabic (glibc charmap vector) (0.227812ms)
-✔ ibm864 decodes shaped presentation forms back to standard letters (0.299419ms)
-✔ ibm425 fails loudly instead of silently corrupting (no verified table) (0.693651ms)
-✔ mojibake is flagged, never auto-repaired (0.350076ms)
-✔ search normalization is separate from the preserved original (0.330757ms)
-✔ password hashing is salted, verifies, and rejects wrong passwords (676.203413ms)
-✔ RBAC: viewer cannot write; certifier cannot authorize payment (separation of duties) (0.401452ms)
-✔ tender stages cannot be skipped (0.229003ms)
-✔ certificate: 'paid' requires a payment reference; sequence is enforced (0.281362ms)
-✔ expropriation: decree gate blocks post-decree actions before the decree exists (0.269394ms)
-✔ CHK5DAYS implementation: 5 working days skip Fri/Sat weekend (0.818549ms)
-✔ estimates: draft -> reviewed requires the review permission (1.422725ms)
-✔ estimates: approval is a separate permission from review (separation of duties) (0.318928ms)
-✔ estimates: no skipping — draft cannot jump to approved; approved is terminal (0.165007ms)
-✔ estimates: reviewed can be returned for correction (new revision) (0.122844ms)
-✔ offline extract import: decodes Arabic + packed money, quarantines duplicate and corrupt records (4.141485ms)
-✔ reconciliation: control totals are exact decimals over loaded records (0.95975ms)
-✔ resume: a second run with the saved job state loads nothing twice (idempotent) (0.608853ms)
-✔ lineage: report carries the source file hash and every record keeps its raw form (2.25901ms)
-✔ packed decimal decodes value, scale and sign (1.678038ms)
-✔ zoned decimal (EBCDIC) decodes with negative sign zone (0.398578ms)
-✔ certificate valuation is exact decimal (no float error) (1.838318ms)
-✔ certificate with deductions exceeding gross is rejected, not silently negative (0.264227ms)
-✔ large packed-decimal contract value keeps full precision (0.262074ms)
-ℹ tests 25
+✔ windows-1256 decodes to the exact original Arabic (independent Python-generated vector) (1.379981ms)
+✔ ibm420 (CCSID 420) EBCDIC bytes decode to the exact original Arabic (glibc charmap vector) (0.252189ms)
+✔ ibm864 decodes shaped presentation forms back to standard letters (0.312229ms)
+✔ ibm425 fails loudly instead of silently corrupting (no verified table) (2.534994ms)
+✔ mojibake is flagged, never auto-repaired (0.378989ms)
+✔ search normalization is separate from the preserved original (0.362594ms)
+✔ password hashing is salted, verifies, and rejects wrong passwords (832.193647ms)
+✔ RBAC: viewer cannot write; certifier cannot authorize payment (separation of duties) (0.328764ms)
+✔ tender stages cannot be skipped (0.212779ms)
+✔ certificate: 'paid' requires a payment reference; sequence is enforced (0.292989ms)
+✔ expropriation: decree gate blocks post-decree actions before the decree exists (0.230696ms)
+✔ CHK5DAYS implementation: 5 working days skip Fri/Sat weekend (0.796285ms)
+✔ estimates: draft -> reviewed requires the review permission (1.369826ms)
+✔ estimates: approval is a separate permission from review (separation of duties) (0.257907ms)
+✔ estimates: no skipping — draft cannot jump to approved; approved is terminal (0.174061ms)
+✔ estimates: reviewed can be returned for correction (new revision) (0.125158ms)
+✔ staging insert is parameterized and carries lineage (batch + raw source bytes) (3.253272ms)
+✔ unsafe table or column names are refused (no SQL injection surface) (0.527892ms)
+✔ batch + reject builders carry the reconciliation figures verbatim (0.315263ms)
+✔ persistImport runs batch, rejects and records in one transaction (1.175665ms)
+✔ offline extract import: decodes Arabic + packed money, quarantines duplicate and corrupt records (4.221055ms)
+✔ reconciliation: control totals are exact decimals over loaded records (0.680101ms)
+✔ resume: a second run with the saved job state loads nothing twice (idempotent) (1.862224ms)
+✔ lineage: report carries the source file hash and every record keeps its raw form (0.658478ms)
+✔ packed decimal decodes value, scale and sign (1.694684ms)
+✔ zoned decimal (EBCDIC) decodes with negative sign zone (0.358798ms)
+✔ certificate valuation is exact decimal (no float error) (1.549506ms)
+✔ certificate with deductions exceeding gross is rejected, not silently negative (0.264597ms)
+✔ large packed-decimal contract value keeps full precision (0.294252ms)
+ℹ tests 29
 ℹ suites 0
-ℹ pass 25
+ℹ pass 29
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 946.21474
+ℹ duration_ms 1048.603054

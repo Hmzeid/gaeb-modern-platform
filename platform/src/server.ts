@@ -237,6 +237,37 @@ app.post("/api/realestate/cases/:id/decree", requireAuth, requirePerm("realestat
   await audit(s.userId, "record_decree", "expropriation_case", req.params.id, { decreeNo: updated.decreeNo });
   res.json({ ok: true, stage: updated.stage });
 });
+
+// Reports: aggregates run in SQL over NUMERIC columns and return as strings —
+// figures reconcile to the underlying records by construction (Directive §11).
+app.get("/api/reports/budget-utilization", requireAuth, async (_req, res) => {
+  const { rows } = await pool.query(
+    `SELECT fiscal_year, COUNT(*)::int AS lines, SUM(allocated) AS allocated, SUM(committed) AS committed, SUM(spent) AS spent,
+            SUM(allocated - committed - spent) AS available
+     FROM app.budget_allocations GROUP BY fiscal_year ORDER BY fiscal_year DESC`);
+  res.json(rows.map(r => ({ ...r, allocated: String(r.allocated), committed: String(r.committed), spent: String(r.spent), available: String(r.available) })));
+});
+app.get("/api/reports/budget-utilization.csv", requireAuth, async (_req, res) => {
+  const { rows } = await pool.query(
+    `SELECT fiscal_year, SUM(allocated) AS allocated, SUM(committed) AS committed, SUM(spent) AS spent, SUM(allocated - committed - spent) AS available
+     FROM app.budget_allocations GROUP BY fiscal_year ORDER BY fiscal_year DESC`);
+  const csv = ["fiscal_year,allocated,committed,spent,available",
+    ...rows.map(r => [r.fiscal_year, r.allocated, r.committed, r.spent, r.available].join(","))].join("\n");
+  res.type("text/csv").send(csv);
+});
+app.get("/api/reports/certificates-summary", requireAuth, async (_req, res) => {
+  const { rows } = await pool.query(
+    `SELECT status, COUNT(*)::int AS count, SUM(gross) AS gross, SUM(deductions) AS deductions, SUM(net) AS net
+     FROM app.certificates GROUP BY status ORDER BY status`);
+  res.json(rows.map(r => ({ ...r, gross: String(r.gross), deductions: String(r.deductions), net: String(r.net) })));
+});
+app.get("/api/reports/buildings-by-governorate", requireAuth, async (_req, res) => {
+  const { rows } = await pool.query(
+    `SELECT g.code, g.name_en, g.name_ar, COUNT(b.id)::int AS buildings
+     FROM app.governorates g LEFT JOIN app.buildings b ON b.governorate_code = g.code
+     GROUP BY g.code, g.name_en, g.name_ar ORDER BY buildings DESC, g.code`);
+  res.json(rows);
+});
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(JSON.stringify({ level: "error", message: String(err?.message || err) }));
   res.status(500).json({ error: "internal error" });

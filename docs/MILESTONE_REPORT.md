@@ -93,3 +93,18 @@ preparation all remain, gated on the blockers in docs/BLOCKERS.md where noted.
   (with decree recording) — EN/AR with RTL. Production build verified (154.52 kB).
   Remaining frontend depth: estimates screens, catalogue management, migration center UI,
   reports — tracked, not yet built.
+
+## Addendum 3 — Session 2026-11-12 (continued)
+
+- **Migration persistence layer implemented**: `mig` schema (batches, rejects, job_state)
+  in migration 003; `platform/src/migration/load.ts` builds parameterized staging inserts
+  with lineage columns (_batch_id, _raw_hex) and persists batch summary + rejects +
+  records in one transaction. SQL builders are unit-tested (including injection-refusal
+  tests); the executor runs only against a live database. **Suite now 29/29 passing.**
+- **Reports (first set)**: budget utilization by fiscal year and certificate summary by
+  status, aggregated in SQL over NUMERIC columns and returned as exact strings, plus a
+  CSV export of budget utilization. PDF/Excel report generation is not yet implemented.
+- **Frontend**: Estimates tab (catalogue management + catalogue-only estimate creation +
+  review/approve/return actions) and Reports tab added. Build verified (159.79 kB).
+- Still unverified until a PostgreSQL host exists: every DB-backed path end-to-end.
+  The unit suite covers logic, builders and workflows — not live SQL execution.
