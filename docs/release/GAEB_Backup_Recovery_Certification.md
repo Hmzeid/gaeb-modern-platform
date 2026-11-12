@@ -50,3 +50,21 @@ for GAEB's hosting (see Residual Risk RR-06).
   snapshot is fully recoverable (RPO 0 relative to the snapshot); the loss
   window between snapshots is a scheduling decision, not measured here.
 - These are sandbox measurements on shared hardware, not guarantees.
+
+## Phase 7 addendum (2026-11-12) — PITR VERIFIED; re-executions
+- **Point-in-time recovery: VERIFIED on a dedicated drill cluster.**
+  WAL archiving enabled (archive_mode=on, file-copy archive_command);
+  platform schema applied; base backup taken; transaction A committed;
+  recovery target captured; transaction B committed; source stopped;
+  the base backup was restored with restore_command + recovery_target_time
+  and promoted. Result: **A present, B absent**, restored cluster ready in
+  27.4 s (tools/pitr-drill.mjs; evidence/phase7/pitr/pitr-drill.log).
+  Scope: this certifies the PITR mechanism and configuration pattern.
+  Production PITR still requires archiving enabled on the production host
+  (go/no-go checklist).
+- Logical backup re-executed: PASS (evidence/phase7/backup/).
+- Physical backup re-executed against a quiescent database: PASS
+  (evidence/phase7/backup/; an earlier comparison run was invalidated by
+  concurrent test-suite mutation and is documented in
+  evidence/phase7/backup/INVALID_RUN_NOTE.md).
+- Multi-host DR remains NOT VERIFIED.

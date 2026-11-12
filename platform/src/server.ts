@@ -8,6 +8,33 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 const PORT = Number(process.env.PORT || 8080);
 
+// Correlation IDs (Phase 7, Workstream I): every request carries an id,
+// echoed to the caller and attached to error logs, so an operator can trace
+// one request across the API, the audit trail, and support reports.
+app.use((req, res, next) => {
+  const id = String(req.headers["x-request-id"] ?? "").slice(0, 64) || `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  (req as any).requestId = id;
+  res.setHeader("x-request-id", id);
+  next();
+});
+
+// Login throttling (Phase 7, Workstream C): failed attempts are counted per
+// (ip, username) in a sliding 10-minute window; the 10th failure locks the
+// pair out until the window slides. A successful login clears the counter.
+// In-memory by design for the single-node deployment; the control is the
+// attempt budget, not the storage.
+const loginFailures = new Map<string, number[]>();
+const LOGIN_WINDOW_MS = 10 * 60 * 1000, LOGIN_MAX_FAILURES = 10;
+function loginLocked(key: string): boolean {
+  const now = Date.now();
+  const list = (loginFailures.get(key) ?? []).filter(t => now - t < LOGIN_WINDOW_MS);
+  loginFailures.set(key, list);
+  return list.length >= LOGIN_MAX_FAILURES;
+}
+function loginFailed(key: string): void {
+  const list = loginFailures.get(key) ?? []; list.push(Date.now()); loginFailures.set(key, list);
+}
+
 async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "missing session token" });
@@ -31,9 +58,14 @@ app.get("/health", (_req, res) => res.json({ ok: true, service: "gaeb-platform" 
 
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body ?? {};
+  const lockKey = `${req.ip ?? "?"}|${String(username ?? "")}`;
+  if (loginLocked(lockKey)) return res.status(429).json({ error: "too many failed login attempts; try again later" });
   const { rows } = await pool.query("SELECT id, password_hash, role FROM app.users WHERE username = $1 AND is_active", [username]);
-  if (!rows.length || !verifyPassword(String(password ?? ""), rows[0].password_hash))
+  if (!rows.length || !verifyPassword(String(password ?? ""), rows[0].password_hash)) {
+    loginFailed(lockKey);
     return res.status(401).json({ error: "invalid credentials" });
+  }
+  loginFailures.delete(lockKey);
   const token = newSessionToken();
   const expires = new Date(Date.now() + SESSION_TTL_MS);
   await pool.query("INSERT INTO app.sessions (token_key, user_id, expires_at) VALUES ($1,$2,$3)", [sessionKey(token), rows[0].id, expires]);

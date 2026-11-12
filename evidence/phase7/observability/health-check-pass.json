@@ -1,0 +1,36 @@
+{
+ "at": "2026-11-12T21:13:20.817Z",
+ "ok": true,
+ "checks": [
+  {
+   "name": "database reachable",
+   "ok": true,
+   "detail": "SELECT 1 ok"
+  },
+  {
+   "name": "no failed import jobs",
+   "ok": true,
+   "detail": "0 FAILED jobs"
+  },
+  {
+   "name": "no stalled jobs (expired leases)",
+   "ok": true,
+   "detail": "0 jobs with expired leases"
+  },
+  {
+   "name": "quarantine ratio (24h) below 20%",
+   "ok": true,
+   "detail": "loaded 1885891, quarantined 0 in the last 24h"
+  },
+  {
+   "name": "database size below 85% of the 10 GB pilot budget",
+   "ok": true,
+   "detail": "0.79 GB"
+  },
+  {
+   "name": "api health endpoint",
+   "ok": true,
+   "detail": "HTTP 200"
+  }
+ ]
+}
