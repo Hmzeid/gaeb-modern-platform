@@ -10,6 +10,7 @@ services:
     volumes:
       - gaeb_pgdata:/var/lib/postgresql/data
       - ./platform/migrations:/docker-entrypoint-initdb.d:ro
+      - ./migration/reconciled/schema_v2.sql:/docker-entrypoint-initdb.d/90_staging_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gaeb"]
       interval: 10s
@@ -25,5 +26,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  frontend:
+    build: ./platform/frontend
+    environment:
+      API_PROXY: http://api:8080
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
 volumes:
   gaeb_pgdata:

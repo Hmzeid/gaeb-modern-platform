@@ -272,4 +272,98 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   console.error(JSON.stringify({ level: "error", message: String(err?.message || err) }));
   res.status(500).json({ error: "internal error" });
 });
+
+// ---------------- Migration Center (Phase 3) ----------------
+// Real endpoints over the migration engine: preview (decode only), import (full
+// pipeline on one connection), batches, quarantine, audited reject resubmission,
+// approval-gated transforms, approvals register, legacy inventory.
+import { importFixedWidth, validateLayout, type Layout } from "./migration/engine.js";
+import { persistImport, loadJobState } from "./migration/load.js";
+import { TRANSFORMS, runTransform } from "./migration/transform.js";
+import { readFileSync as rf2 } from "node:fs";
+const PBL_LAYOUT: Layout = { recordLength: 58, fields: [
+  { name: "BECD", type: "char", length: 2, encoding: "utf8" }, { name: "BLRD", type: "char", length: 2, encoding: "utf8" },
+  { name: "BLCD", type: "char", length: 7, encoding: "utf8", key: true },
+  { name: "SHNM", type: "char", length: 40, encoding: "ibm420" }, { name: "VGCD", type: "zoned", length: 7, decimals: 0 } ] };
+const MIG_LAYOUTS: Record<string, { layout: Layout; table: string }> = { pblbuldg: { layout: PBL_LAYOUT, table: "school_map.pblbuldg" } };
+app.get("/api/migration/inventory", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  try { res.json(JSON.parse(rf2(new URL("../../assets/inventory.json", import.meta.url), "utf8"))); }
+  catch { res.status(500).json({ error: "inventory asset unavailable" }); }
+});
+app.post("/api/migration/preview", requireAuth, requirePerm("migration.run"), express.raw({ type: "application/octet-stream", limit: "64mb" }), async (req, res) => {
+  const entry = MIG_LAYOUTS[String(req.query.layout ?? "pblbuldg")];
+  if (!entry) return res.status(400).json({ error: "unknown layout" });
+  try { validateLayout(entry.layout); } catch (e: any) { return res.status(422).json({ error: String(e.message) }); }
+  const { createHash } = await import("node:crypto");
+  const batchId = `mig-${createHash("sha256").update(req.body as Buffer).digest("hex").slice(0, 16)}`;
+  const { records, report } = importFixedWidth(req.body as Buffer, entry.layout, { batchId, nextOffset: 0, loadedKeys: [] });
+  res.json({ preview: records.slice(0, 25).map(r => r.values), ...report });
+});
+app.post("/api/migration/import", requireAuth, requirePerm("migration.run"), express.raw({ type: "application/octet-stream", limit: "64mb" }), async (req, res) => {
+  const entry = MIG_LAYOUTS[String(req.query.layout ?? "pblbuldg")];
+  if (!entry) return res.status(400).json({ error: "unknown layout" });
+  const client = await pool.connect();
+  try {
+    const { createHash } = await import("node:crypto");
+    const data = req.body as Buffer;
+    const batchId = `mig-${createHash("sha256").update(data).digest("hex").slice(0, 16)}`;
+    const db = { query: (t: string, v?: unknown[]) => client.query(t, v as any) };
+    const state = await loadJobState(db, batchId);
+    const { records, report, state: newState } = importFixedWidth(data, entry.layout, state);
+    const persisted = await persistImport(db, entry.table, "ui-upload", String(req.query.layout), records, report, newState);
+    const staged = await client.query(`SELECT COUNT(*)::int n FROM ${entry.table} WHERE _batch_id = $1`, [batchId]);
+    await audit((req as any).session.userId, "migration.import", "batch", batchId, { loaded: report.loaded, rejected: report.rejected.length });
+    res.json({ ...report, alreadyRecorded: persisted.alreadyRecorded, stagedRowsForBatch: staged.rows[0].n });
+  } catch (e: any) { res.status(422).json({ error: String(e.message || e) }); }
+  finally { client.release(); }
+});
+app.get("/api/migration/batches", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  const r = await pool.query(`SELECT b.batch_id, b.source_file, b.layout_name, b.total_records, b.loaded, b.rejected, b.started_at,
+    (SELECT json_object_agg(field || ':' || kind, amount) FROM mig.batch_totals t WHERE t.batch_id = b.batch_id) AS totals
+    FROM mig.batches b ORDER BY b.started_at DESC LIMIT 100`);
+  res.json(r.rows);
+});
+app.get("/api/migration/batches/:id/rejects", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const r = await pool.query("SELECT id, record_offset, reason, raw_hex, resubmitted_batch FROM mig.rejects WHERE batch_id = $1 ORDER BY record_offset", [req.params.id]);
+  res.json(r.rows);
+});
+app.post("/api/migration/rejects/:id/resubmit", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  // Auditable correction flow (buildings layout): the operator supplies corrected field
+  // values; the original reject stays on record, the corrected row enters staging under
+  // a resubmission batch, and mig.rejects.resubmitted_batch links the two forever.
+  const v = (req.body ?? {}).values as Record<string, string> | undefined;
+  if (!v?.BLCD || !v?.SHNM || !v?.VGCD) return res.status(400).json({ error: "corrected values must include BLCD, SHNM, VGCD" });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const rj = await client.query("SELECT batch_id, record_offset FROM mig.rejects WHERE id = $1 FOR UPDATE", [req.params.id]);
+    if (!rj.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "reject not found" }); }
+    const newBatch = `mig-resubmit-${req.params.id}`;
+    await client.query(`INSERT INTO school_map.pblbuldg (becd, blrd, blcd, shnm, vgcd, _batch_id, _source_offset, _raw_hex)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,'resubmitted') ON CONFLICT (_batch_id, _source_offset) DO NOTHING`,
+      [v.BECD ?? "", v.BLRD ?? "", v.BLCD, v.SHNM, v.VGCD, newBatch, rj.rows[0].record_offset]);
+    await client.query("UPDATE mig.rejects SET resubmitted_batch = $1 WHERE id = $2", [newBatch, req.params.id]);
+    await client.query("COMMIT");
+    await audit((req as any).session.userId, "migration.reject.resubmit", "reject", String(req.params.id), { newBatch, values: v });
+    res.json({ ok: true, resubmittedBatch: newBatch });
+  } catch (e: any) { await client.query("ROLLBACK"); res.status(422).json({ error: String(e.message || e) }); }
+  finally { client.release(); }
+});
+app.get("/api/migration/approvals", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  const r = await pool.query("SELECT legacy_member, legacy_field, target_column, transform_name, transform_hash, approved_by, evidence_ref, approved_at FROM mig.mapping_approvals ORDER BY transform_name, legacy_field");
+  res.json(r.rows);
+});
+app.post("/api/migration/transform", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const spec = TRANSFORMS[String((req.body ?? {}).name)];
+  const batchId = String((req.body ?? {}).batchId ?? "");
+  if (!spec || !batchId) return res.status(400).json({ error: "transform name and batchId are required" });
+  const client = await pool.connect();
+  try {
+    const inserted = await runTransform({ query: (t: string, v?: unknown[]) => client.query(t, v as any) }, spec, batchId);
+    await audit((req as any).session.userId, "migration.transform", spec.name, batchId, { inserted });
+    res.json({ ok: true, inserted });
+  } catch (e: any) { res.status(422).json({ error: String(e.message || e) }); }
+  finally { client.release(); }
+});
+
 app.listen(PORT, () => console.log(JSON.stringify({ level: "info", message: `gaeb-platform listening on ${PORT}` })));

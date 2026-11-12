@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, getToken, setToken, type Certificate, type Building, type Allocation, type Tender, type ExCase, type Estimate, type CatalogueItem, type BudgetUtil, type CertSummary } from "./api";
+import { api, apiRaw, getToken, setToken, type Certificate, type Building, type Allocation, type Tender, type ExCase, type Estimate, type CatalogueItem, type BudgetUtil, type CertSummary, type MigBatch, type MigReject } from "./api";
 
 const T = {
   en: { title: "GAEB Modern Platform", login: "Sign in", user: "Username", pass: "Password", logout: "Sign out", role: "Role", err: "Error",
@@ -8,17 +8,17 @@ const T = {
     newCert: "New certificate", qty: "Qty", price: "Price", retention: "Retention %", payRef: "Payment ref", create: "Create",
     nameEn: "Name (EN)", nameAr: "Name (AR)", blcd: "Legacy code (BLCD)", buildings: "Buildings",
     fy: "Fiscal year", chapter: "Chapter", item: "Item", allocated: "Allocated", committed: "Committed", spent: "Spent", available: "Available",
-    tenderTitle: "Tender title", stage: "Stage", cases: "Expropriation cases", decree: "Decree no.", decreeDate: "Decree date", gazette: "Gazette no.", recordDecree: "Record decree", compensation: "Compensation" },
+    tenderTitle: "Tender title", stage: "Stage", cases: "Expropriation cases", decree: "Decree no.", decreeDate: "Decree date", gazette: "Gazette no.", recordDecree: "Record decree", compensation: "Compensation", migration: "Migration Center", preview: "Preview decode", runImport: "Run import", batches: "Import batches", rejects: "Quarantined records", resubmit: "Resubmit corrected", transform: "Run transform", approvals: "Mapping approvals", inventory: "Legacy inventory", chooseFile: "IBM i extract file (PBLBULDG layout)", viewInModule: "View in School Map" },
   ar: { title: "منصة الهيئة العامة للأبنية التعليمية", login: "تسجيل الدخول", user: "اسم المستخدم", pass: "كلمة المرور", logout: "تسجيل الخروج", role: "الدور", err: "خطأ",
     dash: "لوحة المتابعة", certs: "المستخلصات", map: "الخريطة المدرسية", budget: "الموازنة", tenders: "المناقصات", estate: "الملكية العقارية", estimates: "المقايسات", reports: "التقارير", catalogue: "دليل البنود", code: "الكود", unit: "الوحدة", total: "الإجمالي", revision: "مراجعة",
     gross: "الإجمالي", ded: "الاستقطاعات", net: "الصافي", status: "الحالة", kind: "النوع", advance: "تقديم",
     newCert: "مستخلص جديد", qty: "الكمية", price: "السعر", retention: "نسبة الاحتجاز %", payRef: "مرجع السداد", create: "إنشاء",
     nameEn: "الاسم (إنجليزي)", nameAr: "الاسم (عربي)", blcd: "الكود القديم", buildings: "المباني",
     fy: "السنة المالية", chapter: "الباب", item: "البند", allocated: "المعتمد", committed: "المرتبط", spent: "المنصرف", available: "المتاح",
-    tenderTitle: "عنوان المناقصة", stage: "المرحلة", cases: "قضايا نزع الملكية", decree: "رقم القرار", decreeDate: "تاريخ القرار", gazette: "رقم الجريدة الرسمية", recordDecree: "تسجيل القرار", compensation: "التعويض" },
+    tenderTitle: "عنوان المناقصة", stage: "المرحلة", cases: "قضايا نزع الملكية", decree: "رقم القرار", decreeDate: "تاريخ القرار", gazette: "رقم الجريدة الرسمية", recordDecree: "تسجيل القرار", compensation: "التعويض", migration: "مركز الترحيل", preview: "معاينة فك الترميز", runImport: "تشغيل الاستيراد", batches: "دفعات الاستيراد", rejects: "السجلات المعزولة", resubmit: "إعادة إرسال بعد التصحيح", transform: "تشغيل التحويل", approvals: "اعتمادات الربط", inventory: "جرد النظام القديم", chooseFile: "ملف استخراج IBM i (تخطيط PBLBULDG)", viewInModule: "عرض في الخريطة المدرسية" },
 } as const;
 type Lang = keyof typeof T;
-type Tab = "dash" | "certs" | "map" | "budget" | "tenders" | "estate" | "estimates" | "reports";
+type Tab = "dash" | "certs" | "map" | "budget" | "tenders" | "estate" | "estimates" | "reports" | "migration";
 const CERT_NEXT: Record<string, string> = { draft: "certified", certified: "billed", billed: "payment_authorized", payment_authorized: "paid" };
 const TENDER_NEXT: Record<string, string> = { draft: "booklet", booklet: "published", published: "bids_open", bids_open: "bids_closed", bids_closed: "exclusion_review", exclusion_review: "envelope_committee", envelope_committee: "financial_evaluation", financial_evaluation: "award_committee", award_committee: "negotiation", negotiation: "awarded", awarded: "contracted" };
 
@@ -31,6 +31,16 @@ export default function App() {
   const [cases, setCases] = useState<ExCase[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]); const [catalogue, setCatalogue] = useState<CatalogueItem[]>([]);
   const [budgetUtil, setBudgetUtil] = useState<BudgetUtil[]>([]); const [certSummary, setCertSummary] = useState<CertSummary[]>([]);
+  const [migInv, setMigInv] = useState<{ total: number; items: { member: string; subsystem: string; status: string }[] } | null>(null);
+  const [migPreview, setMigPreview] = useState<any>(null); const [migBatches, setMigBatches] = useState<MigBatch[]>([]);
+  const [migRejects, setMigRejects] = useState<MigReject[]>([]); const [migBatchSel, setMigBatchSel] = useState("");
+  const [migApprovals, setMigApprovals] = useState<any[]>([]); const [migMsg, setMigMsg] = useState("");
+  const [migFile, setMigFile] = useState<ArrayBuffer | null>(null);
+  const [migFix, setMigFix] = useState(""); const [migFixId, setMigFixId] = useState<number | null>(null);
+  const loadMigration = async () => { try {
+    setMigInv(await api("/api/migration/inventory")); setMigBatches(await api("/api/migration/batches")); setMigApprovals(await api("/api/migration/approvals"));
+  } catch (e: any) { setErr(String(e.message || e)); } };
+  useEffect(() => { if (tab === "migration" && authed) loadMigration(); }, [tab, authed]);
   const [catForm, setCatForm] = useState({ code: "", name_en: "", name_ar: "", unit: "m2", standard_price: "100" });
   const [estForm, setEstForm] = useState({ title: "", catalogue_item_id: "", qty: "10" });
   const [form, setForm] = useState({ username: "", password: "" });
@@ -67,7 +77,7 @@ export default function App() {
       <label>{t.pass}<input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required /></label>
       {err && <p className="err">{t.err}: {err}</p>}<button type="submit">{t.login}</button></form></main>);
 
-  const tabs: [Tab, string][] = [["dash", t.dash], ["certs", t.certs], ["map", t.map], ["budget", t.budget], ["tenders", t.tenders], ["estate", t.estate], ["estimates", t.estimates], ["reports", t.reports]];
+  const tabs: [Tab, string][] = [["dash", t.dash], ["certs", t.certs], ["map", t.map], ["budget", t.budget], ["tenders", t.tenders], ["estate", t.estate], ["estimates", t.estimates], ["reports", t.reports], ["migration", t.migration]];
   return (<main className="wrap"><header><h1>{t.title}</h1><div><span>{t.role}: {role} </span>
     <button onClick={() => setLang(lang === "en" ? "ar" : "en")}>{lang === "en" ? "العربية" : "English"}</button>
     <button onClick={logout}>{t.logout}</button></div></header>
@@ -159,5 +169,32 @@ export default function App() {
       <section className="card"><h2>{t.certs} — {t.reports}</h2>
       <table><thead><tr><th>{t.status}</th><th>#</th><th>{t.gross}</th><th>{t.ded}</th><th>{t.net}</th></tr></thead>
       <tbody>{certSummary.map(r => <tr key={r.status}><td>{r.status}</td><td>{r.count}</td><td>{r.gross}</td><td>{r.deductions}</td><td>{r.net}</td></tr>)}</tbody></table></section></>}
+
+    {tab === "migration" && <><section className="card"><h2>{t.migration} — {t.inventory}</h2>
+      <p>{migInv ? `${migInv.total} legacy objects — ` + Object.entries(migInv.items.reduce((m: any, i: any) => (m[i.status] = (m[i.status] || 0) + 1, m), {})).map(([k, v]) => `${k}: ${v}`).join(" · ") : "…"}</p>
+      <p><label>{t.chooseFile} <input type="file" onChange={async e => { const f = e.target.files?.[0]; setMigFile(f ? await f.arrayBuffer() : null); }} /></label></p>
+      <p><button disabled={!migFile} onClick={() => act(async () => setMigPreview(await apiRaw("/api/migration/preview?layout=pblbuldg", migFile!)))}>{t.preview}</button>{" "}
+      <button disabled={!migFile} onClick={() => act(async () => { const r: any = await apiRaw("/api/migration/import?layout=pblbuldg", migFile!); setMigMsg(`batch ${r.batchId}: loaded ${r.loaded}, rejected ${r.rejected.length}, staged ${r.stagedRowsForBatch}${r.alreadyRecorded ? " (already recorded — retry changed nothing)" : ""}`); await loadMigration(); })}>{t.runImport}</button></p>
+      {migMsg && <p>{migMsg}</p>}
+      {migPreview && <><h3>{t.preview} — batch {migPreview.batchId}</h3>
+      <table><thead><tr>{Object.keys(migPreview.preview[0] ?? {}).map(k => <th key={k}>{k}</th>)}</tr></thead>
+      <tbody>{migPreview.preview.map((r: any, i: number) => <tr key={i}>{Object.values(r).map((v: any, j: number) => <td key={j}>{String(v)}</td>)}</tr>)}</tbody></table>
+      <p>control totals: {JSON.stringify(migPreview.controlTotals)} · source totals: {JSON.stringify(migPreview.sourceTotals)} · rejected: {migPreview.rejected.length}</p></>}
+      </section>
+      <section className="card"><h2>{t.batches}</h2>
+      <table><thead><tr><th>Batch</th><th>Layout</th><th>Total</th><th>Loaded</th><th>Rejected</th><th></th></tr></thead>
+      <tbody>{migBatches.map(b => <tr key={b.batch_id}><td>{b.batch_id}</td><td>{b.layout_name}</td><td>{b.total_records}</td><td>{b.loaded}</td><td>{b.rejected}</td>
+        <td><button onClick={() => act(async () => { setMigBatchSel(b.batch_id); setMigRejects(await api(`/api/migration/batches/${b.batch_id}/rejects`)); })}>{t.rejects}</button>{" "}
+        <button onClick={() => act(async () => { const r: any = await api("/api/migration/transform", { method: "POST", body: JSON.stringify({ name: "buildings", batchId: b.batch_id }) }); setMigMsg(`transform buildings on ${b.batch_id}: inserted ${r.inserted}`); await load(); })}>{t.transform}</button></td></tr>)}</tbody></table>
+      {migBatchSel && <><h3>{t.rejects} — {migBatchSel}</h3>
+      <table><thead><tr><th>#</th><th>Offset</th><th>Reason</th><th></th></tr></thead>
+      <tbody>{migRejects.map(r => <tr key={r.id}><td>{r.id}</td><td>{r.record_offset}</td><td>{r.reason}{r.resubmitted_batch ? ` → ${r.resubmitted_batch}` : ""}</td>
+        <td>{!r.resubmitted_batch && <button onClick={() => { setMigFixId(r.id); setMigFix('{"BLCD":"","SHNM":"","VGCD":""}'); }}>{t.resubmit}</button>}</td></tr>)}</tbody></table>
+      {migFixId !== null && <p><input style={{ width: "70%" }} value={migFix} onChange={e => setMigFix(e.target.value)} />{" "}
+        <button onClick={() => act(async () => { await api(`/api/migration/rejects/${migFixId}/resubmit`, { method: "POST", body: JSON.stringify({ values: JSON.parse(migFix) }) }); setMigFixId(null); setMigRejects(await api(`/api/migration/batches/${migBatchSel}/rejects`)); })}>{t.resubmit} #{migFixId}</button></p>}</>}
+      <p><button onClick={() => setTab("map")}>{t.viewInModule} →</button></p></section>
+      <section className="card"><h2>{t.approvals}</h2>
+      <table><thead><tr><th>Member</th><th>Field</th><th>Transform</th><th>Approved by</th><th>Evidence</th></tr></thead>
+      <tbody>{migApprovals.map((x, i) => <tr key={i}><td>{x.legacy_member}</td><td>{x.legacy_field}</td><td>{x.transform_name}</td><td>{x.approved_by}</td><td>{x.evidence_ref}</td></tr>)}</tbody></table></section></>}
   </main>);
 }

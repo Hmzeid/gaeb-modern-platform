@@ -4,7 +4,7 @@ import { buildStagingInsert, buildBatchInsert, buildRejectInserts, persistImport
 import type { ImportReport } from "../src/migration/engine.js";
 
 const rec = { values: { BLCD: "BLD001", AMT: "1500.5" }, raw: "abcd", offset: 62 };
-const report: ImportReport = { batchId: "b1", sourceSha256: "f".repeat(64), totalRecords: 3, loaded: 2,
+const report: ImportReport = { batchId: "b1", sourceSha256: "f".repeat(64), startOffset: 0, totalRecords: 3, loaded: 2,
   rejected: [{ offset: 62, reason: "duplicate key BLD001", rawHex: "00ff" }],
   controlTotals: { AMT: "1751.25" }, sourceTotals: { AMT: "1752.25" } };
 
@@ -24,10 +24,21 @@ test("batch + reject builders carry the reconciliation figures verbatim", () => 
   const r = buildRejectInserts(report);
   assert.equal(r.length, 1); assert.equal(r[0].values[2], "duplicate key BLD001");
 });
-test("persistImport runs batch, rejects and records in one transaction", async () => {
+test("persistImport runs ledger, batch, totals, rejects, records and checkpoint in one transaction", async () => {
   const calls: string[] = [];
-  const fake: SqlExecutor = { query: async (text: string) => { calls.push(text.split(" ")[0] + ":" + (text.includes("mig.batches") ? "batch" : text.includes("mig.rejects") ? "reject" : text.includes("school_map") ? "rec" : "")); return {}; } };
-  await persistImport(fake, "school_map.pblbuldg", "extract.dat", "buildings-v1", [rec], report);
-  assert.equal(calls[0], "BEGIN:"); assert.equal(calls[calls.length - 1], "COMMIT:");
-  assert.ok(calls.some(c => c.endsWith("batch")) && calls.some(c => c.endsWith("reject")) && calls.some(c => c.endsWith("rec")));
+  const fake = { query: async (text: string) => { calls.push(text); return { rows: [{ id: 1 }] }; } };
+  const state = { batchId: "b1", nextOffset: 3, loadedKeys: ["BLD001"] };
+  const r = await persistImport(fake as any, "school_map.pblbuldg", "extract.dat", "buildings-v1", [rec], report, state);
+  assert.equal(r.alreadyRecorded, false);
+  assert.equal(calls[0], "BEGIN"); assert.equal(calls[calls.length - 1], "COMMIT");
+  assert.ok(calls.some(c => c.includes("mig.batch_runs")) && calls.some(c => c.includes("mig.batch_totals")));
+  assert.ok(calls.some(c => c.includes("mig.rejects")) && calls.some(c => c.includes("school_map")) && calls.some(c => c.includes("mig.job_state")));
+});
+test("persistImport is a no-op when the same run already committed (retry cannot corrupt totals)", async () => {
+  const calls: string[] = [];
+  const fake = { query: async (text: string) => { calls.push(text); return { rows: [] }; } }; // run insert returns nothing = already recorded
+  const r = await persistImport(fake as any, "school_map.pblbuldg", "extract.dat", "buildings-v1", [rec], report);
+  assert.equal(r.alreadyRecorded, true);
+  assert.ok(!calls.some(c => c.includes("mig.batch_totals")), "totals must not be touched on a replayed run");
+  assert.ok(!calls.some(c => c.includes("school_map")), "staging must not be touched on a replayed run");
 });

@@ -8,7 +8,7 @@ import pg from "pg";
 import { hashPassword } from "../src/auth.js";
 import { importFixedWidth, type Layout } from "../src/migration/engine.js";
 import { persistImport, loadJobState, buildJobStateSave } from "../src/migration/load.js";
-import { runTransform, BUILDINGS_TRANSFORM } from "../src/migration/transform.js";
+import { runTransform, BUILDINGS_TRANSFORM, TENDERS_TRANSFORM, EXPROPRIATION_TRANSFORM, CERTIFICATES_TRANSFORM, transformHash } from "../src/migration/transform.js";
 
 // END-TO-END INTEGRATION — synthetic fixtures only (generated data, NOT customer records).
 // Pipeline proven here: IBM i-format extract -> parser -> PostgreSQL staging -> approved
@@ -50,9 +50,9 @@ test("E2E: extract -> staging -> transform -> operational -> API -> reconciliati
 });
 async function runE2E(admin: pg.Client) {
   const db = { query: (t: string, v?: unknown[]) => admin.query(t, v as any) };
-  await admin.query("DROP SCHEMA IF EXISTS app CASCADE; DROP SCHEMA IF EXISTS mig CASCADE; DROP SCHEMA IF EXISTS school_map CASCADE");
+  await admin.query("DROP SCHEMA IF EXISTS app CASCADE; DROP SCHEMA IF EXISTS mig CASCADE; DROP SCHEMA IF EXISTS school_map CASCADE; DROP SCHEMA IF EXISTS purchases CASCADE; DROP SCHEMA IF EXISTS real_estate CASCADE; DROP SCHEMA IF EXISTS abstracts CASCADE");
   const migDir = new URL("../../migrations/", import.meta.url);
-  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql"])
+  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql"])
     await admin.query(readFileSync(new URL(f, migDir), "utf8"));
   await admin.query(readFileSync(new URL("../../../migration/reconciled/schema_v2.sql", import.meta.url), "utf8"));
   for (const [u, role] of [["admin1", "admin"], ["tech1", "technical"], ["budget1", "budget"]] as const)
@@ -67,8 +67,7 @@ async function runE2E(admin: pg.Client) {
   assert.equal(run1.report.rejected.length, 3);
   assert.ok(run1.report.rejected.some(r => /incomplete trailing/.test(r.reason)));
   assert.ok(run1.report.rejected.some(r => /duplicate key/.test(r.reason)));
-  await persistImport(db, "school_map.pblbuldg", "fixture.dat", "pblbuldg-v1", run1.records, run1.report);
-  const save1 = buildJobStateSave(run1.state); await db.query(save1.text, save1.values);
+  await persistImport(db, "school_map.pblbuldg", "fixture.dat", "pblbuldg-v1", run1.records, run1.report, run1.state);
 
   const staged = await admin.query("SELECT blcd, shnm, vgcd, _batch_id, _source_offset, _raw_hex FROM school_map.pblbuldg WHERE _batch_id = $1 ORDER BY _source_offset", [batchId]);
   assert.equal(staged.rows.length, 2);
@@ -85,36 +84,57 @@ async function runE2E(admin: pg.Client) {
 
   // --- retry: same batch, checkpoint restored from DB -> nothing re-inserted ---
   const stateR = await loadJobState(db, batchId);
-  assert.equal(stateR.nextOffset, 4);
+  assert.equal(stateR!.nextOffset, 4);
   const run2 = importFixedWidth(extract, layout, stateR);
   assert.equal(run2.records.length, 0);
-  await persistImport(db, "school_map.pblbuldg", "fixture.dat", "pblbuldg-v1", run2.records, run2.report);
+  await persistImport(db, "school_map.pblbuldg", "fixture.dat", "pblbuldg-v1", run2.records, run2.report, run2.state);
+  // Phase 1 criterion: a retry must NEVER overwrite the original batch totals
+  const bt = await admin.query("SELECT loaded FROM mig.batches WHERE batch_id = $1", [batchId]);
+  assert.equal(bt.rows[0].loaded, 2, "batch loaded count must survive a zero-load retry");
+  const tt = await admin.query("SELECT kind, amount::text a FROM mig.batch_totals WHERE batch_id = $1 AND field = 'VGCD' ORDER BY kind", [batchId]);
+  assert.equal(tt.rows.find((r: any) => r.kind === "control").a, "15308643.000000");
+  assert.equal(tt.rows.find((r: any) => r.kind === "source").a, "22962964.000000");
   assert.equal((await admin.query("SELECT COUNT(*)::int n FROM school_map.pblbuldg WHERE _batch_id = $1", [batchId])).rows[0].n, 2);
   assert.equal((await admin.query("SELECT COUNT(*)::int n FROM mig.rejects WHERE batch_id = $1", [batchId])).rows[0].n, 3);
 
   // --- rollback: a poisoned record aborts the whole persist; nothing partial remains ---
-  const poison = { batchId: "mig-poison", sourceSha256: "0".repeat(64), totalRecords: 1, loaded: 1, rejected: [],
+  const poison = { batchId: "mig-poison", sourceSha256: "0".repeat(64), startOffset: 0, totalRecords: 1, loaded: 1, rejected: [],
     controlTotals: {}, sourceTotals: {} };
   const badRec = { values: { BECD: "1", BLRD: "1", BLCD: "1000099", SHNM: "x", VGCD: "not-a-number" }, raw: "ff", offset: 0 };
   await assert.rejects(() => persistImport(db, "school_map.pblbuldg", "poison.dat", "pblbuldg-v1", [badRec], poison));
   assert.equal((await admin.query("SELECT COUNT(*)::int n FROM mig.batches WHERE batch_id = 'mig-poison'")).rows[0].n, 0);
   assert.equal((await admin.query("SELECT COUNT(*)::int n FROM school_map.pblbuldg WHERE _batch_id = 'mig-poison'")).rows[0].n, 0);
 
-  // --- transform gate: real register (pending) refuses; approved fixture register allows ---
-  const realRegister = new URL("../../../migration/reconciled/mapping_register_v2.csv", import.meta.url).pathname;
-  await assert.rejects(() => runTransform(db, BUILDINGS_TRANSFORM, batchId, realRegister), /not Approved/);
-  const dir = mkdtempSync(join(tmpdir(), "gaeb-reg-"));
-  const regPath = join(dir, "register.csv");
-  writeFileSync(regPath, ["legacy_member,target_schema,target_table,legacy_field,length,decimals,sql_type,inference_rule,approval_status,source_lineage",
-    "PBLBULDG,school_map,pblbuldg,BLCD,7,0,INTEGER,x,Approved — integration fixture,x",
-    "PBLBULDG,school_map,pblbuldg,SHNM,40,0,VARCHAR(40),x,Approved — integration fixture,x",
-    "PBLBULDG,school_map,pblbuldg,VGCD,7,0,INTEGER,x,Approved — integration fixture,x"].join("\n"));
-  await runTransform(db, BUILDINGS_TRANSFORM, batchId, regPath);
-  await runTransform(db, BUILDINGS_TRANSFORM, batchId, regPath); // idempotent
+  // --- transform gate: no DB approvals -> refusal; authenticated fixture approvals allow ---
+  await assert.rejects(() => runTransform(db, BUILDINGS_TRANSFORM, batchId), /no approval record/);
+  const approve = async (spec: any) => {
+    for (const f of spec.fields)
+      await admin.query("INSERT INTO mig.mapping_approvals (legacy_member, legacy_field, target_table, target_column, transform_name, transform_hash, approved_by, evidence_ref) VALUES ($1,$2,$3,$4,$5,$6,'integration-fixture-approver','synthetic fixture approval — NOT a customer approval')",
+        [spec.legacyMember, f.legacy, "app", f.target, spec.name, transformHash(spec)]);
+  };
+  await approve(BUILDINGS_TRANSFORM);
+  await runTransform(db, BUILDINGS_TRANSFORM, batchId);
+  await runTransform(db, BUILDINGS_TRANSFORM, batchId); // idempotent
   const ops = await admin.query("SELECT legacy_blcd, name_ar, village_code FROM app.buildings ORDER BY legacy_blcd");
   assert.equal(ops.rows.length, 2);
   assert.equal(ops.rows[0].name_ar, "مدرسة النيل الابتدائية");
   assert.equal(String(ops.rows[0].village_code), "7654321");
+
+  // --- Phase 2: tenders, expropriation, certificates transforms from synthetic staging rows ---
+  const B2 = "mig-phase2-fixture";
+  await admin.query("INSERT INTO purchases.pbytendr (type, tetnno, tnanm, _batch_id, _source_offset, _raw_hex) VALUES (1, 9001, 'توريد أثاث مدرسي', $1, 0, 'aa')", [B2]);
+  await admin.query("INSERT INTO real_estate.remv01pf (blcd, _batch_id, _source_offset, _raw_hex) VALUES (1000001, $1, 0, 'bb')", [B2]);
+  await admin.query("INSERT INTO abstracts.inv001pf (blcd, subtyp, ttncd, doccd, bilvlu, _batch_id, _source_offset, _raw_hex) VALUES (1000001, 1, 555, 7, 125000.50, $1, 0, 'cc')", [B2]);
+  await approve(TENDERS_TRANSFORM); await approve(EXPROPRIATION_TRANSFORM); await approve(CERTIFICATES_TRANSFORM);
+  await runTransform(db, TENDERS_TRANSFORM, B2); await runTransform(db, TENDERS_TRANSFORM, B2);
+  await runTransform(db, EXPROPRIATION_TRANSFORM, B2); await runTransform(db, EXPROPRIATION_TRANSFORM, B2);
+  await runTransform(db, CERTIFICATES_TRANSFORM, B2); await runTransform(db, CERTIFICATES_TRANSFORM, B2);
+  const tender = await admin.query("SELECT title FROM app.tenders WHERE legacy_no = '9001'");
+  assert.equal(tender.rows.length, 1); assert.equal(tender.rows[0].title, "توريد أثاث مدرسي");
+  const exprop = await admin.query("SELECT stage FROM app.expropriation_cases");
+  assert.equal(exprop.rows.length, 1); assert.equal(exprop.rows[0].stage, "pre_decree");
+  const cert = await admin.query("SELECT gross::text g, net::text n FROM app.certificates");
+  assert.equal(cert.rows.length, 1); assert.equal(cert.rows[0].g, "125000.5000"); assert.equal(cert.rows[0].n, "125000.5000"); // NUMERIC(19,4) storage scale
 
   // --- API surface (what the screens read): login, buildings, report authorization ---
   const server: ChildProcess = spawn("node", ["dist/src/server.js"], {

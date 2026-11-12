@@ -20,3 +20,12 @@ export interface Estimate { id: number; title: string; status: string; revision:
 export interface CatalogueItem { id: number; code: string; name_en: string; name_ar: string; unit: string; standard_price: string }
 export interface BudgetUtil { fiscal_year: string; lines: number; allocated: string; committed: string; spent: string; available: string }
 export interface CertSummary { status: string; count: number; gross: string; deductions: string; net: string }
+
+export async function apiRaw<T>(path: string, body: ArrayBuffer): Promise<T> {
+  const res = await fetch(base + path, { method: "POST", body,
+    headers: { "Content-Type": "application/octet-stream", ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) } });
+  if (!res.ok) { const b = await res.json().catch(() => ({})); throw new Error(b.error || `HTTP ${res.status}`); }
+  return res.json() as Promise<T>;
+}
+export interface MigBatch { batch_id: string; layout_name: string; total_records: number; loaded: number; rejected: number; totals: Record<string, string> | null }
+export interface MigReject { id: number; record_offset: number; reason: string; raw_hex: string; resubmitted_batch: string | null }

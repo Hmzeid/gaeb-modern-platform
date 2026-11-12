@@ -1,0 +1,6 @@
+{ "recordLength": 58, "fields": [
+  { "name": "BECD", "type": "char", "length": 2, "encoding": "utf8" },
+  { "name": "BLRD", "type": "char", "length": 2, "encoding": "utf8" },
+  { "name": "BLCD", "type": "char", "length": 7, "encoding": "utf8", "key": true },
+  { "name": "SHNM", "type": "char", "length": 40, "encoding": "ibm420" },
+  { "name": "VGCD", "type": "zoned", "length": 7, "decimals": 0 } ] }

@@ -147,3 +147,47 @@ All eight findings from the review of 08ea389 are addressed and evidenced:
 
 Full suite with the integration test enabled: see the log (unit + integration).
 Actual customer migration remains UNVERIFIED — all fixtures are synthetic.
+
+## Addendum 5 — Real-Data Migration POC & Acceptance Readiness (2026-11-12, second release)
+
+Phase 1 reliability: batch totals are now cumulative and retry-proof — an append-only
+run ledger (mig.batch_runs) + mig.batch_totals; a retry that loads 0 records changes no
+total (asserted live). Checkpoint, records, rejects, and batch results commit in ONE
+transaction on ONE connection. Mapping approvals are authenticated DB records bound to
+the transform definition's hash (approver, timestamp, evidence) — the CSV-prefix check
+is gone; a tampered definition fails the hash and refuses. Layouts are structurally
+verified on every run and hash-checked against mig.layouts in DB mode. Delimited
+exports are a distinct import path: CPYTOIMPF turns packed fields into decimal TEXT,
+and the importer treats them that way (docs/DATA_REQUEST_PACK.md §5 explains the
+distinction to the customer).
+
+Phase 2: transforms now cover buildings, tenders (PBYTENDR), expropriation
+(REV01→cases, pre-decree, TOT deliberately unmapped), and certificates (INV001PF
+header load, gated on B-02). Budget transform: honestly BLOCKED on B-01 (CBABDALW is
+an allowances file, not the appropriations model). Estimates transform: BLOCKED on new
+blocker B-13 — the item-master physical file was never identified in the delivery.
+
+Phase 3: Migration Center is live in the app — inventory (502 objects), upload,
+preview decode, import, batches with cumulative totals, quarantine with auditable
+resubmission, approval-gated transform, approvals register. Verified against the
+running API (budget role gets 403; transform endpoint idempotent).
+
+Phase 4: docker-compose gains the frontend service + staging-schema init mount;
+docs/DEMO_RUNBOOK.md + synthetic seed + demo layout. Docker is not installed in the
+dev sandbox: compose YAML validated and every service's steps executed natively;
+a compose smoke test on the demo machine is still required (stated in the runbook).
+
+Phase 5: docs/DATA_REQUEST_PACK.md — bilingual EN/AR pack ready to send: exact School
+Map files, B-01/B-02/B-13 asks, CCSID/metadata/control-total requirements, export
+formats with the CPYTOIMPF caveat, V6R1 example commands labeled as examples to
+confirm, anonymization/transfer rules, customer validation checklist.
+
+Phase 6: docs/acceptance/ — six-module coverage, reconciliation & finance, Arabic &
+security, business-rule equivalence, UAT checklist. Full suite with integration:
+see TEST_LOG_2026-11-12.txt (this release).
+
+Status vs the seven gates: (1) code implementation — advanced, six-module pipeline
+defined with two honestly blocked modules; (2) technical tests — passing incl. real
+PostgreSQL E2E; (3) live IBM i integration — UNVERIFIED; (4) business equivalence —
+UNVERIFIED; (5) security approval — not granted; (6) customer acceptance — not
+started (pack ready to send); (7) authorized production deployment — not complete.

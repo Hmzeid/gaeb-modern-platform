@@ -32,7 +32,7 @@ export const PERMISSIONS: Record<Role, string[]> = {
   admin: ["*"],
   budget: ["budget.read", "budget.write", "budget.approve", "payment.authorize", "estimates.approve", "certificates.read", "reports.finance"],
   contracts: ["tenders.read", "tenders.write", "bids.register", "claims.write", "reports.procurement"],
-  technical: ["buildings.read", "buildings.write", "certificates.certify", "certificates.read", "estimates.write", "estimates.review", "reports.technical"],
+  technical: ["buildings.read", "buildings.write", "certificates.certify", "certificates.read", "estimates.write", "estimates.review", "reports.technical", "migration.run"],
   realestate: ["realestate.read", "realestate.write", "realestate.approve", "reports.realestate"],
   viewer: ["*.read", "reports.*"],
 };

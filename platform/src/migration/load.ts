@@ -1,4 +1,4 @@
-import type { DecodedRecord, ImportReport } from "./engine.js";
+import type { DecodedRecord, ImportReport, JobState } from "./engine.js";
 
 // Persistence layer for the migration engine. The SQL builders are pure functions
 // (unit-tested); the executor is a thin pg wrapper that runs only against a live
@@ -27,7 +27,7 @@ export function buildStagingInsert(schemaTable: string, batchId: string, rec: De
 export function buildBatchInsert(report: ImportReport, sourceFile: string, layoutName: string): Parameterized {
   return {
     text: `INSERT INTO mig.batches (batch_id, source_file, source_sha256, layout_name, total_records, loaded, rejected, control_totals, source_totals, finished_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, now()) ON CONFLICT (batch_id) DO UPDATE SET loaded = EXCLUDED.loaded, rejected = EXCLUDED.rejected, control_totals = EXCLUDED.control_totals, source_totals = EXCLUDED.source_totals, finished_at = now()`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, now()) ON CONFLICT (batch_id) DO UPDATE SET loaded = mig.batches.loaded + EXCLUDED.loaded, rejected = mig.batches.rejected + EXCLUDED.rejected, finished_at = now()`,
     values: [report.batchId, sourceFile, report.sourceSha256, layoutName, report.totalRecords, report.loaded,
       report.rejected.length, JSON.stringify(report.controlTotals), JSON.stringify(report.sourceTotals)],
   };
@@ -42,30 +42,47 @@ export function buildRejectInserts(report: ImportReport): Parameterized[] {
 
 export interface SqlExecutor { query(text: string, values?: unknown[]): Promise<unknown> }
 
-/** Persist a finished import: batch summary, rejects, then staged records — one transaction. */
-export async function persistImport(db: SqlExecutor, schemaTable: string, sourceFile: string, layoutName: string,
-  records: DecodedRecord[], report: ImportReport): Promise<void> {
+/** Persist a finished import run — fully atomic on the caller's single connection:
+ *  run ledger + cumulative batch totals + rejects + staged records + job checkpoint
+ *  commit or roll back together.
+ *  Replay safety: the run is keyed by (batch_id, start_offset, source_sha256) in
+ *  mig.batch_runs. If that run already committed, persist is a no-op — cumulative
+ *  totals can never be overwritten by a retry's partial figures, and can never be
+ *  double-counted. Totals accumulate in mig.batch_totals only for newly recorded runs. */
+export async function persistImport(db: { query(text: string, values?: unknown[]): Promise<any> },
+  schemaTable: string, sourceFile: string, layoutName: string,
+  records: DecodedRecord[], report: ImportReport, jobState?: JobState): Promise<{ alreadyRecorded: boolean }> {
   await db.query("BEGIN");
   try {
+    const run = await db.query(
+      `INSERT INTO mig.batch_runs (batch_id, start_offset, source_sha256, loaded, rejected_new)
+       VALUES ($1,$2,$3,$4,$5) ON CONFLICT (batch_id, start_offset, source_sha256) DO NOTHING RETURNING id`,
+      [report.batchId, report.startOffset, report.sourceSha256, report.loaded, report.rejected.length]);
+    if (!run.rows.length) { await db.query("COMMIT"); return { alreadyRecorded: true }; }
     const b = buildBatchInsert(report, sourceFile, layoutName);
     await db.query(b.text, b.values);
+    // cumulative totals: add this run's slice exactly once
+    for (const [kind, totals] of [["control", report.controlTotals], ["source", report.sourceTotals]] as const)
+      for (const [field, amount] of Object.entries(totals))
+        await db.query(
+          `INSERT INTO mig.batch_totals (batch_id, field, kind, amount) VALUES ($1,$2,$3,$4)
+           ON CONFLICT (batch_id, field, kind) DO UPDATE SET amount = mig.batch_totals.amount + EXCLUDED.amount`,
+          [report.batchId, field, kind, amount]);
     for (const r of buildRejectInserts(report)) await db.query(r.text, r.values);
     for (const rec of records) { const q = buildStagingInsert(schemaTable, report.batchId, rec); await db.query(q.text, q.values); }
+    if (jobState) { const s = buildJobStateSave(jobState); await db.query(s.text, s.values); }
     await db.query("COMMIT");
+    return { alreadyRecorded: false };
   } catch (e) { await db.query("ROLLBACK"); throw e; }
 }
 
-// Job checkpoints live in mig.job_state so an interrupted import resumes from the
-// database, not from a local file (Directive: persist and restore checkpoints).
-import type { JobState } from "./engine.js";
-export interface QueryExecutor { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
-export async function loadJobState(db: QueryExecutor, batchId: string): Promise<JobState> {
-  const { rows } = await db.query("SELECT next_offset, loaded_keys FROM mig.job_state WHERE batch_id = $1", [batchId]);
-  if (!rows.length) return { batchId, nextOffset: 0, loadedKeys: [] };
-  return { batchId, nextOffset: rows[0].next_offset, loadedKeys: rows[0].loaded_keys ?? [] };
-}
 export function buildJobStateSave(state: JobState): Parameterized {
-  return { text: `INSERT INTO mig.job_state (batch_id, next_offset, loaded_keys, updated_at) VALUES ($1,$2,$3, now())
-                  ON CONFLICT (batch_id) DO UPDATE SET next_offset = EXCLUDED.next_offset, loaded_keys = EXCLUDED.loaded_keys, updated_at = now()`,
-           values: [state.batchId, state.nextOffset, JSON.stringify(state.loadedKeys)] };
+  return { text: `INSERT INTO mig.job_state (batch_id, next_offset, loaded_keys, updated_at)
+    VALUES ($1,$2,$3, now()) ON CONFLICT (batch_id) DO UPDATE SET next_offset = EXCLUDED.next_offset, loaded_keys = EXCLUDED.loaded_keys, updated_at = now()`,
+    values: [state.batchId, state.nextOffset, JSON.stringify(state.loadedKeys)] };
+}
+export async function loadJobState(db: SqlExecutor, batchId: string): Promise<JobState> {
+  const r = await (db as any).query("SELECT next_offset, loaded_keys FROM mig.job_state WHERE batch_id = $1", [batchId]) as { rows: any[] };
+  if (!r.rows.length) return { batchId, nextOffset: 0, loadedKeys: [] };
+  return { batchId, nextOffset: Number(r.rows[0].next_offset), loadedKeys: (typeof r.rows[0].loaded_keys === 'string' ? JSON.parse(r.rows[0].loaded_keys) : r.rows[0].loaded_keys) as string[] };
 }

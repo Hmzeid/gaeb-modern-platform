@@ -18,3 +18,10 @@ Nothing in this register is a reason to stop other work.
 | B-10 | **Reference-data export caps.** Two XLS exports sit exactly at the 16,383-row cap (village dependencies). | True dependency count unknown; reconciliation totals would mismatch. | Re-export from live files during Phase 0 load; reconcile counts then. |
 | B-11 | **Customer security & hosting requirements not yet supplied** (SSO IdP, TLS policy, backup RPO/RTO, data-residency). | Security architecture is implemented to a government-grade baseline but cannot be called approved. | Customer security review against docs/SECURITY.md checklist; sign-off recorded as a release gate. |
 | B-12 | **No customer UAT participants or acceptance criteria signed.** | Statuses 6–7 (acceptance, authorized deployment) cannot progress. | Named key users per subsystem + signed acceptance test plan (docs/UAT_PLAN outline in Milestone 6). |
+
+## B-13 — Estimates item-master physical file not identified (added 2026-11-12)
+The Estimates subsystem was delivered as programs only; no physical file holding the
+item catalogue (the data behind the PMPITMAR entry screens) was identified in the
+inventory. The Estimates operational catalogue exists and works, but its migration
+transform cannot be specified — let alone approved — until GAEB identifies the file
+and supplies its DDS. Requested in the Customer Data Request Pack (§3).
