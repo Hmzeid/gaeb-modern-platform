@@ -62,3 +62,22 @@ export function addWorkingDays(start: Date, days: number, holidays: Set<string> 
   }
   return d;
 }
+
+// Estimates: legacy keeps draft (ADM*) physically separate from reviewed (ADMR*).
+// Modern equivalent: one table, status-enforced separation + revision snapshots.
+// draft -> reviewed requires estimates.review; reviewed -> approved requires
+// estimates.approve (a different permission: reviewer and approver are separated).
+// Returning a reviewed estimate reopens it as a NEW revision in draft.
+export type EstimateStatus = "draft" | "reviewed" | "approved";
+export function estimateTransition(from: EstimateStatus, to: EstimateStatus, role: Role): void {
+  if (from === "draft" && to === "reviewed") {
+    if (!can(role, "estimates.review")) throw new Error("estimate review requires the estimates.review permission");
+    return;
+  }
+  if (from === "reviewed" && to === "approved") {
+    if (!can(role, "estimates.approve")) throw new Error("estimate approval requires the estimates.approve permission (separate from review)");
+    return;
+  }
+  if (from === "reviewed" && to === "draft") return; // returned for correction -> new revision
+  throw new Error(`estimate cannot move ${from} -> ${to}`);
+}

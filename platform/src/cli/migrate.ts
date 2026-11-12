@@ -1,6 +1,8 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { pool } from "../db.js";
-const sql = readFileSync(new URL("../../migrations/001_operational_schema.sql", import.meta.url), "utf8");
-await pool.query(sql);
-console.log("operational schema applied");
+const dir = new URL("../../migrations/", import.meta.url);
+for (const f of readdirSync(dir).filter(x => x.endsWith(".sql")).sort()) {
+  await pool.query(readFileSync(new URL(f, dir), "utf8"));
+  console.log("applied", f);
+}
 await pool.end();

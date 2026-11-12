@@ -49,3 +49,24 @@ preparation all remain, gated on the blockers in docs/BLOCKERS.md where noted.
 - iconv-lite lacks IBM420/425/864 — replaced with generated glibc-charmap tables.
 - scrypt memory limit — maxmem raised explicitly.
 - Test-environment issues (asset copying, glob) — fixed in build scripts.
+
+## Addendum — Session 2026-11-12 (continued)
+
+- **Estimates module implemented** (Milestone 3, first slice): migration
+  `platform/migrations/002_estimates.sql` (catalogue, estimates, estimate_items,
+  estimate_revisions); catalogue-only enforced by a NOT NULL FK to the catalogue —
+  the structural equivalent of the legacy PMPITMAR restriction; draft/reviewed/approved
+  workflow with reviewer ≠ approver permissions; revision snapshots on return-for-correction;
+  API endpoints for catalogue, estimate creation (server-side exact totals with catalogue
+  price snapshots), listing, and transitions. 4 new tests — **suite now 21/21 passing**.
+- **Frontend port started**: `platform/frontend/` — standalone Vite/React/TypeScript client
+  (login, dashboard counts, certificate create + workflow advance, EN/AR with full RTL
+  switch), build-verified (`vite build` clean, 147.75 kB bundle). It talks only to the
+  standalone API. Remaining screens (school map, budget, tenders, real estate, migration
+  center) are not yet ported — the POC client remains the functional reference for those.
+- **PostgreSQL integration still NOT verified**: this build sandbox cannot run PostgreSQL
+  (root-only environment; the database refuses root and the sandbox blocks the ownership
+  change it requires). No workaround was forced. Verification path: run the committed
+  docker-compose stack on any standard host — `docker compose up`, `npm run migrate`,
+  `npm run create-admin` — then exercise login → certificate → transition → paid.
+  Status 2 (technical tests) remains "started" until that run is evidenced.

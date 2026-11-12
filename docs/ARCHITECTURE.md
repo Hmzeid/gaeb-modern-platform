@@ -1,8 +1,9 @@
 # Production Architecture — GAEB Modern Enterprise Platform
 
 ## Layers
-1. **Client** — React/TypeScript POC client (existing) is the functional reference; production
-   frontend work (Milestone 3+) re-targets it at the standalone API below. No Hatch runtime.
+1. **Client** — `platform/frontend/`: standalone Vite/React/TypeScript app talking only to the
+   API below (login, dashboard, certificates ported; EN/AR + RTL). The POC client remains
+   the functional reference for the screens not yet ported. No Hatch runtime anywhere.
 2. **API (platform/)** — standalone Node.js/TypeScript service (Express), deployable anywhere:
    customer on-prem, private cloud, or air-gapped (container images transferred offline).
    - `src/auth.ts` — scrypt password hashing, opaque revocable sessions (SHA-256 at rest), RBAC
