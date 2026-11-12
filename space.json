@@ -1,0 +1,8 @@
+{
+  "runtime": "typescript",
+  "platformVersion": 28,
+  "entry": "client/dist/index.html",
+  "name": "GAEB Modern Platform — AS/400 Migration POC",
+  "slug": "gaeb-modern-platform-as-400-migration-poc",
+  "managedCronJobs": []
+}

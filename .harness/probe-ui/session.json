@@ -1,0 +1,8 @@
+{
+  "schema_version": "hatch.probe_ui_session.v1",
+  "socket": "/home/hatch/workspace/ts-spaces/gaeb-modern-platform-as-400-migration-poc/.harness/probe-ui/sock",
+  "slug": "gaeb-modern-platform-as-400-migration-poc",
+  "url": "https://artifact-capture.invalid/spaces/v2/hatch-audit-b6fa8ec1-eb85-49fb-8b6f-9dd2c56a1bf0/",
+  "audit_session_id": "38cc76e7-7908-47e1-a836-5291e1b82251",
+  "pid": 9291
+}

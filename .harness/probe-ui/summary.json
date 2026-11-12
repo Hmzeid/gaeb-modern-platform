@@ -1,0 +1,13 @@
+{
+  "schema_version": "hatch.probe_ui_summary.v1",
+  "slug": "gaeb-modern-platform-as-400-migration-poc",
+  "session_id": "38cc76e7-7908-47e1-a836-5291e1b82251",
+  "observes": 2,
+  "acts": 2,
+  "acts_ok": 2,
+  "interactive_nodes": 13,
+  "viewports_seen": [
+    "mobile"
+  ],
+  "findings": []
+}

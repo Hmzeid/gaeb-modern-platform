@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "tailwindcss-safe-area";
+
+@theme {
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-lg: 18px;
+  --text-lg--line-height: 28px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+  --text-3xl: 30px;
+  --text-3xl--line-height: 36px;
+}
+
+:root {
+  color-scheme: light;
+  --bg: #f7f5f0;
+  --surface: #ffffff;
+  --surface2: #efece4;
+  --text: #1b2a38;
+  --dim: #5d6b78;
+  --border: #e0dacb;
+  --navy: #0f2a43;
+  --navy2: #173d5f;
+  --accent: #0e7c6b;
+  --accent-soft: #e2f1ed;
+  --amber: #b7791f;
+  --danger: #b3261e;
+  --radius: 10px;
+  --space-surface: var(--surface);
+  --space-surface-alt: var(--surface2);
+  --space-muted: var(--dim);
+  --space-border: var(--border);
+  --space-accent: var(--accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0d1620;
+    --surface: #14222f;
+    --surface2: #1a2c3d;
+    --text: #e8edf2;
+    --dim: #9db0c0;
+    --border: #2a4156;
+    --navy: #0a1e31;
+    --navy2: #12293f;
+    --accent: #2fbf9f;
+    --accent-soft: #14332c;
+  }
+}
+
+body {
+  font-family: "IBM Plex Sans", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+@layer base {
+  button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) {
+    min-height: 2.25rem;
+  }
+}
