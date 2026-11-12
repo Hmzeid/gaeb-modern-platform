@@ -17,8 +17,12 @@ CREATE TABLE IF NOT EXISTS purchases.n_bycmt (
   numrc INTEGER,
   nmtyp VARCHAR(1),
   namrc VARCHAR(40),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, number, numrc)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bycmt_batch_offset ON purchases.n_bycmt (_batch_id, _source_offset);
 
 -- #BYMBER | subsystem Purchases & Contracts | definitions merged: 1 | signature d3d1559d1993 | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/ألجنه المظاريف.pdf)
@@ -28,8 +32,12 @@ CREATE TABLE IF NOT EXISTS purchases.n_bymber (
   seral INTEGER,
   typr INTEGER,
   nampr VARCHAR(40),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, seral)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bymber_batch_offset ON purchases.n_bymber (_batch_id, _source_offset);
 
 -- #BYNOTES | subsystem Purchases & Contracts | definitions merged: 1 | signature 6fa6b04c612d | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/كراسه الشروط.pdf)
@@ -40,16 +48,24 @@ CREATE TABLE IF NOT EXISTS purchases.n_bynotes (
   supcd2 INTEGER,
   dcrcno INTEGER,
   dcbydt INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, tnsrno, supcd2)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bynotes_batch_offset ON purchases.n_bynotes (_batch_id, _source_offset);
 
 -- #BYOF | subsystem Purchases & Contracts | definitions merged: 1 | signature 749c11ab770c | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/الأحاله.pdf)
 CREATE TABLE IF NOT EXISTS purchases.n_byof (
   type INTEGER,
   tetnno BIGINT,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_byof_batch_offset ON purchases.n_byof (_batch_id, _source_offset);
 
 -- #BYOFFRS | subsystem Purchases & Contracts | definitions merged: 1 | signature be18aa07e24b | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/مفاوضات .pdf)
@@ -79,8 +95,12 @@ CREATE TABLE IF NOT EXISTS purchases.n_byoffrs (
   ofno2 INTEGER,
   w1 INTEGER,
   swpq VARCHAR(160),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, tnsrno, spcd, number)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_byoffrs_batch_offset ON purchases.n_byoffrs (_batch_id, _source_offset);
 
 -- #BYPBLSH | subsystem Purchases & Contracts | definitions merged: 1 | signature 22ab090c97f2 | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/نشر.pdf)
@@ -90,8 +110,12 @@ CREATE TABLE IF NOT EXISTS purchases.n_bypblsh (
   dasrno INTEGER,
   dates INTEGER,
   journl VARCHAR(40),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, dasrno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bypblsh_batch_offset ON purchases.n_bypblsh (_batch_id, _source_offset);
 
 -- #BYPRTGR | subsystem Purchases & Contracts | definitions merged: 1 | signature b6609c66c484 | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/أجزاء مجموعه.pdf)
@@ -109,8 +133,12 @@ CREATE TABLE IF NOT EXISTS purchases.n_byprtgr (
   strdat INTEGER,
   mocvl NUMERIC(10,2),
   totvl NUMERIC(10,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, grpno, tbulno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_byprtgr_batch_offset ON purchases.n_byprtgr (_batch_id, _source_offset);
 
 -- #BYSHW | subsystem Purchases & Contracts | definitions merged: 1 | signature 865fd56bcfdf | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/لجنه المظاريف.pdf)
@@ -122,8 +150,12 @@ CREATE TABLE IF NOT EXISTS purchases.n_byshw (
   add VARCHAR(40),
   date1 INTEGER,
   subt INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, number)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_byshw_batch_offset ON purchases.n_byshw (_batch_id, _source_offset);
 
 -- #BYSUT# | subsystem Purchases & Contracts | definitions merged: 1 | signature 6de727866324 | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/أستبعاد عطاء.pdf)
@@ -151,9 +183,13 @@ CREATE TABLE IF NOT EXISTS purchases.n_bysutn_ (
   ofno1 INTEGER,
   ofno2 INTEGER,
   notce VARCHAR(320),
-  not VARCHAR(80),
+  "not" VARCHAR(80),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, tnsrno, spcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bysutn__batch_offset ON purchases.n_bysutn_ (_batch_id, _source_offset);
 
 -- #BYSUTN | subsystem Purchases & Contracts | definitions merged: 1 | signature b5691f0ce81e | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/العطاء.pdf)
@@ -183,20 +219,28 @@ CREATE TABLE IF NOT EXISTS purchases.n_bysutn (
   qxx2 NUMERIC(12,3),
   qx2 NUMERIC(4,2),
   qx3 INTEGER,
-  w# INTEGER,
+  "w#" INTEGER,
   ofno1 INTEGER,
   ofno2 INTEGER,
   notce VARCHAR(320),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, tnsrno, spcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bysutn_batch_offset ON purchases.n_bysutn (_batch_id, _source_offset);
 
 -- BULDCD1F | subsystem School Map | definitions merged: 1 | signature 8799d1307d2f | Generated — pending approval
 -- lineage: NEWLIBGAEB/PRTFL (خريطه مدرسيه نهائى/ملفات خريطة/م اسم نوع المبنى.pdf)
 CREATE TABLE IF NOT EXISTS school_map.buldcd1f (
   kind INTEGER,
   kindnm VARCHAR(20),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (kind)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_buldcd1f_batch_offset ON school_map.buldcd1f (_batch_id, _source_offset);
 
 -- BULDCOD1 | subsystem School Map | definitions merged: 1 | signature 0bbfa4c80b1b | Generated — pending approval
 -- lineage: NEWLIBGAEB/PRTFL (خريطه مدرسيه نهائى/ملفات خريطة/م جميع أنواع المبانى+ القرى +المركز.pdf)
@@ -208,8 +252,12 @@ CREATE TABLE IF NOT EXISTS school_map.buldcod1 (
   vgcd INTEGER,
   vilg1 INTEGER,
   buldnm VARCHAR(40),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (krcd, buldcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_buldcod1_batch_offset ON school_map.buldcod1 (_batch_id, _source_offset);
 
 -- BULDCODF | subsystem School Map | definitions merged: 1 | signature 939efb72cc40 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PRTFL (خريطه مدرسيه نهائى/ملفات خريطة/م جميع أنواع المبانى.pdf)
@@ -218,8 +266,12 @@ CREATE TABLE IF NOT EXISTS school_map.buldcodf (
   kind INTEGER,
   buldcd INTEGER,
   buldnm VARCHAR(40),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (krcd, buldcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_buldcodf_batch_offset ON school_map.buldcodf (_batch_id, _source_offset);
 
 -- CBABDALW | subsystem Budget | definitions merged: 1 | signature 76de0f35e96e | Generated — pending approval
 -- lineage: NEWLIBGAEB/BALANC5 (الموازنه/ملفات/111.pdf)
@@ -237,8 +289,12 @@ CREATE TABLE IF NOT EXISTS budget.cbabdalw (
   amount NUMERIC(12,2),
   lwtas INTEGER,
   accno INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lwyear, lwtas)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cbabdalw_batch_offset ON budget.cbabdalw (_batch_id, _source_offset);
 
 -- CBABDGLW | subsystem Budget | definitions merged: 1 | signature d99e58efe256 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BALANC5 (الموازنه/ملفات/112.pdf)
@@ -253,8 +309,12 @@ CREATE TABLE IF NOT EXISTS budget.cbabdglw (
   mablgh NUMERIC(10,2),
   tsmno INTEGER,
   shatb INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lwdcdt, lwgvcd, lwser)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cbabdglw_batch_offset ON budget.cbabdglw (_batch_id, _source_offset);
 
 -- CBABGALW | subsystem Budget | definitions merged: 1 | signature b4f963864e32 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BALANC5 (الموازنه/ملفات/113.pdf)
@@ -273,8 +333,12 @@ CREATE TABLE IF NOT EXISTS budget.cbabgalw (
   amount NUMERIC(12,2),
   lwtas INTEGER,
   accno INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lwser, lwdcdt, lwgvcd, lwsgv)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cbabgalw_batch_offset ON budget.cbabgalw (_batch_id, _source_offset);
 
 -- CBARECPF | subsystem Budget | definitions merged: 1 | signature 8ad3a0b711c2 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BALANC5 (الموازنه/ملفات/114.pdf)
@@ -290,16 +354,24 @@ CREATE TABLE IF NOT EXISTS budget.cbarecpf (
   temp INTEGER,
   bdzx BIGINT,
   bdy INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (dcdt, gvcd, pyser, dpccd, dpcd, bdy)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cbarecpf_batch_offset ON budget.cbarecpf (_batch_id, _source_offset);
 
 -- CBAXX1PF | subsystem Budget | definitions merged: 1 | signature f0e7a4e84f5e | Generated — pending approval
 -- lineage: NEWLIBGAEB/BALANC5 (الموازنه/ملفات/115.pdf)
 CREATE TABLE IF NOT EXISTS budget.cbaxx1pf (
   zxcd BIGINT,
   zxnm VARCHAR(70),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (zxcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cbaxx1pf_batch_offset ON budget.cbaxx1pf (_batch_id, _source_offset);
 
 -- CBAXX2PF | subsystem Budget | definitions merged: 1 | signature 6d5fd7dfdce6 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BALANC5 (الموازنه/ملفات/116.pdf)
@@ -320,8 +392,12 @@ CREATE TABLE IF NOT EXISTS budget.cbaxx2pf (
   mnsrf NUMERIC(13,2),
   tasw NUMERIC(13,2),
   fisccx INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (bdzx, bdsd, bdy, fisccx)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cbaxx2pf_batch_offset ON budget.cbaxx2pf (_batch_id, _source_offset);
 
 -- CBAXX9PF | subsystem Budget | definitions merged: 1 | signature 6d5fd7dfdce6 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BALANC5 (الموازنه/ملفات/117.pdf)
@@ -342,8 +418,12 @@ CREATE TABLE IF NOT EXISTS budget.cbaxx9pf (
   mnsrf NUMERIC(13,2),
   tasw NUMERIC(13,2),
   fisccx INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (bdzx, bdsd, bdy, fisccx)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cbaxx9pf_batch_offset ON budget.cbaxx9pf (_batch_id, _source_offset);
 
 -- CBGRECPF | subsystem Budget | definitions merged: 1 | signature 94ae9d127e98 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BALANC5 (الموازنه/ملفات/118.pdf)
@@ -358,8 +438,12 @@ CREATE TABLE IF NOT EXISTS budget.cbgrecpf (
   bnd INTEGER,
   bdzx BIGINT,
   bdy INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (dcdt, gvcd, pyser, bdy)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cbgrecpf_batch_offset ON budget.cbgrecpf (_batch_id, _source_offset);
 
 -- CBGREXPF | subsystem Budget | definitions merged: 1 | signature 4ae5b97ca103 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BALANC5 (الموازنه/ملفات/119.pdf)
@@ -373,8 +457,12 @@ CREATE TABLE IF NOT EXISTS budget.cbgrexpf (
   temp INTEGER,
   bnd INTEGER,
   gvcdx INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (dcdt, gvcd, pyser)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cbgrexpf_batch_offset ON budget.cbgrexpf (_batch_id, _source_offset);
 
 -- CLOS00PF | subsystem School Map | definitions merged: 1 | signature 424ebd9798c3 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCCLOS (خريطه مدرسيه نهائى/ملفات خريطة/ملف بيانات المغلقات.pdf)
@@ -389,8 +477,12 @@ CREATE TABLE IF NOT EXISTS school_map.clos00pf (
   dateez INTEGER,
   datmez INTEGER,
   hdate INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (krcd, klcd, mol7k)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_clos00pf_batch_offset ON school_map.clos00pf (_batch_id, _source_offset);
 
 -- DELB01PF | subsystem School Map | definitions merged: 1 | signature bd29871bfb25 | Generated — pending approval
 -- lineage: NEWLIBGAEB/DMGSRC (خريطه مدرسيه نهائى/ملفات خريطة/مـلف المبانى الملغاة من المبنى التعليمى.pdf)
@@ -398,9 +490,13 @@ CREATE TABLE IF NOT EXISTS school_map.delb01pf (
   blcd INTEGER,
   date INTEGER,
   kind INTEGER,
-  user BIGINT,
+  "user" BIGINT,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, date)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_delb01pf_batch_offset ON school_map.delb01pf (_batch_id, _source_offset);
 
 -- FARM01PF | subsystem School Map | definitions merged: 1 | signature da235ab48544 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCBLCD (خريطه مدرسيه نهائى/ملفات خريطة/م البيانـات الاساسيـة للمـزارع.pdf)
@@ -413,8 +509,12 @@ CREATE TABLE IF NOT EXISTS school_map.farm01pf (
   farmty INTEGER,
   farmow INTEGER,
   farmar NUMERIC(8,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, farmno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_farm01pf_batch_offset ON school_map.farm01pf (_batch_id, _source_offset);
 
 -- FARM02PF | subsystem School Map | definitions merged: 1 | signature a79990fbaf43 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCBLCD (خريطه مدرسيه نهائى/ملفات خريطة/م  حدودالموقع العام للمزارع.pdf)
@@ -425,23 +525,35 @@ CREATE TABLE IF NOT EXISTS school_map.farm02pf (
   lensid NUMERIC(6,2),
   angle NUMERIC(5,2),
   distxt VARCHAR(7),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, farmno, dirsid)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_farm02pf_batch_offset ON school_map.farm02pf (_batch_id, _source_offset);
 
 -- GRN001PF | subsystem Real Estate | definitions merged: 2 | signature 612fbae5f6b1 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP2 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/ربط الشئون القانونيه بالأراضى.pdf); NEWLIBGAEB/SRCMAP2 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م  ـأرض الشـئون القانونية.pdf)
 CREATE TABLE IF NOT EXISTS real_estate.grn001pf (
   lndno INTEGER,
   lndid INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lndno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_grn001pf_batch_offset ON real_estate.grn001pf (_batch_id, _source_offset);
 
 -- GRN002PF | subsystem Real Estate | definitions merged: 2 | signature 666e9e1f8ffe | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP2 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/أدخال موافقه العقاريه.pdf); NEWLIBGAEB/SRCMAP2 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م موافقة العقارية.pdf)
 CREATE TABLE IF NOT EXISTS real_estate.grn002pf (
   lndid INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lndid)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_grn002pf_batch_offset ON real_estate.grn002pf (_batch_id, _source_offset);
 
 -- INM001PF | subsystem Technical Abstracts | definitions merged: 1 | signature bbc91d7f9403 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/32.pdf)
@@ -458,8 +570,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inm001pf (
   plyear INTEGER,
   strcd INTEGER,
   bilend INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inm001pf_batch_offset ON abstracts.inm001pf (_batch_id, _source_offset);
 
 -- INM002PF | subsystem Technical Abstracts | definitions merged: 1 | signature 98ba85c2002e | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/33.pdf)
@@ -473,8 +589,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inm002pf (
   itmcd INTEGER,
   itqtyy NUMERIC(8,2),
   ituntpr NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, itmcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inm002pf_batch_offset ON abstracts.inm002pf (_batch_id, _source_offset);
 
 -- INM003PF | subsystem Technical Abstracts | definitions merged: 1 | signature 5ee80807426c | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/34.pdf)
@@ -489,8 +609,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inm003pf (
   typsub INTEGER,
   resl INTEGER,
   qstk NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, itmcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inm003pf_batch_offset ON abstracts.inm003pf (_batch_id, _source_offset);
 
 -- INM004PF | subsystem Technical Abstracts | definitions merged: 1 | signature 00a687e7b273 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/35.pdf)
@@ -506,8 +630,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inm004pf (
   typewrksh INTEGER,
   serial INTEGER,
   lohnum INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd, itmcd, lohser)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inm004pf_batch_offset ON abstracts.inm004pf (_batch_id, _source_offset);
 
 -- INM005PF | subsystem Technical Abstracts | definitions merged: 1 | signature 7f296c64230a | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/36.pdf)
@@ -519,8 +647,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inm005pf (
   strcd INTEGER,
   doccd INTEGER,
   pilval NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inm005pf_batch_offset ON abstracts.inm005pf (_batch_id, _source_offset);
 
 -- INM006PF | subsystem Technical Abstracts | definitions merged: 1 | signature 148f428bc469 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/37.pdf)
@@ -533,8 +665,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inm006pf (
   doccd INTEGER,
   wrkcd INTEGER,
   incrm NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, wrkcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inm006pf_batch_offset ON abstracts.inm006pf (_batch_id, _source_offset);
 
 -- INM007PF | subsystem Technical Abstracts | definitions merged: 1 | signature c2df245fc020 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/38.pdf)
@@ -551,8 +687,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inm007pf (
   typsub INTEGER,
   resl INTEGER,
   qstk NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, itmcd, lohser)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inm007pf_batch_offset ON abstracts.inm007pf (_batch_id, _source_offset);
 
 -- INM009PF | subsystem Technical Abstracts | definitions merged: 1 | signature 78f683c976c2 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/39.pdf)
@@ -568,8 +708,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inm009pf (
   trmqty NUMERIC(6,2),
   trmprc NUMERIC(8,2),
   trmval NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, trmsr)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inm009pf_batch_offset ON abstracts.inm009pf (_batch_id, _source_offset);
 
 -- INM010PF | subsystem Technical Abstracts | definitions merged: 1 | signature d726e9006219 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/40.pdf)
@@ -580,8 +724,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inm010pf (
   plyear INTEGER,
   strcd INTEGER,
   doccd INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inm010pf_batch_offset ON abstracts.inm010pf (_batch_id, _source_offset);
 
 -- INV001PF | subsystem Technical Abstracts | definitions merged: 2 | signature 9f489b573d91 | CONFLICT — primary variant, pending customer evidence
 -- lineage: NEWLIBGAEB/NGHADA (مستخلصات فنيه/مستخلصات أنشاء/ملفات/27.pdf); NEWLIBGAEB/NGHADA (مستخلصات فنيه/مستخلصات أنشاء/ملفات/29.pdf)
@@ -598,8 +746,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv001pf (
   plyear INTEGER,
   strcd INTEGER,
   bilend INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv001pf_batch_offset ON abstracts.inv001pf (_batch_id, _source_offset);
 
 -- INV001PF | subsystem Technical Abstracts | definitions merged: 1 | signature bbc91d7f9403 | CONFLICT — alternate variant, pending customer evidence
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/برامج/Session B - [24 x 80]_16.pdf)
@@ -616,8 +768,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv001pf_bil02src_variant (
   plyear INTEGER,
   strcd INTEGER,
   bilend INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv001pf_bil02src_variant_batch_offset ON abstracts.inv001pf_bil02src_variant (_batch_id, _source_offset);
 
 -- INV002PF | subsystem Technical Abstracts | definitions merged: 1 | signature e5a72a94aa7f | Generated — pending approval
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/ملفات/17.pdf)
@@ -630,8 +786,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv002pf (
   itmcd INTEGER,
   itqtyy NUMERIC(8,2),
   ituntpr NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv002pf_batch_offset ON abstracts.inv002pf (_batch_id, _source_offset);
 
 -- INV003PF | subsystem Technical Abstracts | definitions merged: 1 | signature e72a668023fa | Generated — pending approval
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/ملفات/18.pdf)
@@ -645,8 +805,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv003pf (
   typsub INTEGER,
   resl INTEGER,
   qstk NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv003pf_batch_offset ON abstracts.inv003pf (_batch_id, _source_offset);
 
 -- INV004PF | subsystem Technical Abstracts | definitions merged: 1 | signature 66061bba6060 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/ملفات/19.pdf)
@@ -663,8 +827,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv004pf (
   serial INTEGER,
   mlcd INTEGER,
   lohnum INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd, lohser)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv004pf_batch_offset ON abstracts.inv004pf (_batch_id, _source_offset);
 
 -- INV005PF | subsystem Technical Abstracts | definitions merged: 1 | signature 26d4857364c2 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/ملفات/20.pdf)
@@ -674,8 +842,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv005pf (
   ttncd BIGINT,
   doccd INTEGER,
   pilval NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv005pf_batch_offset ON abstracts.inv005pf (_batch_id, _source_offset);
 
 -- INV006PF | subsystem Technical Abstracts | definitions merged: 1 | signature 62b5048a1efe | Generated — pending approval
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/ملفات/21.pdf)
@@ -686,8 +858,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv006pf (
   doccd INTEGER,
   wrkcd INTEGER,
   incrm NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd, wrkcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv006pf_batch_offset ON abstracts.inv006pf (_batch_id, _source_offset);
 
 -- INV007PF | subsystem Technical Abstracts | definitions merged: 1 | signature fdf2a3a8619c | Generated — pending approval
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/ملفات/22.pdf)
@@ -702,8 +878,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv007pf (
   typsub INTEGER,
   resl INTEGER,
   qstk NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd, lohser)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv007pf_batch_offset ON abstracts.inv007pf (_batch_id, _source_offset);
 
 -- INV008PF | subsystem Technical Abstracts | definitions merged: 1 | signature e72a668023fa | Generated — pending approval
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/ملفات/23.pdf)
@@ -717,8 +897,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv008pf (
   typsub INTEGER,
   resl INTEGER,
   qstk NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv008pf_batch_offset ON abstracts.inv008pf (_batch_id, _source_offset);
 
 -- INV009PF | subsystem Technical Abstracts | definitions merged: 1 | signature dd55a46b1c72 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/ملفات/24.pdf)
@@ -732,8 +916,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv009pf (
   trmqty NUMERIC(6,2),
   trmprc NUMERIC(8,2),
   trmval NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd, trmsr)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv009pf_batch_offset ON abstracts.inv009pf (_batch_id, _source_offset);
 
 -- INV010PF | subsystem Technical Abstracts | definitions merged: 3 | signature 4cf6b4ce9a67 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BIL02SRC (مستخلصات فنيه/مستخلصات أنشاء/ملفات/25.pdf); NEWLIBGAEB/NGHADA (مستخلصات فنيه/مستخلصات أنشاء/ملفات/28.pdf); NEWLIBGAEB/NGHADA (مستخلصات فنيه/مستخلصات أنشاء/ملفات/30.pdf)
@@ -742,8 +930,12 @@ CREATE TABLE IF NOT EXISTS abstracts.inv010pf (
   subtyp INTEGER,
   ttncd BIGINT,
   doccd INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_inv010pf_batch_offset ON abstracts.inv010pf (_batch_id, _source_offset);
 
 -- INVO01PF | subsystem Technical Abstracts | definitions merged: 1 | signature 53979383a72e | Generated — pending approval
 -- lineage: NEWLIBGAEB/NGHADA (مستخلصات فنيه/مستخلصات أنشاء/ملفات/26.pdf)
@@ -764,8 +956,12 @@ CREATE TABLE IF NOT EXISTS abstracts.invo01pf (
   opncause INTEGER,
   opndat INTEGER,
   opnusr BIGINT,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, subtyp, ttncd, doccd, opnsr)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_invo01pf_batch_offset ON abstracts.invo01pf (_batch_id, _source_offset);
 
 -- MXM001PF | subsystem Technical Abstracts | definitions merged: 1 | signature 8240480bf337 | Generated — pending approval
 -- lineage: NEWLIBGAEB/BILM5SRC (مستخلصات فنيه/مستخلصات صيانه/ملفات مستخلصات صيانه/41.pdf)
@@ -780,8 +976,12 @@ CREATE TABLE IF NOT EXISTS abstracts.mxm001pf (
   exmdate INTEGER,
   exmend INTEGER,
   exmval NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, type, tetnno, year, strcd, exmser)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_mxm001pf_batch_offset ON abstracts.mxm001pf (_batch_id, _source_offset);
 
 -- PBLADDIT | subsystem School Map | definitions merged: 1 | signature 6e29be8a22c4 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/بيانات الملاحــــق خاص  بالمبنى.pdf)
@@ -797,8 +997,12 @@ CREATE TABLE IF NOT EXISTS school_map.pbladdit (
   elwocd INTEGER,
   bradcd INTEGER,
   coutsw INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (alcd, alno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbladdit_batch_offset ON school_map.pbladdit (_batch_id, _source_offset);
 
 -- PBLAREAS | subsystem School Map | definitions merged: 1 | signature dfb34e356180 | Generated — pending approval
 -- lineage: NEWLIBGAEB/TES (خريطه مدرسيه نهائى/ملفات خريطة/ملف المساحات.pdf)
@@ -810,8 +1014,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblareas (
   mosoar NUMERIC(8,3),
   plar NUMERIC(8,3),
   tflar NUMERIC(9,3),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (arblc)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblareas_batch_offset ON school_map.pblareas (_batch_id, _source_offset);
 
 -- PBLBULDG | subsystem School Map | definitions merged: 1 | signature 7fe5b92db02e | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف مبنى التعليمى.pdf)
@@ -838,8 +1046,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblbuldg (
   cotes INTEGER,
   cotev INTEGER,
   nousiv INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblbuldg_batch_offset ON school_map.pblbuldg (_batch_id, _source_offset);
 
 -- PBLDMG17 | subsystem School Map | definitions merged: 1 | signature 52f44143da45 | Generated — pending approval
 -- lineage: NEWLIBGAEB/DMGSRC (خريطه مدرسيه نهائى/ملفات خريطة/ملف بيانات دمج مدارس .pdf)
@@ -848,8 +1060,12 @@ CREATE TABLE IF NOT EXISTS school_map.pbldmg17 (
   blcda INTEGER,
   blcdb INTEGER,
   dmgdt INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (ordrno, blcda, blcdb)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbldmg17_batch_offset ON school_map.pbldmg17 (_batch_id, _source_offset);
 
 -- PBLEFECT | subsystem School Map | definitions merged: 1 | signature 7a9554fa415f | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف المحيطات المؤثرة الخاص  بالمبنى التعليمى.pdf)
@@ -857,8 +1073,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblefect (
   elcd INTEGER,
   efcdty INTEGER,
   efcd INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (elcd, efcdty)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblefect_batch_offset ON school_map.pblefect (_batch_id, _source_offset);
 
 -- PBLELSUP | subsystem School Map | definitions merged: 1 | signature 1d500466d090 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف التوصيلات الكهربائيـــــــة.pdf)
@@ -873,15 +1093,23 @@ CREATE TABLE IF NOT EXISTS school_map.pblelsup (
   cbcs VARCHAR(40),
   concd INTEGER,
   psdis NUMERIC(6,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (elblc)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblelsup_batch_offset ON school_map.pblelsup (_batch_id, _source_offset);
 
 -- PBLFLOOR | subsystem School Map | definitions merged: 1 | signature bf7088197516 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف الادوار الخاص  بالمبنى التعليمى .pdf)
 CREATE TABLE IF NOT EXISTS school_map.pblfloor (
   flcd INTEGER,
-  fblno INTEGER
+  fblno INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblfloor_batch_offset ON school_map.pblfloor (_batch_id, _source_offset);
 
 -- PBLGASES | subsystem School Map | definitions merged: 1 | signature 25168229ffd3 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف الغاز.pdf)
@@ -891,8 +1119,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblgases (
   schgs INTEGER,
   nogssy INTEGER,
   cougas INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (gald, gblno1)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblgases_batch_offset ON school_map.pblgases (_batch_id, _source_offset);
 
 -- PBLGATES | subsystem School Map | definitions merged: 1 | signature c8c80104d12a | Generated — pending approval
 -- lineage: NEWLIBGAEB/TES (خريطه مدرسيه نهائى/ملفات خريطة/ملف البوابات.pdf)
@@ -905,8 +1137,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblgates (
   galen NUMERIC(4,2),
   gahid NUMERIC(4,2),
   gcount INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (gatbl, noofga)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblgates_batch_offset ON school_map.pblgates (_batch_id, _source_offset);
 
 -- PBLINSPL | subsystem School Map | definitions merged: 1 | signature e56cdbb17bd7 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف التجهيزات الصحية.pdf)
@@ -919,8 +1155,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblinspl (
   noil INTEGER,
   eficn INTEGER,
   neficn INTEGER,
-  excuef INTEGER
+  excuef INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblinspl_batch_offset ON school_map.pblinspl (_batch_id, _source_offset);
 
 -- PBLINTRV | subsystem School Map | definitions merged: 1 | signature aed85a645008 | Generated — pending approval
 -- lineage: NEWLIBGAEB/TES (خريطه مدرسيه نهائى/ملفات خريطة/ملف الفترة الدراسية.pdf)
@@ -940,8 +1180,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblintrv (
   coutp INTEGER,
   noots INTEGER,
   nclas INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (tmblc, ivno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblintrv_batch_offset ON school_map.pblintrv (_batch_id, _source_offset);
 
 -- PBLLEVEL | subsystem School Map | definitions merged: 2 | signature 3ddcbde571c9 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف المنـــــــــــــاسيب.pdf); NEWLIBGAEB/TES (خريطه مدرسيه نهائى/ملفات خريطة/ملف المناسيب.pdf)
@@ -952,8 +1196,12 @@ CREATE TABLE IF NOT EXISTS school_map.pbllevel (
   frflll NUMERIC(3,2),
   grflll NUMERIC(3,2),
   seqlvl NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lvbl, lbno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllevel_batch_offset ON school_map.pbllevel (_batch_id, _source_offset);
 
 -- PBLLND01 | subsystem Real Estate | definitions merged: 1 | signature ac3eb99b8c92 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP1 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م البيانات الأساسية لتشكيل لجان.pdf)
@@ -961,8 +1209,12 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd01 (
   cmtno INTEGER,
   cmttyp INTEGER,
   cmtdt INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (cmttyp, cmtno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd01_batch_offset ON real_estate.pbllnd01 (_batch_id, _source_offset);
 
 -- PBLLND02 | subsystem Real Estate | definitions merged: 1 | signature 84fc4038e736 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP1 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م  أعضاء اللجان.pdf)
@@ -970,8 +1222,12 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd02 (
   cmtno INTEGER,
   cmttyp INTEGER,
   mbrno INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (cmttyp, cmtno, mbrno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd02_batch_offset ON real_estate.pbllnd02 (_batch_id, _source_offset);
 
 -- PBLLND03 | subsystem Real Estate | definitions merged: 1 | signature bab03c942546 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP1 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م لاعمال اللجــان.pdf)
@@ -981,8 +1237,12 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd03 (
   lndno INTEGER,
   esnddt INTEGER,
   provdt INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (cmttyp, cmtno, lndno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd03_batch_offset ON real_estate.pbllnd03 (_batch_id, _source_offset);
 
 -- PBLLND04 | subsystem Real Estate | definitions merged: 1 | signature 35af4c9594c5 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP1 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م البيـانات الاسـاسـية_لقطعة الارض .pdf)
@@ -997,8 +1257,12 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd04 (
   need INTEGER,
   areafl INTEGER,
   lndown INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lndno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd04_batch_offset ON real_estate.pbllnd04 (_batch_id, _source_offset);
 
 -- PBLLND05 | subsystem Real Estate | definitions merged: 1 | signature fa6ee6cff063 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP1 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/حدود الموقع العام.pdf)
@@ -1010,8 +1274,12 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd05 (
   nebrout NUMERIC(4,2),
   neixt VARCHAR(40),
   wall INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lndno, dirsid)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd05_batch_offset ON real_estate.pbllnd05 (_batch_id, _source_offset);
 
 -- PBLLND15 | subsystem Real Estate | definitions merged: 1 | signature ec5e7a02993f | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP1 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م معاييــر المســاحــــة.pdf)
@@ -1019,16 +1287,24 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd15 (
   sgcd INTEGER,
   area NUMERIC(8,2),
   lnsmsd NUMERIC(4,1),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (sgcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd15_batch_offset ON real_estate.pbllnd15 (_batch_id, _source_offset);
 
 -- PBLLND16 | subsystem Real Estate | definitions merged: 1 | signature 903a9d86b370 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP1 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م اللجنة الثلاثية.pdf)
 CREATE TABLE IF NOT EXISTS real_estate.pbllnd16 (
   lndno INTEGER,
   thropn INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lndno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd16_batch_offset ON real_estate.pbllnd16 (_batch_id, _source_offset);
 
 -- PBLLND50 | subsystem Real Estate | definitions merged: 1 | signature f9f8b09304a3 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCMAP1 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م مستند قرار التخصيص  .pdf)
@@ -1041,8 +1317,12 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd50 (
   nshnam VARCHAR(50),
   enddat INTEGER,
   docscg INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lndno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd50_batch_offset ON real_estate.pbllnd50 (_batch_id, _source_offset);
 
 -- PBLROOMS | subsystem School Map | definitions merged: 1 | signature 8670777d29bd | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف الفصول المرشدة فى الدورلترشيد الفراغات.pdf)
@@ -1052,16 +1332,24 @@ CREATE TABLE IF NOT EXISTS school_map.pblrooms (
   rflor INTEGER,
   rkin INTEGER,
   rcoun INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, rblno, rflor, rkin)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblrooms_batch_offset ON school_map.pblrooms (_batch_id, _source_offset);
 
 -- PBLSPPLS | subsystem School Map | definitions merged: 1 | signature dc5097c5042d | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف التغذية.pdf)
 CREATE TABLE IF NOT EXISTS school_map.pblsppls (
   sblcd INTEGER,
   spyty INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (sblcd, spyty)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblsppls_batch_offset ON school_map.pblsppls (_batch_id, _source_offset);
 
 -- PBLSROM | subsystem School Map | definitions merged: 2 | signature ff22cc42e5c4 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف الفراغــــات.pdf); NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف الفراغــــات1.pdf)
@@ -1069,8 +1357,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblsrom (
   spcd INTEGER,
   frgsr INTEGER,
   lent NUMERIC(4,2),
-  wdth NUMERIC(4,2)
+  wdth NUMERIC(4,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblsrom_batch_offset ON school_map.pblsrom (_batch_id, _source_offset);
 
 -- PBLSROMN | subsystem School Map | definitions merged: 1 | signature 4ba9d74812ec | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCBLCD (خريطه مدرسيه نهائى/ملفات خريطة/م الفــراغـــات بالترتيب الجديد.pdf)
@@ -1081,8 +1373,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblsromn (
   spcd INTEGER,
   spno INTEGER,
   spar NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, blno, flno, spcd, spno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblsromn_batch_offset ON school_map.pblsromn (_batch_id, _source_offset);
 
 -- PBLSROOM | subsystem School Map | definitions merged: 1 | signature cc052e7ad42a | Generated — pending approval
 -- lineage: NEWLIBGAEB/TES (خريطه مدرسيه نهائى/ملفات خريطة/ملف الفراغات.pdf)
@@ -1093,8 +1389,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblsroom (
   frgsr INTEGER,
   lent NUMERIC(4,2),
   wdth NUMERIC(4,2),
-  roar NUMERIC(5,2)
+  roar NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblsroom_batch_offset ON school_map.pblsroom (_batch_id, _source_offset);
 
 -- PBLSWLOK | subsystem School Map | definitions merged: 1 | signature 60e4c088626f | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف صرف على خندق .pdf)
@@ -1103,8 +1403,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblswlok (
   trulg NUMERIC(5,2),
   truwd NUMERIC(5,2),
   trudh NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (plcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblswlok_batch_offset ON school_map.pblswlok (_batch_id, _source_offset);
 
 -- PBLWALL | subsystem School Map | definitions merged: 1 | signature f1d5638f9ccb | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/ملف اطوال السور.pdf)
@@ -1115,8 +1419,12 @@ CREATE TABLE IF NOT EXISTS school_map.pblwall (
   mowah NUMERIC(4,2),
   lacd INTEGER,
   statu INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lbld, lacd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pblwall_batch_offset ON school_map.pblwall (_batch_id, _source_offset);
 
 -- PBYCLAIM | subsystem Purchases & Contracts | definitions merged: 1 | signature db1d4354ec78 | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/مستخلص.pdf)
@@ -1146,8 +1454,12 @@ CREATE TABLE IF NOT EXISTS purchases.pbyclaim (
   lprt INTEGER,
   lprtv NUMERIC(10,2),
   gh NUMERIC(10,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (clmno, type, tetnno, tnsrno, supcd2)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbyclaim_batch_offset ON purchases.pbyclaim (_batch_id, _source_offset);
 
 -- PBYMANT | subsystem Purchases & Contracts | definitions merged: 1 | signature c37820b4e133 | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/أوامر شغل .pdf)
@@ -1168,8 +1480,12 @@ CREATE TABLE IF NOT EXISTS purchases.pbymant (
   findt INTEGER,
   stcd INTEGER,
   mtcd INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, grpno, tblno, ordno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbymant_batch_offset ON purchases.pbymant (_batch_id, _source_offset);
 
 -- PBYPARTT | subsystem Purchases & Contracts | definitions merged: 1 | signature 05708acbae36 | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/أجزاء مناقصة.pdf)
@@ -1208,8 +1524,12 @@ CREATE TABLE IF NOT EXISTS purchases.pbypartt (
   strcd INTEGER,
   plcdt INTEGER,
   tnprp NUMERIC(5,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno, tnsrno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbypartt_batch_offset ON purchases.pbypartt (_batch_id, _source_offset);
 
 -- PBYSUPL1 | subsystem Purchases & Contracts | definitions merged: 1 | signature b65b729623ba | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/مقاول1.pdf)
@@ -1219,8 +1539,12 @@ CREATE TABLE IF NOT EXISTS purchases.pbysupl1 (
   cndl INTEGER,
   clasf INTEGER,
   suptyp INTEGER,
-  supcnt INTEGER
+  supcnt INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbysupl1_batch_offset ON purchases.pbysupl1 (_batch_id, _source_offset);
 
 -- PBYSUPL2 | subsystem Purchases & Contracts | definitions merged: 1 | signature ac89059d6b8b | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/مقاول2.pdf)
@@ -1230,8 +1554,12 @@ CREATE TABLE IF NOT EXISTS purchases.pbysupl2 (
   cmpnq VARCHAR(80),
   bnkcd INTEGER,
   haccd VARCHAR(30),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (supcd, supkn)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbysupl2_batch_offset ON purchases.pbysupl2 (_batch_id, _source_offset);
 
 -- PBYTENDR | subsystem Purchases & Contracts | definitions merged: 1 | signature 069db4ef5dc9 | Generated — pending approval
 -- lineage: NEWLIBGAEB/CONTRACT (مشتريات/ملفات مشتريات/مناقصه.pdf)
@@ -1245,8 +1573,12 @@ CREATE TABLE IF NOT EXISTS purchases.pbytendr (
   tnandt INTEGER,
   tesu INTEGER,
   finmod VARCHAR(1),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (type, tetnno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pbytendr_batch_offset ON purchases.pbytendr (_batch_id, _source_offset);
 
 -- PELCOURS | subsystem School Map | definitions merged: 1 | signature 7c63a406f7a4 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PBL (خريطه مدرسيه نهائى/ملفات خريطة/مـــــــــلف الملاعب.pdf)
@@ -1257,8 +1589,12 @@ CREATE TABLE IF NOT EXISTS school_map.pelcours (
   widthm NUMERIC(4,2),
   mosoa NUMERIC(8,2),
   kinlan INTEGER,
-  status INTEGER
+  status INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pelcours_batch_offset ON school_map.pelcours (_batch_id, _source_offset);
 
 -- PLN01PF | subsystem School Map | definitions merged: 1 | signature 398c978b2000 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/م عدد فصول تم حلها.pdf)
@@ -1267,15 +1603,23 @@ CREATE TABLE IF NOT EXISTS school_map.pln01pf (
   clss INTEGER,
   sta INTEGER,
   sdat INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (mosum)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pln01pf_batch_offset ON school_map.pln01pf (_batch_id, _source_offset);
 
 -- PLN02PF | subsystem School Map | definitions merged: 1 | signature 4c4665e11e7d | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/م عدد فصول تم حلها فعلى.pdf)
 CREATE TABLE IF NOT EXISTS school_map.pln02pf (
   blcd01 INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd01)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pln02pf_batch_offset ON school_map.pln02pf (_batch_id, _source_offset);
 
 -- PLN105PF | subsystem School Map | definitions merged: 1 | signature 4a752a625c7c | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/ملـف تجميعى  للخــطة التنفيـذيــة.pdf)
@@ -1283,44 +1627,48 @@ CREATE TABLE IF NOT EXISTS school_map.pln105pf (
   blrd00 INTEGER,
   blrd01 BIGINT,
   s5 INTEGER,
-  s5# INTEGER,
+  "s5#" INTEGER,
   s6 INTEGER,
   s8 INTEGER,
-  s8# INTEGER,
+  "s8#" INTEGER,
   s9 INTEGER,
   s11 INTEGER,
-  s11# INTEGER,
+  "s11#" INTEGER,
   s12 INTEGER,
   s14 INTEGER,
-  s14# INTEGER,
+  "s14#" INTEGER,
   s15 INTEGER,
   s17 INTEGER,
-  s17# INTEGER,
+  "s17#" INTEGER,
   s18 INTEGER,
   s23 INTEGER,
-  s23# INTEGER,
+  "s23#" INTEGER,
   s24 INTEGER,
   s28 INTEGER,
-  s28# INTEGER,
+  "s28#" INTEGER,
   s29 INTEGER,
   s30 INTEGER,
-  s30# INTEGER,
+  "s30#" INTEGER,
   s31 INTEGER,
   s32 INTEGER,
-  s32# INTEGER,
+  "s32#" INTEGER,
   s33 INTEGER,
   s34 INTEGER,
-  s34# INTEGER,
+  "s34#" INTEGER,
   s35 INTEGER,
   s26 INTEGER,
-  s26# INTEGER,
+  "s26#" INTEGER,
   s27 INTEGER,
   s36 INTEGER,
-  s36# INTEGER,
+  "s36#" INTEGER,
   s37 INTEGER,
   date0 INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blrd00)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pln105pf_batch_offset ON school_map.pln105pf (_batch_id, _source_offset);
 
 -- PLN501PF | subsystem School Map | definitions merged: 1 | signature b8cb7343cacc | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/ملف يحتوى على مسلسلات كثافة تم اضافتها من قبل.pdf)
@@ -1341,16 +1689,24 @@ CREATE TABLE IF NOT EXISTS school_map.pln501pf (
   solk INTEGER,
   proj INTEGER,
   dat INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (mossum, optsum, yersum, brsum, dssum, vlsum, blcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pln501pf_batch_offset ON school_map.pln501pf (_batch_id, _source_offset);
 
 -- PLNDMDPF | subsystem School Map | definitions merged: 1 | signature 4c07dd88cc39 | Generated — pending approval
 -- lineage: NEWLIBGAEB/DMGSRC (خريطه مدرسيه نهائى/ملفات خريطة/DETAIL ملف المبانى المخطط دمجها.pdf)
 CREATE TABLE IF NOT EXISTS school_map.plndmdpf (
   blcda INTEGER,
   blcdb INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcda, blcdb)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plndmdpf_batch_offset ON school_map.plndmdpf (_batch_id, _source_offset);
 
 -- PRC002PF | subsystem Real Estate | definitions merged: 1 | signature 7790c73a3a99 | Generated — pending approval
 -- lineage: NEWLIBGAEB/RECORD (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/أراضى بيانات أساسيه.pdf)
@@ -1375,8 +1731,12 @@ CREATE TABLE IF NOT EXISTS real_estate.prc002pf (
   empno2 INTEGER,
   askdat INTEGER,
   techdt INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (lndcod)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_prc002pf_batch_offset ON real_estate.prc002pf (_batch_id, _source_offset);
 
 -- PROJSRPF | subsystem School Map | definitions merged: 1 | signature 6a68e4b34ff7 | Generated — pending approval
 -- lineage: NEWLIBGAEB/PRTFL25 (خريطه مدرسيه نهائى/ملفات خريطة/م مسلسل الخطة.pdf)
@@ -1386,8 +1746,12 @@ CREATE TABLE IF NOT EXISTS school_map.projsrpf (
   kwrk1 INTEGER,
   klno1 INTEGER,
   planno INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (planno, date1, kwrk1, klcd1, klno1)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_projsrpf_batch_offset ON school_map.projsrpf (_batch_id, _source_offset);
 
 -- REMV01PF | subsystem Real Estate | definitions merged: 1 | signature 3b7997253999 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/نزع ملكيه.pdf)
@@ -1413,8 +1777,12 @@ CREATE TABLE IF NOT EXISTS real_estate.remv01pf (
   chnum BIGINT,
   dat2 INTEGER,
   remtyp INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv01pf_batch_offset ON real_estate.remv01pf (_batch_id, _source_offset);
 
 -- REMV02PF | subsystem Real Estate | definitions merged: 1 | signature fd4da7eeb666 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/كشف العروض.pdf)
@@ -1431,8 +1799,12 @@ CREATE TABLE IF NOT EXISTS real_estate.remv02pf (
   datt INTEGER,
   mpric NUMERIC(9,2),
   nume INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, numd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv02pf_batch_offset ON real_estate.remv02pf (_batch_id, _source_offset);
 
 -- REMV03PF | subsystem Real Estate | definitions merged: 1 | signature 7d44288d32fb | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/قرار الوزير.pdf)
@@ -1445,8 +1817,12 @@ CREATE TABLE IF NOT EXISTS real_estate.remv03pf (
   area NUMERIC(10,4),
   numn INTEGER,
   datn INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, numd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv03pf_batch_offset ON real_estate.remv03pf (_batch_id, _source_offset);
 
 -- REMV04PF | subsystem Real Estate | definitions merged: 2 | signature e92376896a11 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/تكاليف الأعمال .pdf); NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م شيكات تكاليف أعمال.pdf)
@@ -1455,8 +1831,12 @@ CREATE TABLE IF NOT EXISTS real_estate.remv04pf (
   numc BIGINT,
   dat1 INTEGER,
   chpr NUMERIC(9,2),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, numc)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv04pf_batch_offset ON real_estate.remv04pf (_batch_id, _source_offset);
 
 -- REMV05PF | subsystem Real Estate | definitions merged: 1 | signature bbff0cf67383 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/الأستيلاء المؤقت.pdf)
@@ -1466,8 +1846,12 @@ CREATE TABLE IF NOT EXISTS real_estate.remv05pf (
   dat1 BIGINT,
   num INTEGER,
   dat2 INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, nume)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv05pf_batch_offset ON real_estate.remv05pf (_batch_id, _source_offset);
 
 -- REMV06PF | subsystem Real Estate | definitions merged: 1 | signature 5b41b02b8d0c | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/كشوف العرض.pdf)
@@ -1477,8 +1861,12 @@ CREATE TABLE IF NOT EXISTS real_estate.remv06pf (
   ser INTEGER,
   name VARCHAR(40),
   area NUMERIC(10,4),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, numd, ser)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv06pf_batch_offset ON real_estate.remv06pf (_batch_id, _source_offset);
 
 -- REMV07PF | subsystem Real Estate | definitions merged: 1 | signature cb45daf9d678 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/أستمارات البيع .pdf)
@@ -1490,8 +1878,12 @@ CREATE TABLE IF NOT EXISTS real_estate.remv07pf (
   dat INTEGER,
   area NUMERIC(10,4),
   type INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, nume)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv07pf_batch_offset ON real_estate.remv07pf (_batch_id, _source_offset);
 
 -- REMV08PF | subsystem Real Estate | definitions merged: 1 | signature a0213b6fc0bf | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/موافقه الموقف الشعبى.pdf)
@@ -1499,16 +1891,24 @@ CREATE TABLE IF NOT EXISTS real_estate.remv08pf (
   blcd INTEGER,
   numm INTEGER,
   dat1 INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, numm)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv08pf_batch_offset ON real_estate.remv08pf (_batch_id, _source_offset);
 
 -- REMV09PF | subsystem Real Estate | definitions merged: 2 | signature baba903c8516 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/أكواد النزاع.pdf); NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/ب أكواد النزاع.pdf)
 CREATE TABLE IF NOT EXISTS real_estate.remv09pf (
   remty INTEGER,
   remnm VARCHAR(30),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (remty)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv09pf_batch_offset ON real_estate.remv09pf (_batch_id, _source_offset);
 
 -- REMV10PF | subsystem Real Estate | definitions merged: 1 | signature 0018dc5c2fdf | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/القرار النهائى.pdf)
@@ -1517,8 +1917,12 @@ CREATE TABLE IF NOT EXISTS real_estate.remv10pf (
   pricn NUMERIC(12,3),
   chnum BIGINT,
   dat3 INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, chnum)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv10pf_batch_offset ON real_estate.remv10pf (_batch_id, _source_offset);
 
 -- REMV12PF | subsystem Real Estate | definitions merged: 1 | signature 7bd000031fd5 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT1 (ملكيه عقاريه/ملكيه عقاريه نزع ملكيه/صحيفه .pdf)
@@ -1530,8 +1934,12 @@ CREATE TABLE IF NOT EXISTS real_estate.remv12pf (
   reason VARCHAR(40),
   dat INTEGER,
   area NUMERIC(10,4),
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, unitno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_remv12pf_batch_offset ON real_estate.remv12pf (_batch_id, _source_offset);
 
 -- RENT02PF | subsystem Real Estate | definitions merged: 1 | signature 912dacc9a1ee | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م شراء مبانى مؤجرة.pdf)
@@ -1540,20 +1948,28 @@ CREATE TABLE IF NOT EXISTS real_estate.rent02pf (
   areat NUMERIC(8,2),
   tempt INTEGER,
   tyct INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcdt)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rent02pf_batch_offset ON real_estate.rent02pf (_batch_id, _source_offset);
 
 -- RENT03PF | subsystem Real Estate | definitions merged: 1 | signature 1f8f71ea372a | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م بيانات مبانى مؤجرة.pdf)
 CREATE TABLE IF NOT EXISTS real_estate.rent03pf (
-  blcd# INTEGER,
-  temp# INTEGER,
-  class# INTEGER,
-  area# NUMERIC(9,3),
-  test# INTEGER,
-  law# INTEGER,
-  PRIMARY KEY (blcd#)
+  "blcd#" INTEGER,
+  "temp#" INTEGER,
+  "class#" INTEGER,
+  "area#" NUMERIC(9,3),
+  "test#" INTEGER,
+  "law#" INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
+  PRIMARY KEY ("blcd#")
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rent03pf_batch_offset ON real_estate.rent03pf (_batch_id, _source_offset);
 
 -- RENT05PF | subsystem Real Estate | definitions merged: 1 | signature 0b773d769abe | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م نماذج مبانى مؤجرة.pdf)
@@ -1563,8 +1979,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rent05pf (
   namoz INTEGER,
   clas INTEGER,
   law INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rent05pf_batch_offset ON real_estate.rent05pf (_batch_id, _source_offset);
 
 -- RNT001PF | subsystem Real Estate | definitions merged: 1 | signature 61722dac9586 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م موقف شراءمبنى مؤجر.pdf)
@@ -1572,8 +1992,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt001pf (
   blcd INTEGER,
   date INTEGER,
   stat INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, stat)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt001pf_batch_offset ON real_estate.rnt001pf (_batch_id, _source_offset);
 
 -- RNT002PF | subsystem Real Estate | definitions merged: 1 | signature dc0eaa28571d | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م موقف شراءرد للمالك.pdf)
@@ -1581,8 +2005,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt002pf (
   blcd INTEGER,
   date INTEGER,
   red INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, date)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt002pf_batch_offset ON real_estate.rnt002pf (_batch_id, _source_offset);
 
 -- RNT003PF | subsystem Real Estate | definitions merged: 1 | signature 2e47928e512b | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م موقف شراء اللجنة.pdf)
@@ -1596,8 +2024,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt003pf (
   t5 INTEGER,
   t6 INTEGER,
   t7 INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, date)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt003pf_batch_offset ON real_estate.rnt003pf (_batch_id, _source_offset);
 
 -- RNT004PF | subsystem Real Estate | definitions merged: 1 | signature bb797ce58ade | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م موقف شراء القرار.pdf)
@@ -1605,8 +2037,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt004pf (
   blcd INTEGER,
   date INTEGER,
   des INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, date)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt004pf_batch_offset ON real_estate.rnt004pf (_batch_id, _source_offset);
 
 -- RNT006PF | subsystem Real Estate | definitions merged: 1 | signature 378d390ce50f | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م موقف شراء نزع ملكية.pdf)
@@ -1614,8 +2050,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt006pf (
   blcd INTEGER,
   date INTEGER,
   kind INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, date)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt006pf_batch_offset ON real_estate.rnt006pf (_batch_id, _source_offset);
 
 -- RNT007PF | subsystem Real Estate | definitions merged: 1 | signature 63674d61909a | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م موقف شراء تبرع.pdf)
@@ -1623,8 +2063,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt007pf (
   blcd INTEGER,
   date INTEGER,
   tabr INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, date)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt007pf_batch_offset ON real_estate.rnt007pf (_batch_id, _source_offset);
 
 -- RNT008PF | subsystem Real Estate | definitions merged: 1 | signature 0c5ceedb301a | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م التفاوض  على الشراء.pdf)
@@ -1633,8 +2077,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt008pf (
   date INTEGER,
   lgty INTEGER,
   lgno INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, date)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt008pf_batch_offset ON real_estate.rnt008pf (_batch_id, _source_offset);
 
 -- RNT009PF | subsystem Real Estate | definitions merged: 1 | signature d34c5300b734 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م قرار نزع ملكية.pdf)
@@ -1643,8 +2091,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt009pf (
   stad INTEGER,
   lgno BIGINT,
   lgdt INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, stad)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt009pf_batch_offset ON real_estate.rnt009pf (_batch_id, _source_offset);
 
 -- RNT011PF | subsystem Real Estate | definitions merged: 1 | signature 89b784db4568 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCRENT (ملكيه عقاريه/واراضى مؤجرات ملكيه عقا ريه/م قرار نزع ملكية رقم.pdf)
@@ -1653,8 +2105,12 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt011pf (
   stad INTEGER,
   reno INTEGER,
   tnno INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd, stad)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt011pf_batch_offset ON real_estate.rnt011pf (_batch_id, _source_offset);
 
 -- SCH05SPF | subsystem School Map | definitions merged: 1 | signature b8cb7343cacc | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/ملــف بيــانــات الخطــة الخمسيــة المعتمدة.pdf)
@@ -1675,8 +2131,12 @@ CREATE TABLE IF NOT EXISTS school_map.sch05spf (
   solk INTEGER,
   proj INTEGER,
   dat INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (mossum, optsum, yersum, brsum, dssum, vlsum, blcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_sch05spf_batch_offset ON school_map.sch05spf (_batch_id, _source_offset);
 
 -- SCHDBF07 | subsystem School Map | definitions merged: 1 | signature 45431d141fe7 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SCHSRC (خريطه مدرسيه نهائى/ملفات خريطة/ملف الاحلال الكلى والجزئى 2.pdf)
@@ -1689,8 +2149,12 @@ CREATE TABLE IF NOT EXISTS school_map.schdbf07 (
   clsno7 INTEGER,
   clsds INTEGER,
   schds INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (dscd7, sgtyp)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_schdbf07_batch_offset ON school_map.schdbf07 (_batch_id, _source_offset);
 
 -- SCHDBF77 | subsystem School Map | definitions merged: 1 | signature b8c84dffb6a0 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SCHSRC (خريطه مدرسيه نهائى/ملفات خريطة/ملف الاحلال الكلى والجزئى.pdf)
@@ -1706,8 +2170,12 @@ CREATE TABLE IF NOT EXISTS school_map.schdbf77 (
   year7 INTEGER,
   optno7 INTEGER,
   mosno INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (dscd7, sgtyp, mosno)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_schdbf77_batch_offset ON school_map.schdbf77 (_batch_id, _source_offset);
 
 -- SCHDBFPD | subsystem School Map | definitions merged: 1 | signature 87428f77c388 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SCHSRC (خريطه مدرسيه نهائى/ملفات خريطة/ملف الزيادة السكانية السنويةالنهائى بالاولوية.pdf)
@@ -1720,24 +2188,36 @@ CREATE TABLE IF NOT EXISTS school_map.schdbfpd (
   clspup INTEGER,
   clsreq INTEGER,
   mosno INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (mosno, year, brcdpu, dscdpu)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_schdbfpd_batch_offset ON school_map.schdbfpd (_batch_id, _source_offset);
 
 -- SCHDES1F | subsystem School Map | definitions merged: 1 | signature 11f7d6773ca2 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SCHSRC (خريطه مدرسيه نهائى/ملفات خريطة/م احتياجات  رئيسى.pdf)
 CREATE TABLE IF NOT EXISTS school_map.schdes1f (
-  desc VARCHAR(2),
+  "desc" VARCHAR(2),
   desnm VARCHAR(20),
-  PRIMARY KEY (desc)
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
+  PRIMARY KEY ("desc")
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_schdes1f_batch_offset ON school_map.schdes1f (_batch_id, _source_offset);
 
 -- SCHMHMPF | subsystem School Map | definitions merged: 1 | signature e5eacbe019b2 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/ملف مسلاسلات محروم ثانوي عام وصناعي.pdf)
 CREATE TABLE IF NOT EXISTS school_map.schmhmpf (
   mhmsum INTEGER,
   typ INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (mhmsum)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_schmhmpf_batch_offset ON school_map.schmhmpf (_batch_id, _source_offset);
 
 -- SCHPF5 | subsystem School Map | definitions merged: 1 | signature b8cb7343cacc | Generated — pending approval
 -- lineage: NEWLIBGAEB/SCHSRC (خريطه مدرسيه نهائى/ملفات خريطة/الملف الخمسية.pdf)
@@ -1758,8 +2238,12 @@ CREATE TABLE IF NOT EXISTS school_map.schpf5 (
   solk INTEGER,
   proj INTEGER,
   dat INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (mossum, optsum, yersum, brsum, dssum, vlsum, blcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_schpf5_batch_offset ON school_map.schpf5 (_batch_id, _source_offset);
 
 -- SCHPLNPF | subsystem School Map | definitions merged: 1 | signature 2f48ee306af4 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SCHSRC (خريطه مدرسيه نهائى/ملفات خريطة/ملف الخطة.pdf)
@@ -1774,8 +2258,12 @@ CREATE TABLE IF NOT EXISTS school_map.schplnpf (
   blcd INTEGER,
   clssum INTEGER,
   mokfp INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (mossum, optsum, yersum)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_schplnpf_batch_offset ON school_map.schplnpf (_batch_id, _source_offset);
 
 -- SCHSUM | subsystem School Map | definitions merged: 1 | signature db15674a82fd | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/م 100كثافات اكبر من.pdf)
@@ -1783,8 +2271,12 @@ CREATE TABLE IF NOT EXISTS school_map.schsum (
   blcd INTEGER,
   stno INTEGER,
   des INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (blcd)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_schsum_batch_offset ON school_map.schsum (_batch_id, _source_offset);
 
 -- SEM001PF | subsystem School Map | definitions merged: 1 | signature a9cee603dd87 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/م  التخطيط على مستوى القرية.pdf)
@@ -1804,24 +2296,36 @@ CREATE TABLE IF NOT EXISTS school_map.sem001pf (
   clvhid INTEGER,
   sour1 INTEGER,
   sour2 INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
   PRIMARY KEY (vgpln)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_sem001pf_batch_offset ON school_map.sem001pf (_batch_id, _source_offset);
 
 -- TES001PF | subsystem School Map | definitions merged: 1 | signature 5f76be9285c2 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/ملف البيـانات الاسـاسـية_للمحروم.pdf)
 CREATE TABLE IF NOT EXISTS school_map.tes001pf (
-  vgcd# INTEGER,
-  class# INTEGER,
-  sgcd# INTEGER,
-  PRIMARY KEY (vgcd#, sgcd#)
+  "vgcd#" INTEGER,
+  "class#" INTEGER,
+  "sgcd#" INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
+  PRIMARY KEY ("vgcd#", "sgcd#")
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_tes001pf_batch_offset ON school_map.tes001pf (_batch_id, _source_offset);
 
 -- TES002PF | subsystem School Map | definitions merged: 1 | signature 095a9bf91b21 | Generated — pending approval
 -- lineage: NEWLIBGAEB/SRCPLAN (خريطه مدرسيه نهائى/ملفات خريطة/ملف البيـانات الاسـاسـية للكثافات.pdf)
 CREATE TABLE IF NOT EXISTS school_map.tes002pf (
-  blcd# INTEGER,
-  desn# INTEGER,
-  room# INTEGER,
-  sgcd# INTEGER,
-  PRIMARY KEY (blcd#)
+  "blcd#" INTEGER,
+  "desn#" INTEGER,
+  "room#" INTEGER,
+  "sgcd#" INTEGER,
+  _batch_id TEXT,
+  _source_offset INTEGER,
+  _raw_hex TEXT,
+  PRIMARY KEY ("blcd#")
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_tes002pf_batch_offset ON school_map.tes002pf (_batch_id, _source_offset);

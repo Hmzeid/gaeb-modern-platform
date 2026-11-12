@@ -22,7 +22,7 @@ export interface ImportReport {
   controlTotals: Record<string, string>;   // exact decimal sums per numeric field, computed on LOADED records
   sourceTotals: Record<string, string>;    // same sums over ALL parseable records (for reconciliation deltas)
 }
-export interface DecodedRecord { values: Record<string, string>; raw: string }
+export interface DecodedRecord { values: Record<string, string>; raw: string; offset: number }
 
 export function parseRecord(buf: Buffer, layout: Layout): DecodedRecord {
   const values: Record<string, string> = {};
@@ -45,7 +45,7 @@ export function parseRecord(buf: Buffer, layout: Layout): DecodedRecord {
       }
     }
   }
-  return { values, raw: buf.toString("hex") };
+  return { values, raw: buf.toString("hex"), offset: 0 };
 }
 
 export interface JobState { batchId: string; nextOffset: number; loadedKeys: string[] }
@@ -69,7 +69,7 @@ export function importFixedWidth(data: Buffer, layout: Layout, job: JobState): {
     const off = i * layout.recordLength;
     const slice = data.subarray(off, off + layout.recordLength);
     let rec: DecodedRecord;
-    try { rec = parseRecord(slice, layout); }
+    try { rec = parseRecord(slice, layout); rec.offset = off; }
     catch (e: any) { rejected.push({ offset: off, reason: String(e.message || e), rawHex: slice.toString("hex") }); continue; }
     for (const f of numericFields) sourceTotals[f.name] = sourceTotals[f.name].plus(rec.values[f.name]);
     const key = keyFields.map(f => rec.values[f.name]).join("|");
@@ -79,11 +79,23 @@ export function importFixedWidth(data: Buffer, layout: Layout, job: JobState): {
     if (keyFields.length) loadedKeys.add(key);
     for (const f of numericFields) totals[f.name] = totals[f.name].plus(rec.values[f.name]);
     records.push(rec);
-    job.nextOffset = i + 1;
+  }
+  // Checkpoint semantics: every record before nextOffset has been fully handled —
+  // loaded into staging OR quarantined into the reject list (both persisted in the
+  // same transaction), so a resume may safely skip loaded and rejected records alike.
+  job.nextOffset = total;
+  // An incomplete trailing record is quarantined, never silently ignored:
+  // the source file is evidence, and a short tail means a truncated extract.
+  const remainder = data.length % layout.recordLength;
+  if (remainder !== 0) {
+    const off = total * layout.recordLength;
+    rejected.push({ offset: off,
+      reason: `incomplete trailing record: ${remainder} byte(s) remain, record length is ${layout.recordLength} — extract appears truncated; quarantined, not loaded`,
+      rawHex: data.subarray(off).toString("hex") });
   }
   job.loadedKeys = [...loadedKeys];
   const fmt = (m: Record<string, Money>) => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.toString()]));
   return { records, state: job, report: {
-    batchId: job.batchId, sourceSha256: sha, totalRecords: total, loaded: records.length,
+    batchId: job.batchId, sourceSha256: sha, totalRecords: total + (remainder !== 0 ? 1 : 0), loaded: records.length,
     rejected, controlTotals: fmt(totals), sourceTotals: fmt(sourceTotals) } };
 }

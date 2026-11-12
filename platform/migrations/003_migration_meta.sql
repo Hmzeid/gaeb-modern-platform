@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS mig.batches (
 CREATE TABLE IF NOT EXISTS mig.rejects (
   id BIGSERIAL PRIMARY KEY, batch_id TEXT NOT NULL REFERENCES mig.batches(batch_id),
   record_offset INTEGER NOT NULL, reason TEXT NOT NULL, raw_hex TEXT NOT NULL,
-  resubmitted_batch TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+  resubmitted_batch TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (batch_id, record_offset));
 CREATE TABLE IF NOT EXISTS mig.job_state (
   batch_id TEXT PRIMARY KEY, next_offset INTEGER NOT NULL DEFAULT 0,
   loaded_keys JSONB NOT NULL DEFAULT '[]', updated_at TIMESTAMPTZ NOT NULL DEFAULT now());

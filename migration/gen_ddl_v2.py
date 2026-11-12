@@ -8,6 +8,20 @@ import json, csv, re, collections, hashlib
 inv = json.load(open("migration/legacy_inventory.json"))
 SCHEMA = {"Budget":"budget","School Map":"school_map","Technical Abstracts":"abstracts",
           "Purchases & Contracts":"purchases","Real Estate":"real_estate","Estimates (BOQ)":"estimates"}
+PG_RESERVED = {"all","analyse","analyze","and","any","array","as","asc","asymmetric","authorization","binary",
+"both","case","cast","check","collate","collation","column","concurrently","constraint","create","cross","current_catalog",
+"current_date","current_role","current_time","current_timestamp","current_user","default","deferrable","desc","distinct",
+"do","else","end","except","false","fetch","for","foreign","freeze","from","full","grant","group","having","ilike","in",
+"initially","inner","intersect","into","is","isnull","join","lateral","leading","left","like","limit","localtime",
+"localtimestamp","natural","not","null","offset","on","only","or","order","outer","overlaps","placing","primary","references",
+"returning","right","select","session_user","similar","some","symmetric","table","then","to","trailing","true","union",
+"unique","user","using","variadic","verbose","when","where","window","with"}
+import re as _re
+def qident(name):
+    if name.lower() in PG_RESERVED or not _re.fullmatch(r'[a-z_][a-z0-9_]*', name):
+        return f'"{name}"'
+    return name
+
 def sqltype(f):
     n, L, d = f["name"], f["length"], f["decimals"]
     if d > 0: return f"NUMERIC({L},{d})", "numeric-decimal"
@@ -48,13 +62,17 @@ for member, defs in sorted(by_member.items()):
         for r in d0["records"]:
             for fld in r["fields"]:
                 t, why = sqltype(fld)
-                cols.append(f"  {fld['name'].lower()} {t}")
+                cols.append(f"  {qident(fld['name'].lower())} {t}")
                 reg.append([member, sch, tbl, fld["name"], fld["length"], fld["decimals"], t, why, status, lineage])
-            pk = [k.lower() for k in r["keys"]]
+            pk = [qident(k.lower()) for k in r["keys"]]
+        cols.append("  _batch_id TEXT")
+        cols.append("  _source_offset INTEGER")
+        cols.append("  _raw_hex TEXT")
         body = ",\n".join(cols)
         if pk and all(any(c.strip().startswith(p + " ") for c in cols) for p in pk):
             body += f",\n  PRIMARY KEY ({', '.join(pk)})"
-        out.append(f"CREATE TABLE IF NOT EXISTS {sch}.{tbl} (\n{body}\n);\n")
+        out.append(f"CREATE TABLE IF NOT EXISTS {sch}.{tbl} (\n{body}\n);")
+        out.append(f"CREATE UNIQUE INDEX IF NOT EXISTS ux_{tbl[:40]}_batch_offset ON {sch}.{tbl} (_batch_id, _source_offset);\n")
         table_count += 1
 open("migration/reconciled/schema_v2.sql", "w").write("\n".join(out))
 with open("migration/reconciled/mapping_register_v2.csv", "w", newline="") as fh:

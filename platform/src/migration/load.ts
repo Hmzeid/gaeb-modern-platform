@@ -14,11 +14,13 @@ export function buildStagingInsert(schemaTable: string, batchId: string, rec: De
   if (!/^[a-z_]+\.[a-z0-9_]+$/.test(schemaTable)) throw new Error(`unsafe staging table name: ${schemaTable}`);
   const cols = Object.keys(rec.values);
   for (const c of cols) if (!/^[a-z0-9_]+$/i.test(c)) throw new Error(`unsafe column name: ${c}`);
-  const all = [...cols, "_batch_id", "_raw_hex"];
+  const all = [...cols, "_batch_id", "_source_offset", "_raw_hex"];
   const placeholders = all.map((_, i) => `$${i + 1}`).join(", ");
   return {
-    text: `INSERT INTO ${schemaTable} (${all.join(", ")}) VALUES (${placeholders})`,
-    values: [...cols.map(c => rec.values[c]), batchId, rec.raw],
+    // Database-level idempotency: a retried batch re-inserts nothing — the unique
+    // index ux_<table>_batch_offset on (_batch_id, _source_offset) absorbs replays.
+    text: `INSERT INTO ${schemaTable} (${all.join(", ")}) VALUES (${placeholders}) ON CONFLICT (_batch_id, _source_offset) DO NOTHING`,
+    values: [...cols.map(c => rec.values[c]), batchId, rec.offset, rec.raw],
   };
 }
 
@@ -33,7 +35,7 @@ export function buildBatchInsert(report: ImportReport, sourceFile: string, layou
 
 export function buildRejectInserts(report: ImportReport): Parameterized[] {
   return report.rejected.map(r => ({
-    text: "INSERT INTO mig.rejects (batch_id, record_offset, reason, raw_hex) VALUES ($1,$2,$3,$4)",
+    text: "INSERT INTO mig.rejects (batch_id, record_offset, reason, raw_hex) VALUES ($1,$2,$3,$4) ON CONFLICT (batch_id, record_offset) DO NOTHING",
     values: [report.batchId, r.offset, r.reason, r.rawHex],
   }));
 }
@@ -51,4 +53,19 @@ export async function persistImport(db: SqlExecutor, schemaTable: string, source
     for (const rec of records) { const q = buildStagingInsert(schemaTable, report.batchId, rec); await db.query(q.text, q.values); }
     await db.query("COMMIT");
   } catch (e) { await db.query("ROLLBACK"); throw e; }
+}
+
+// Job checkpoints live in mig.job_state so an interrupted import resumes from the
+// database, not from a local file (Directive: persist and restore checkpoints).
+import type { JobState } from "./engine.js";
+export interface QueryExecutor { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
+export async function loadJobState(db: QueryExecutor, batchId: string): Promise<JobState> {
+  const { rows } = await db.query("SELECT next_offset, loaded_keys FROM mig.job_state WHERE batch_id = $1", [batchId]);
+  if (!rows.length) return { batchId, nextOffset: 0, loadedKeys: [] };
+  return { batchId, nextOffset: rows[0].next_offset, loadedKeys: rows[0].loaded_keys ?? [] };
+}
+export function buildJobStateSave(state: JobState): Parameterized {
+  return { text: `INSERT INTO mig.job_state (batch_id, next_offset, loaded_keys, updated_at) VALUES ($1,$2,$3, now())
+                  ON CONFLICT (batch_id) DO UPDATE SET next_offset = EXCLUDED.next_offset, loaded_keys = EXCLUDED.loaded_keys, updated_at = now()`,
+           values: [state.batchId, state.nextOffset, JSON.stringify(state.loadedKeys)] };
 }

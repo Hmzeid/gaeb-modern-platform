@@ -1,0 +1,49 @@
+
+> gaeb-platform@1.0.0-production-scaffold test
+> npm run build && cp tests/testvectors.json tests/codepage_vectors.json tests/fixture_extract.bin dist/tests/ && node --test "dist/tests/*.test.js"
+
+
+> gaeb-platform@1.0.0-production-scaffold build
+> tsc -p tsconfig.json && cp -r src/codepages dist/src/
+
+✔ windows-1256 decodes to the exact original Arabic (independent Python-generated vector) (53.799908ms)
+✔ ibm420 (CCSID 420) EBCDIC bytes decode to the exact original Arabic (glibc charmap vector) (0.267782ms)
+✔ ibm864 decodes shaped presentation forms back to standard letters (0.662144ms)
+✔ ibm425 fails loudly instead of silently corrupting (no verified table) (2.830117ms)
+✔ mojibake is flagged, never auto-repaired (0.389675ms)
+✔ search normalization is separate from the preserved original (0.301703ms)
+✔ password hashing is salted, verifies, and rejects wrong passwords (935.819239ms)
+✔ RBAC: viewer cannot write; certifier cannot authorize payment (separation of duties) (0.350626ms)
+✔ tender stages cannot be skipped (0.227351ms)
+✔ certificate: 'paid' requires a payment reference; sequence is enforced (0.329835ms)
+✔ expropriation: decree gate blocks post-decree actions before the decree exists (0.273301ms)
+✔ CHK5DAYS implementation: 5 working days skip Fri/Sat weekend (0.768283ms)
+✔ estimates: draft -> reviewed requires the review permission (1.384868ms)
+✔ estimates: approval is a separate permission from review (separation of duties) (0.264046ms)
+✔ estimates: no skipping — draft cannot jump to approved; approved is terminal (0.164257ms)
+✔ estimates: reviewed can be returned for correction (new revision) (0.142544ms)
+✔ E2E: extract -> staging -> transform -> operational -> API -> reconciliation (real PostgreSQL) (6242.994646ms)
+✔ staging insert is parameterized and carries lineage (batch + raw source bytes) (2.650478ms)
+✔ unsafe table or column names are refused (no SQL injection surface) (0.504307ms)
+✔ batch + reject builders carry the reconciliation figures verbatim (0.343406ms)
+✔ persistImport runs batch, rejects and records in one transaction (0.571127ms)
+✔ offline extract import: decodes Arabic + packed money, quarantines duplicate and corrupt records (3.858781ms)
+✔ reconciliation: control totals are exact decimals over loaded records (0.778318ms)
+✔ resume: a second run with the saved job state loads nothing twice (idempotent) (0.497887ms)
+✔ lineage: report carries the source file hash and every record keeps its raw form (1.695795ms)
+✔ packed decimal decodes value, scale and sign (1.813782ms)
+✔ zoned decimal (EBCDIC) decodes with negative sign zone (0.356274ms)
+✔ certificate valuation is exact decimal (no float error) (1.552851ms)
+✔ certificate with deductions exceeding gross is rejected, not silently negative (0.253831ms)
+✔ large packed-decimal contract value keeps full precision (0.27955ms)
+✔ transform is refused while any mapped field lacks register approval (1.589605ms)
+✔ transform proceeds when every mapped field is approved (0.232629ms)
+✔ transform SQL is a set-based insert from the batch's staged rows, idempotent on the natural key (0.362144ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7023.292283

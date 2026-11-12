@@ -3,19 +3,19 @@ import assert from "node:assert/strict";
 import { buildStagingInsert, buildBatchInsert, buildRejectInserts, persistImport, type SqlExecutor } from "../src/migration/load.js";
 import type { ImportReport } from "../src/migration/engine.js";
 
-const rec = { values: { BLCD: "BLD001", AMT: "1500.5" }, raw: "abcd" };
+const rec = { values: { BLCD: "BLD001", AMT: "1500.5" }, raw: "abcd", offset: 62 };
 const report: ImportReport = { batchId: "b1", sourceSha256: "f".repeat(64), totalRecords: 3, loaded: 2,
   rejected: [{ offset: 62, reason: "duplicate key BLD001", rawHex: "00ff" }],
   controlTotals: { AMT: "1751.25" }, sourceTotals: { AMT: "1752.25" } };
 
 test("staging insert is parameterized and carries lineage (batch + raw source bytes)", () => {
   const q = buildStagingInsert("school_map.pblbuldg", "b1", rec);
-  assert.match(q.text, /INSERT INTO school_map\.pblbuldg \(blcd, amt, _batch_id, _raw_hex\) VALUES \(\$1, \$2, \$3, \$4\)/i);
-  assert.deepEqual(q.values, ["BLD001", "1500.5", "b1", "abcd"]);
+  assert.match(q.text, /INSERT INTO school_map\.pblbuldg \(blcd, amt, _batch_id, _source_offset, _raw_hex\) VALUES \(\$1, \$2, \$3, \$4, \$5\) ON CONFLICT \(_batch_id, _source_offset\) DO NOTHING/i);
+  assert.deepEqual(q.values, ["BLD001", "1500.5", "b1", 62, "abcd"]);
 });
 test("unsafe table or column names are refused (no SQL injection surface)", () => {
   assert.throws(() => buildStagingInsert("x; DROP TABLE users", "b1", rec));
-  assert.throws(() => buildStagingInsert("a.b", "b1", { values: { "x) VALUES (1": "1" }, raw: "" }));
+  assert.throws(() => buildStagingInsert("a.b", "b1", { values: { "x) VALUES (1": "1" }, raw: "", offset: 0 }));
 });
 test("batch + reject builders carry the reconciliation figures verbatim", () => {
   const b = buildBatchInsert(report, "extract.dat", "buildings-v1");

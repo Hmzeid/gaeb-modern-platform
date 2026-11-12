@@ -151,7 +151,11 @@ export default function App() {
     {tab === "reports" && <><section className="card"><h2>{t.budget} — {t.reports}</h2>
       <table><thead><tr><th>{t.fy}</th><th>{t.allocated}</th><th>{t.committed}</th><th>{t.spent}</th><th>{t.available}</th></tr></thead>
       <tbody>{budgetUtil.map(r => <tr key={r.fiscal_year}><td>{r.fiscal_year}</td><td>{r.allocated}</td><td>{r.committed}</td><td>{r.spent}</td><td>{r.available}</td></tr>)}</tbody></table>
-      <p><a href="/api/reports/budget-utilization.csv" target="_blank" rel="noreferrer">CSV ↓</a></p></section>
+      <p><button onClick={async () => { const { getToken } = await import("./api");
+        const res = await fetch("/api/reports/budget-utilization.csv", { headers: { Authorization: `Bearer ${getToken()}` } });
+        if (!res.ok) { setErr(`CSV: HTTP ${res.status}`); return; }
+        const url = URL.createObjectURL(await res.blob());
+        const a = document.createElement("a"); a.href = url; a.download = "budget-utilization.csv"; a.click(); URL.revokeObjectURL(url); }}>CSV ↓</button></p></section>
       <section className="card"><h2>{t.certs} — {t.reports}</h2>
       <table><thead><tr><th>{t.status}</th><th>#</th><th>{t.gross}</th><th>{t.ded}</th><th>{t.net}</th></tr></thead>
       <tbody>{certSummary.map(r => <tr key={r.status}><td>{r.status}</td><td>{r.count}</td><td>{r.gross}</td><td>{r.deductions}</td><td>{r.net}</td></tr>)}</tbody></table></section></>}

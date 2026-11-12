@@ -108,3 +108,42 @@ preparation all remain, gated on the blockers in docs/BLOCKERS.md where noted.
   review/approve/return actions) and Reports tab added. Build verified (159.79 kB).
 - Still unverified until a PostgreSQL host exists: every DB-backed path end-to-end.
   The unit suite covers logic, builders and workflows — not live SQL execution.
+
+## Addendum 4 — Review fixes (commit after 08ea389), 2026-11-12
+
+All eight findings from the review of 08ea389 are addressed and evidenced:
+
+1. **Lineage reconciled with the real schema** — gen_ddl_v2 now emits _batch_id,
+   _source_offset, _raw_hex on all 126 staging tables + a unique index on
+   (_batch_id, _source_offset). Design: docs/LINEAGE.md.
+2. **CLI is the full pipeline** — one command: parse → decode/validate → staging
+   insert → quarantine → checkpoint → reconciliation printout (single client,
+   single transaction; --report-only retained).
+3. **Single-connection transactions** — persistImport runs BEGIN..COMMIT on the one
+   client the CLI opens; the integration test drives it the same way.
+4. **Checkpoints persisted in mig.job_state** and restored per run; batch ids are
+   deterministic (file SHA-256); rejects are unique on (batch_id, record_offset).
+   Engine checkpoint semantics fixed: offsets advance for quarantined records too
+   (previously only for loaded ones — found by the integration test).
+5. **Incomplete trailing records are quarantined** with byte counts, never ignored.
+6. **Staging → operational loading exists and is approval-gated** — transform.ts
+   refuses to run unless every mapped field is Approved in the mapping register
+   (the production register is pending, so the real buildings transform correctly
+   refuses today; the integration test proves both the refusal and, with an approved
+   fixture register, the load into app.buildings, idempotently).
+7. **Integration tests against real PostgreSQL 16.4 — EXECUTED AND PASSING**
+   (docs/INTEGRATION_LOG_2026-11-12.txt): full chain extract → parser → staging →
+   transform → operational tables → live API → reconciliation, including duplicate
+   records, a corrupt record, a truncated tail, a retry (nothing re-inserted), a
+   poisoned-record rollback (no partial batch), and exact numeric reconciliation
+   (control 15,308,643 = staged SUM; source 22,962,964; delta = quarantined value).
+   Executing the generated DDL also exposed two real generator defects — a legacy
+   field named NOT (reserved word) and one named W# (# in identifier) — both fixed
+   in the generator with identifier quoting.
+8. **Report authorization enforced** (reports.finance on budget reports/CSV;
+   technical role receives 403 in the integration test, budget role 200) and the
+   frontend CSV download now sends the session token (fetch + blob) instead of a
+   bare link.
+
+Full suite with the integration test enabled: see the log (unit + integration).
+Actual customer migration remains UNVERIFIED — all fixtures are synthetic.
