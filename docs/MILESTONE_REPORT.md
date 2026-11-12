@@ -191,3 +191,45 @@ defined with two honestly blocked modules; (2) technical tests — passing incl.
 PostgreSQL E2E; (3) live IBM i integration — UNVERIFIED; (4) business equivalence —
 UNVERIFIED; (5) security approval — not granted; (6) customer acceptance — not
 started (pack ready to send); (7) authorized production deployment — not complete.
+
+## Addendum 6 — Final POC Readiness (2026-11-12, third release)
+
+Formats corrected (docs/EXPORT_FORMATS.md): save files are UNSUPPORTED for direct
+import (restore-then-extract route documented); CPYTOIMPF delimited is fully
+supported (real CSV parser: quotes, embedded delimiters/newlines, group separators,
+accounting negatives, null markers, validated dates); CPYTOIMPF fixed-TEXT is a
+distinct decoder (EBCDIC/ASCII text numerics) — format confusion between text and
+native binary is refused by the registered layout's format tag.
+
+Approvals secured: approve-by-name is gone. Approvals are created only through the
+authenticated API by a holder of migration.approve (budget/admin), bound to the user
+id + role, with demo/customer mode separation (a demo approval cannot authorize a
+customer batch), separation of duties vs the batch importer, an append-only event
+history, auditable revocation, and advisory-lock concurrency between approval and
+execution. Verified live: operator approve → 403; customer mode without evidence →
+400; revoke → transform 422; re-approve → 200.
+
+Large files: streaming importer (bounded memory, chunked transactions, durable
+checkpoints, crash/resume proven at 1,200 records with the checkpoint holding
+exactly the committed chunks), streamed uploads to 0600 temp storage with mid-stream
+size caps and hash-on-write, delete-after-import retention. Benchmark (real, salted,
+docs/BENCHMARK.md): 5 MB / 90,394 records at 4,289 rec/s; 25 MB / 451,972 records at
+2,737 rec/s. The runs also exposed and fixed a staging-design defect: generated
+staging tables carried legacy PRIMARY KEYs that aborted chunks on cross-batch keys;
+staging is an evidence store keyed by (batch, offset) — generator fixed, schema
+regenerated. Known scaling limit documented in BENCHMARK.md (key-set checkpointing).
+
+Deployment: scripts/smoke-test.sh covers the 12 required verifications and is READY
+BUT UNEXECUTED — no Docker exists in the development sandbox, and this report does
+not claim otherwise. Full suite: 47/47 passing with integration enabled.
+
+## Release-gate classification (Directive §10) — kept separate, as required
+- Engineering implementation complete: SUBSTANTIALLY (formats, approvals, streaming, Migration Center; Budget/Estimates transforms remain evidence-blocked B-01/B-13)
+- PostgreSQL integration verified: YES (47/47 incl. real-PG E2E, synthetic fixtures)
+- Docker deployment verified: NO — smoke script ready, unexecuted (no Docker in sandbox)
+- Migration engine verified with synthetic data: YES
+- Migration engine verified with actual GAEB data: NO — no extracts received
+- Legacy business equivalence verified: NO — reference results not supplied (B-03/B-04/B-08)
+- Security approved: NO — controls implemented and tested; no customer security review
+- Customer UAT approved: NO — not started (B-12)
+- Production deployment authorized: NO

@@ -64,23 +64,36 @@ export const TRANSFORMS: Record<string, TransformSpec> = {
   expropriation: EXPROPRIATION_TRANSFORM, certificates: CERTIFICATES_TRANSFORM,
 };
 
-export async function assertApprovals(db: SqlExecutor, spec: TransformSpec): Promise<void> {
+export type ApprovalMode = "demo" | "customer";
+/** The gate. An approval counts only if it is ACTIVE, was recorded for the required
+ *  mode (demo approvals can never authorize customer data, and vice versa), is bound
+ *  to an authenticated user id, matches the CURRENT definition hash, and — separation
+ *  of duties — was not granted by the same user who imported the batch. */
+export async function assertApprovals(db: SqlExecutor, spec: TransformSpec, mode: ApprovalMode = "demo", batchId?: string): Promise<void> {
   const r = await (db as any).query(
-    "SELECT legacy_field, approved_by, transform_hash FROM mig.mapping_approvals WHERE transform_name = $1", [spec.name]) as { rows: any[] };
+    "SELECT legacy_field, approved_by, approved_by_user_id, transform_hash, mode, status FROM mig.mapping_approvals WHERE transform_name = $1", [spec.name]) as { rows: any[] };
   const byField = new Map(r.rows.map((x: any) => [String(x.legacy_field).toUpperCase(), x]));
+  let importer: number | null = null;
+  if (batchId) {
+    const b = await (db as any).query("SELECT imported_by_user_id FROM mig.batches WHERE batch_id = $1", [batchId]) as { rows: any[] };
+    importer = b.rows.length ? (b.rows[0].imported_by_user_id as number | null) : null;
+  }
   const hash = transformHash(spec);
   const problems: string[] = [];
   for (const f of spec.fields) {
     const row = byField.get(f.legacy.toUpperCase());
     if (!row) problems.push(`${f.legacy}: no approval record`);
-    else if (!row.approved_by) problems.push(`${f.legacy}: approval has no approver`);
+    else if (row.status !== "active") problems.push(`${f.legacy}: approval is ${row.status}`);
+    else if (row.mode !== mode) problems.push(`${f.legacy}: approval mode is '${row.mode}' but this batch requires '${mode}' approvals`);
+    else if (!row.approved_by_user_id) problems.push(`${f.legacy}: approval is not bound to an authenticated user`);
+    else if (importer !== null && Number(row.approved_by_user_id) === Number(importer)) problems.push(`${f.legacy}: separation of duties — the batch importer cannot approve its own transform`);
     else if (row.transform_hash !== hash) problems.push(`${f.legacy}: approval was given for a DIFFERENT transform definition (hash mismatch — re-approval required)`);
   }
   if (problems.length) throw new Error(`transform ${spec.name} refused: ${problems.join("; ")}`);
 }
 
-export async function runTransform(db: SqlExecutor, spec: TransformSpec, batchId: string): Promise<number> {
-  await assertApprovals(db, spec);
+export async function runTransform(db: SqlExecutor, spec: TransformSpec, batchId: string, mode: ApprovalMode = "demo"): Promise<number> {
+  await assertApprovals(db, spec, mode, batchId);
   const r = await (db as any).query(spec.sql, [batchId]) as { rowCount?: number };
   return r.rowCount ?? 0;
 }

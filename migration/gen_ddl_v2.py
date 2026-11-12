@@ -70,7 +70,13 @@ for member, defs in sorted(by_member.items()):
         cols.append("  _raw_hex TEXT")
         body = ",\n".join(cols)
         if pk and all(any(c.strip().startswith(p + " ") for c in cols) for p in pk):
-            body += f",\n  PRIMARY KEY ({', '.join(pk)})"
+            # Staging is an EVIDENCE store, not the operational model: legacy primary
+            # keys are deliberately NOT enforced here. The same legacy key legitimately
+            # appears in many batches (re-extracts, corrections), and duplicate keys
+            # inside one extract are quarantined by the engine with reasons — a PK
+            # constraint would abort whole chunks instead. Staging identity is
+            # (_batch_id, _source_offset) via the unique lineage index below.
+            body += f"\n  -- legacy key (not enforced in staging): {', '.join(pk)}"
         out.append(f"CREATE TABLE IF NOT EXISTS {sch}.{tbl} (\n{body}\n);")
         out.append(f"CREATE UNIQUE INDEX IF NOT EXISTS ux_{tbl[:40]}_batch_offset ON {sch}.{tbl} (_batch_id, _source_offset);\n")
         table_count += 1

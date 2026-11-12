@@ -46,7 +46,11 @@ DDS for the full set is requested in §5 for coverage verification.
 3. **B-13 — Estimates item-master DDS:** the Estimates subsystem was delivered as
    programs only; the physical file holding the item catalogue was not identified.
    Please identify it and supply its DDS.
-4. **B-03/B-04/B-08 — business-rule reference results:** CHKDIG algorithm/source;
+4. **B-05 — CCSID details:** the file-level CCSID and every field-level CCSID that
+   differs, for every file supplied (Arabic fields especially). Our decoders cover
+   IBM420, IBM864, and Windows-1256; IBM425 data would require its verified table
+   first, so a 425 file must be flagged before delivery, not discovered during it.
+5. **B-03/B-04/B-08 — business-rule reference results:** CHKDIG algorithm/source;
    the exact CHK5DAYS working-day rule and calendar; the full CUTKND deduction-kind
    enumeration with each kind's formula. For each rule we also request a small set of
    worked examples from the live system (inputs → outputs) so equivalence can be
@@ -64,18 +68,30 @@ DDS for the full set is requested in §5 for coverage verification.
   reconciled to the piastre
 - Extract timestamp and the job/user that produced it
 
-## 5. Supported export formats (in order of preference)
+## 5. Supported export formats — read carefully, they are NOT interchangeable
 
-1. **Native binary record images** (preferred for data containing packed/zoned
-   decimals): a save file (SAVOBJ/SAVLIB) or a raw stream-file copy of the physical
-   file's records. Packed and zoned fields must arrive as their native bytes.
-2. **Fixed-format text** via CPYTOIMPF to a stream file with an explicit stream-file
-   code page. NOTE: CPYTOIMPF converts packed/zoned fields to character text — it
-   does **not** emit native packed bytes. If this route is used, tell us the exact
-   CPYTOIMPF parameters (delimiters, code page, decimal point) so the layout can be
-   verified before loading.
-3. **Delimited text (CSV)** via CPYTOIMPF with string/field delimiters and a stated
-   code page — same note as (2).
+**A. IBM i save files (SAVOBJ / SAVLIB) — not directly importable.**
+A save file is an IBM i save-object format, not a readable record image, and our
+importer does not parse it. If GAEB prefers save files, the supported route is:
+GAEB restores the objects on their own IBM i into a scratch library, then produces
+one of formats B–D below from the restored files (or names a mutually agreed
+extraction tool whose output is B, C, or D). We state this plainly so no delivery
+arrives in a form nobody can read.
+
+**B. Delimited text via CPYTOIMPF (e.g. CSV) — supported.**
+Packed/zoned fields arrive as decimal character text. Tell us: the field and record
+delimiters, whether fields are quoted, the stream-file code page, the decimal
+separator, and the null representation. Embedded delimiters/line breaks inside
+quoted fields are handled. Empty numeric values are rejected, never silently zeroed.
+
+**C. Fixed-format text via CPYTOIMPF (DTAFMT(*FIXED)) — supported.**
+Same record geometry as the DDS, but numeric fields are character representations
+and are decoded as text (including EBCDIC stream code pages). They are never treated
+as native packed bytes.
+
+**D. Native binary record images — supported, preferred for packed data.**
+A stream-file copy that preserves the raw record bytes (packed/zoned intact), with
+per-field CCSIDs declared. Only this format keeps packed decimals as bytes.
 
 Example commands (standard V6R1; confirm on your system before use):
 ```
@@ -88,6 +104,19 @@ SAVOBJ OBJ(PBLBULDG) LIB(NEWLIBGAEB) DEV(*SAVF) SAVF(QGPL/GAEBEXT) TGTRLS(*CURRE
 No command above writes to or alters production data. Veebase will never write to
 the source system; if direct extraction is approved instead, we request a
 **read-only** profile with authority limited to the named library and files.
+
+**Per-file delivery specification.** For EVERY file supplied, include a one-line
+manifest entry: exact library and member name · record format and field definitions
+(DDS/DSPFFD) · field types, lengths, precision and scale · primary/composite keys ·
+record count · financial control totals where applicable · file- and field-level
+CCSIDs · extract date and time · the exact export command and parameters used ·
+SHA-256 checksum of the delivered file · transfer procedure used.
+
+**Real or anonymized data.** Veebase requires an authorized extract of real data —
+or a GAEB-approved, consistently anonymized equivalent that preserves the
+relationships and calculations required for acceptance (same keys, same joins, same
+totals). An anonymization that breaks referential integrity or changes financial
+values cannot be reconciled and will be returned.
 
 ## 6. Data protection and transfer
 
@@ -109,6 +138,25 @@ the source system; if direct extraction is approved instead, we request a
 - [ ] Business-rule worked examples supplied (B-03, B-04, B-08)
 - [ ] Export format and parameters confirmed (§5)
 - [ ] Transfer channel and checksums agreed (§6)
+
+## 8. Checklist for the GAEB IBM i administrator
+- [ ] Extract scope confirmed (§2) and produced from the live system, not a copy of unknown age
+- [ ] DSPFFD/DSPFD metadata exported per file (§4)
+- [ ] CCSIDs confirmed per file/field, IBM425 flagged if present (B-05)
+- [ ] Record counts + money control totals computed at extract time (§4)
+- [ ] Export format chosen from §5 B/C/D (save files only via the §5A restore route)
+- [ ] Exact export commands and parameters recorded in the manifest (§5)
+- [ ] SHA-256 checksum computed per delivered file
+- [ ] Transfer via the agreed encrypted channel; receipt checksums confirmed by Veebase
+- [ ] B-01, B-02, B-13 evidence items answered (§3)
+
+## 9. Acceptance checklist for GAEB business users
+- [ ] Migrated building counts match the live register counts per governorate
+- [ ] Arabic building names character-identical to the legacy screens (sampled)
+- [ ] Financial control totals reconcile exactly; every delta is an itemized quarantine entry
+- [ ] Quarantined records reviewed and dispositioned with GAEB's data owner
+- [ ] One complete business workflow executed on migrated records (certificate or tender)
+- [ ] Reconciliation report signed; outstanding blockers formally accepted or scheduled
 
 ## Appendix — School Map physical files identified from delivered sources (47)
 
@@ -164,13 +212,29 @@ PBLLEVEL in the archive are noted and will be reconciled against live DSPFFD).
 - لكل ملف يحتوي مبالغ: إجمالي رقابي لكل حقل مالي محسوب على النظام الحي وقت الاستخراج.
 - وقت الاستخراج والوظيفة/المستخدم المنفذ.
 
-## ٥. صيغ التصدير المدعومة (بترتيب الأفضلية)
-1. **صور سجلات ثنائية أصلية** (الأفضل للبيانات ذات الحقول المضغوطة/المقسمة): ملف حفظ
-   (SAVOBJ/SAVLIB) أو نسخة خام لملف بيانات — يجب أن تصل الحقول المضغوطة ببايتها الأصلية.
-2. **نص ثابت الصيغة** عبر CPYTOIMPF مع تحديد صفحة ترميز الملف صراحة. تنبيه: CPYTOIMPF
-   يحوّل الحقول المضغوطة إلى نص — لا يصدر البايت الأصلي. عند استخدام هذا المسار يُرجى
-   إبلاغنا بمعاملات الأمر الدقيقة للتحقق من التخطيط قبل التحميل.
-3. **نص مفصول (CSV)** عبر CPYTOIMPF مع فواصل وصفحة ترميز معلنة — يسري التنبيه نفسه.
+## ٥. صيغ التصدير المدعومة — ليست بدائل متكافئة، اقرأ بعناية
+**أ. ملفات الحفظ (SAVOBJ / SAVLIB) — غير قابلة للاستيراد المباشر.** ملف الحفظ صيغة
+حفظ كائنات IBM i وليس صورة سجلات مقروءة، ومستوردنا لا يقرأه. المسار المدعوم عند
+تفضيلها: تستعيد الهيئة الكائنات على نظامها في مكتبة مؤقتة ثم تنتج إحدى الصيغ
+ب/ج/د أدناه من الملفات المستعادة (أو تسمي أداة استخراج متفقًا عليها مخرجاتها
+إحدى هذه الصيغ). نذكر هذا صراحة حتى لا تصل أي تسليمة بصيغة لا يقرأها أحد.
+**ب. نص مفصول عبر CPYTOIMPF (مثل CSV) — مدعوم.** تصل الحقول المضغوطة كنص عشري.
+أبلغونا بـ: فواصل الحقول والسجلات، وترميز الاقتباس، وصفحة ترميز الملف، والفاصل
+العشري، وتمثيل القيم الخالية. القيم الرقمية الخالية تُرفض ولا تُصفَّر بصمت.
+**ج. نص ثابت الصيغة عبر CPYTOIMPF — مدعوم.** نفس هندسة السجل في DDS لكن الحقول
+الرقمية تمثيلات نصية وتُفك كنص (بما فيه صفحات ترميز EBCDIC)، ولا تُعامل أبدًا
+كبايت مضغوط أصلي.
+**د. صور سجلات ثنائية أصلية — مدعومة ومفضلة للبيانات المضغوطة.** نسخة ملف تحفظ
+بايت السجل الخام (المضغوط/المقسم سليمًا) مع إعلان CCSID لكل حقل.
+**مواصفة التسليم لكل ملف:** سطر بيان لكل ملف يشمل: اسم المكتبة والعضو الدقيق،
+صيغة السجل وتعريفات الحقول، الأنواع والأطوال والدقة والمقياس، المفاتيح الأولية
+والمركبة، عدد السجلات، الإجماليات الرقابية المالية عند الانطباق، قيم CCSID للملف
+والحقول، تاريخ ووقت الاستخراج، أمر التصدير ومعاملاته الدقيقة، بصمة SHA-256،
+وإجراء النقل المستخدم.
+**بيانات فعلية أو مجهولة الهوية:** تتطلب Veebase مستخرجًا مصرحًا به من البيانات
+الفعلية — أو مكافئًا مجهول الهوية معتمدًا من الهيئة يحفظ العلاقات والحسابات
+اللازمة للقبول (نفس المفاتيح والروابط والإجماليات). أي إخفاء هوية يكسر التكامل
+المرجعي أو يغير القيم المالية لا يمكن مطابقته وسيُعاد.
 لا يكتب أي أمر مثال في النسخة الإنجليزية على بيانات الإنتاج أو يعدّلها. لن تكتب Veebase
 أبدًا على النظام المصدري؛ وعند اعتماد الاستخراج المباشر نطلب ملف صلاحية **للقراءة فقط**
 مقيدًا بالمكتبة والملفات المسماة.

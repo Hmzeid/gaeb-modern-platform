@@ -310,7 +310,7 @@ app.post("/api/migration/import", requireAuth, requirePerm("migration.run"), exp
     const db = { query: (t: string, v?: unknown[]) => client.query(t, v as any) };
     const state = await loadJobState(db, batchId);
     const { records, report, state: newState } = importFixedWidth(data, entry.layout, state);
-    const persisted = await persistImport(db, entry.table, "ui-upload", String(req.query.layout), records, report, newState);
+    const persisted = await persistImport(db, entry.table, "ui-upload", String(req.query.layout), records, report, newState, { dataClass: req.query.dataClass === "customer" ? "customer" : "synthetic", importedByUserId: (req as any).session.userId });
     const staged = await client.query(`SELECT COUNT(*)::int n FROM ${entry.table} WHERE _batch_id = $1`, [batchId]);
     await audit((req as any).session.userId, "migration.import", "batch", batchId, { loaded: report.loaded, rejected: report.rejected.length });
     res.json({ ...report, alreadyRecorded: persisted.alreadyRecorded, stagedRowsForBatch: staged.rows[0].n });
@@ -353,15 +353,116 @@ app.get("/api/migration/approvals", requireAuth, requirePerm("migration.run"), a
   const r = await pool.query("SELECT legacy_member, legacy_field, target_column, transform_name, transform_hash, approved_by, evidence_ref, approved_at FROM mig.mapping_approvals ORDER BY transform_name, legacy_field");
   res.json(r.rows);
 });
+app.post("/api/migration/approvals", requireAuth, requirePerm("migration.approve"), async (req, res) => {
+  // Identity-bound approval: the approver is the authenticated session user — there is
+  // no name field to declare. Requires the migration.approve grant (admin/budget),
+  // which the migration operator role (technical) deliberately does NOT hold.
+  const spec = TRANSFORMS[String((req.body ?? {}).transform)];
+  const mode = (req.body ?? {}).mode === "customer" ? "customer" : "demo";
+  const evidence = String((req.body ?? {}).evidenceRef ?? "");
+  if (!spec) return res.status(400).json({ error: "unknown transform" });
+  if (mode === "customer" && !evidence) return res.status(400).json({ error: "customer-data approvals require an evidence reference (signed mapping review)" });
+  const s = (req as any).session; const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [spec.name]);
+    const { transformHash } = await import("./migration/transform.js");
+    const hash = transformHash(spec);
+    for (const f of spec.fields) {
+      await client.query(`INSERT INTO mig.mapping_approvals (legacy_member, legacy_field, target_table, target_column, transform_name, transform_hash, approved_by, approved_by_user_id, approved_role, mode, status, evidence_ref)
+        VALUES ($1,$2,'app',$3,$4,$5,$6,$7,$8,$9,'active',$10)
+        ON CONFLICT (legacy_member, legacy_field, transform_name) DO UPDATE SET transform_hash = EXCLUDED.transform_hash,
+          approved_by = EXCLUDED.approved_by, approved_by_user_id = EXCLUDED.approved_by_user_id, approved_role = EXCLUDED.approved_role,
+          mode = EXCLUDED.mode, status = 'active', evidence_ref = EXCLUDED.evidence_ref, approved_at = now(),
+          revoked_by_user_id = NULL, revoked_at = NULL, revoke_reason = NULL`,
+        [spec.legacyMember, f.legacy, f.target, spec.name, hash, s.username ?? String(s.userId), s.userId, s.role, mode, evidence]);
+      await client.query("INSERT INTO mig.mapping_approval_events (transform_name, legacy_member, legacy_field, event, actor_user_id, actor_role, transform_hash, evidence_ref) VALUES ($1,$2,$3,'approved',$4,$5,$6,$7)",
+        [spec.name, spec.legacyMember, f.legacy, s.userId, s.role, hash, evidence]);
+    }
+    await client.query("COMMIT");
+    await audit(s.userId, "migration.approve", spec.name, mode, { evidence });
+    res.json({ ok: true, transform: spec.name, mode, fields: spec.fields.length });
+  } catch (e: any) { await client.query("ROLLBACK"); res.status(422).json({ error: String(e.message || e) }); }
+  finally { client.release(); }
+});
+app.post("/api/migration/approvals/revoke", requireAuth, requirePerm("migration.approve"), async (req, res) => {
+  const spec = TRANSFORMS[String((req.body ?? {}).transform)];
+  const reason = String((req.body ?? {}).reason ?? "");
+  if (!spec || !reason) return res.status(400).json({ error: "transform and revocation reason are required" });
+  const s = (req as any).session; const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [spec.name]);
+    await client.query("UPDATE mig.mapping_approvals SET status = 'revoked', revoked_by_user_id = $1, revoked_at = now(), revoke_reason = $2 WHERE transform_name = $3",
+      [s.userId, reason, spec.name]);
+    for (const f of spec.fields)
+      await client.query("INSERT INTO mig.mapping_approval_events (transform_name, legacy_member, legacy_field, event, actor_user_id, actor_role, evidence_ref) VALUES ($1,$2,$3,'revoked',$4,$5,$6)",
+        [spec.name, spec.legacyMember, f.legacy, s.userId, s.role, reason]);
+    await client.query("COMMIT");
+    await audit(s.userId, "migration.approve.revoke", spec.name, "", { reason });
+    res.json({ ok: true });
+  } catch (e: any) { await client.query("ROLLBACK"); res.status(422).json({ error: String(e.message || e) }); }
+  finally { client.release(); }
+});
 app.post("/api/migration/transform", requireAuth, requirePerm("migration.run"), async (req, res) => {
   const spec = TRANSFORMS[String((req.body ?? {}).name)];
   const batchId = String((req.body ?? {}).batchId ?? "");
   if (!spec || !batchId) return res.status(400).json({ error: "transform name and batchId are required" });
   const client = await pool.connect();
   try {
-    const inserted = await runTransform({ query: (t: string, v?: unknown[]) => client.query(t, v as any) }, spec, batchId);
-    await audit((req as any).session.userId, "migration.transform", spec.name, batchId, { inserted });
-    res.json({ ok: true, inserted });
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [spec.name]); // approval/execution concurrency guard
+    const b = await client.query("SELECT data_class FROM mig.batches WHERE batch_id = $1", [batchId]);
+    if (!b.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "batch not found" }); }
+    const mode = b.rows[0].data_class === "customer" ? "customer" : "demo";
+    const inserted = await runTransform({ query: (t: string, v?: unknown[]) => client.query(t, v as any) }, spec, batchId, mode);
+    await client.query("COMMIT");
+    await audit((req as any).session.userId, "migration.transform", spec.name, batchId, { inserted, mode });
+    res.json({ ok: true, inserted, mode });
+  } catch (e: any) { await client.query("ROLLBACK").catch(() => {}); res.status(422).json({ error: String(e.message || e) }); }
+  finally { client.release(); }
+});
+
+
+// ---------------- Large-file uploads (Directive §4) ----------------
+// Uploads stream to controlled temp storage — request bodies are never buffered in
+// memory. SHA-256 is computed while streaming; the size cap is enforced mid-stream
+// (default 512 MB, env MIG_MAX_UPLOAD_MB). Files land 0600 in MIG_UPLOAD_DIR and are
+// deleted after import unless the operator explicitly retains them.
+import { createWriteStream, createReadStream as crs } from "node:fs";
+import { mkdir, stat as fsStat, unlink } from "node:fs/promises";
+import { randomUUID, createHash as ch2 } from "node:crypto";
+import { streamImportFile } from "./migration/stream.js";
+const UPLOAD_DIR = process.env.MIG_UPLOAD_DIR ?? new URL("../uploads", import.meta.url).pathname;
+const MAX_UPLOAD = Number(process.env.MIG_MAX_UPLOAD_MB ?? 512) * 1024 * 1024;
+const uploads = new Map<string, { path: string; size: number; sha256: string; by: number }>();
+app.post("/api/migration/uploads", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  await mkdir(UPLOAD_DIR, { recursive: true });
+  const id = randomUUID(); const path = `${UPLOAD_DIR}/${id}.bin`;
+  const ws = createWriteStream(path, { mode: 0o600 });
+  const h = ch2("sha256"); let size = 0; let aborted = false;
+  req.on("data", (c: Buffer) => { size += c.length; h.update(c);
+    if (size > MAX_UPLOAD && !aborted) { aborted = true; req.destroy(); ws.destroy(); unlink(path).catch(() => {});
+      if (!res.headersSent) res.status(413).json({ error: `upload exceeds the ${MAX_UPLOAD} byte limit — file deleted; split the extract or raise MIG_MAX_UPLOAD_MB` }); } });
+  req.pipe(ws);
+  ws.on("finish", () => { if (aborted) return;
+    uploads.set(id, { path, size, sha256: h.digest("hex"), by: (req as any).session.userId });
+    res.json({ uploadId: id, size, sha256: uploads.get(id)!.sha256 }); });
+  ws.on("error", (e) => { if (!res.headersSent) res.status(500).json({ error: String(e.message) }); });
+});
+app.post("/api/migration/uploads/:id/import", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const up = uploads.get(req.params.id);
+  if (!up) return res.status(404).json({ error: "upload not found (already imported or expired)" });
+  const entry = MIG_LAYOUTS[String(req.query.layout ?? "pblbuldg")];
+  if (!entry) return res.status(400).json({ error: "unknown layout" });
+  const client = await pool.connect();
+  try {
+    const db = { query: (t: string, v?: unknown[]) => client.query(t, v as any) };
+    const r = await streamImportFile(db, up.path, entry.layout, { table: entry.table, layoutName: String(req.query.layout ?? "pblbuldg"),
+      dataClass: req.query.dataClass === "customer" ? "customer" : "synthetic", importedByUserId: (req as any).session.userId });
+    await audit((req as any).session.userId, "migration.import.stream", r.batchId, "", { totalRecords: r.totalRecords, chunks: r.chunksCommitted });
+    if (req.query.retain !== "1") { await unlink(up.path).catch(() => {}); uploads.delete(req.params.id); }
+    res.json(r);
   } catch (e: any) { res.status(422).json({ error: String(e.message || e) }); }
   finally { client.release(); }
 });

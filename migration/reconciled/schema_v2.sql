@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_bycmt (
   namrc VARCHAR(40),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, number, numrc)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, number, numrc
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bycmt_batch_offset ON purchases.n_bycmt (_batch_id, _source_offset);
 
@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_bymber (
   nampr VARCHAR(40),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, seral)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, seral
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bymber_batch_offset ON purchases.n_bymber (_batch_id, _source_offset);
 
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_bynotes (
   dcbydt INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, tnsrno, supcd2)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, tnsrno, supcd2
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bynotes_batch_offset ON purchases.n_bynotes (_batch_id, _source_offset);
 
@@ -62,8 +62,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_byof (
   tetnno BIGINT,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_byof_batch_offset ON purchases.n_byof (_batch_id, _source_offset);
 
@@ -97,8 +97,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_byoffrs (
   swpq VARCHAR(160),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, tnsrno, spcd, number)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, tnsrno, spcd, number
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_byoffrs_batch_offset ON purchases.n_byoffrs (_batch_id, _source_offset);
 
@@ -112,8 +112,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_bypblsh (
   journl VARCHAR(40),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, dasrno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, dasrno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bypblsh_batch_offset ON purchases.n_bypblsh (_batch_id, _source_offset);
 
@@ -135,8 +135,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_byprtgr (
   totvl NUMERIC(10,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, grpno, tbulno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, grpno, tbulno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_byprtgr_batch_offset ON purchases.n_byprtgr (_batch_id, _source_offset);
 
@@ -152,8 +152,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_byshw (
   subt INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, number)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, number
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_byshw_batch_offset ON purchases.n_byshw (_batch_id, _source_offset);
 
@@ -186,8 +186,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_bysutn_ (
   "not" VARCHAR(80),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, tnsrno, spcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, tnsrno, spcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bysutn__batch_offset ON purchases.n_bysutn_ (_batch_id, _source_offset);
 
@@ -225,8 +225,8 @@ CREATE TABLE IF NOT EXISTS purchases.n_bysutn (
   notce VARCHAR(320),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, tnsrno, spcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, tnsrno, spcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_n_bysutn_batch_offset ON purchases.n_bysutn (_batch_id, _source_offset);
 
@@ -237,8 +237,8 @@ CREATE TABLE IF NOT EXISTS school_map.buldcd1f (
   kindnm VARCHAR(20),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (kind)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): kind
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_buldcd1f_batch_offset ON school_map.buldcd1f (_batch_id, _source_offset);
 
@@ -254,8 +254,8 @@ CREATE TABLE IF NOT EXISTS school_map.buldcod1 (
   buldnm VARCHAR(40),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (krcd, buldcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): krcd, buldcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_buldcod1_batch_offset ON school_map.buldcod1 (_batch_id, _source_offset);
 
@@ -268,8 +268,8 @@ CREATE TABLE IF NOT EXISTS school_map.buldcodf (
   buldnm VARCHAR(40),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (krcd, buldcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): krcd, buldcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_buldcodf_batch_offset ON school_map.buldcodf (_batch_id, _source_offset);
 
@@ -291,8 +291,8 @@ CREATE TABLE IF NOT EXISTS budget.cbabdalw (
   accno INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lwyear, lwtas)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lwyear, lwtas
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_cbabdalw_batch_offset ON budget.cbabdalw (_batch_id, _source_offset);
 
@@ -311,8 +311,8 @@ CREATE TABLE IF NOT EXISTS budget.cbabdglw (
   shatb INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lwdcdt, lwgvcd, lwser)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lwdcdt, lwgvcd, lwser
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_cbabdglw_batch_offset ON budget.cbabdglw (_batch_id, _source_offset);
 
@@ -335,8 +335,8 @@ CREATE TABLE IF NOT EXISTS budget.cbabgalw (
   accno INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lwser, lwdcdt, lwgvcd, lwsgv)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lwser, lwdcdt, lwgvcd, lwsgv
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_cbabgalw_batch_offset ON budget.cbabgalw (_batch_id, _source_offset);
 
@@ -356,8 +356,8 @@ CREATE TABLE IF NOT EXISTS budget.cbarecpf (
   bdy INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (dcdt, gvcd, pyser, dpccd, dpcd, bdy)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): dcdt, gvcd, pyser, dpccd, dpcd, bdy
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_cbarecpf_batch_offset ON budget.cbarecpf (_batch_id, _source_offset);
 
@@ -368,8 +368,8 @@ CREATE TABLE IF NOT EXISTS budget.cbaxx1pf (
   zxnm VARCHAR(70),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (zxcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): zxcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_cbaxx1pf_batch_offset ON budget.cbaxx1pf (_batch_id, _source_offset);
 
@@ -394,8 +394,8 @@ CREATE TABLE IF NOT EXISTS budget.cbaxx2pf (
   fisccx INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (bdzx, bdsd, bdy, fisccx)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): bdzx, bdsd, bdy, fisccx
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_cbaxx2pf_batch_offset ON budget.cbaxx2pf (_batch_id, _source_offset);
 
@@ -420,8 +420,8 @@ CREATE TABLE IF NOT EXISTS budget.cbaxx9pf (
   fisccx INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (bdzx, bdsd, bdy, fisccx)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): bdzx, bdsd, bdy, fisccx
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_cbaxx9pf_batch_offset ON budget.cbaxx9pf (_batch_id, _source_offset);
 
@@ -440,8 +440,8 @@ CREATE TABLE IF NOT EXISTS budget.cbgrecpf (
   bdy INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (dcdt, gvcd, pyser, bdy)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): dcdt, gvcd, pyser, bdy
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_cbgrecpf_batch_offset ON budget.cbgrecpf (_batch_id, _source_offset);
 
@@ -459,8 +459,8 @@ CREATE TABLE IF NOT EXISTS budget.cbgrexpf (
   gvcdx INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (dcdt, gvcd, pyser)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): dcdt, gvcd, pyser
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_cbgrexpf_batch_offset ON budget.cbgrexpf (_batch_id, _source_offset);
 
@@ -479,8 +479,8 @@ CREATE TABLE IF NOT EXISTS school_map.clos00pf (
   hdate INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (krcd, klcd, mol7k)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): krcd, klcd, mol7k
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_clos00pf_batch_offset ON school_map.clos00pf (_batch_id, _source_offset);
 
@@ -493,8 +493,8 @@ CREATE TABLE IF NOT EXISTS school_map.delb01pf (
   "user" BIGINT,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, date)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, date
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_delb01pf_batch_offset ON school_map.delb01pf (_batch_id, _source_offset);
 
@@ -511,8 +511,8 @@ CREATE TABLE IF NOT EXISTS school_map.farm01pf (
   farmar NUMERIC(8,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, farmno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, farmno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_farm01pf_batch_offset ON school_map.farm01pf (_batch_id, _source_offset);
 
@@ -527,8 +527,8 @@ CREATE TABLE IF NOT EXISTS school_map.farm02pf (
   distxt VARCHAR(7),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, farmno, dirsid)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, farmno, dirsid
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_farm02pf_batch_offset ON school_map.farm02pf (_batch_id, _source_offset);
 
@@ -539,8 +539,8 @@ CREATE TABLE IF NOT EXISTS real_estate.grn001pf (
   lndid INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lndno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lndno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_grn001pf_batch_offset ON real_estate.grn001pf (_batch_id, _source_offset);
 
@@ -550,8 +550,8 @@ CREATE TABLE IF NOT EXISTS real_estate.grn002pf (
   lndid INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lndid)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lndid
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_grn002pf_batch_offset ON real_estate.grn002pf (_batch_id, _source_offset);
 
@@ -572,8 +572,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inm001pf (
   bilend INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, plyear, strcd, doccd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inm001pf_batch_offset ON abstracts.inm001pf (_batch_id, _source_offset);
 
@@ -591,8 +591,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inm002pf (
   ituntpr NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, itmcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, plyear, strcd, doccd, itmcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inm002pf_batch_offset ON abstracts.inm002pf (_batch_id, _source_offset);
 
@@ -611,8 +611,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inm003pf (
   qstk NUMERIC(5,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, itmcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, plyear, strcd, doccd, itmcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inm003pf_batch_offset ON abstracts.inm003pf (_batch_id, _source_offset);
 
@@ -632,8 +632,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inm004pf (
   lohnum INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd, itmcd, lohser)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd, itmcd, lohser
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inm004pf_batch_offset ON abstracts.inm004pf (_batch_id, _source_offset);
 
@@ -649,8 +649,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inm005pf (
   pilval NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, plyear, strcd, doccd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inm005pf_batch_offset ON abstracts.inm005pf (_batch_id, _source_offset);
 
@@ -667,8 +667,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inm006pf (
   incrm NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, wrkcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, plyear, strcd, doccd, wrkcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inm006pf_batch_offset ON abstracts.inm006pf (_batch_id, _source_offset);
 
@@ -689,8 +689,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inm007pf (
   qstk NUMERIC(5,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, itmcd, lohser)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, plyear, strcd, doccd, itmcd, lohser
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inm007pf_batch_offset ON abstracts.inm007pf (_batch_id, _source_offset);
 
@@ -710,8 +710,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inm009pf (
   trmval NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd, trmsr)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, plyear, strcd, doccd, trmsr
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inm009pf_batch_offset ON abstracts.inm009pf (_batch_id, _source_offset);
 
@@ -726,8 +726,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inm010pf (
   doccd INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, plyear, strcd, doccd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, plyear, strcd, doccd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inm010pf_batch_offset ON abstracts.inm010pf (_batch_id, _source_offset);
 
@@ -748,8 +748,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv001pf (
   bilend INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv001pf_batch_offset ON abstracts.inv001pf (_batch_id, _source_offset);
 
@@ -770,8 +770,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv001pf_bil02src_variant (
   bilend INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv001pf_bil02src_variant_batch_offset ON abstracts.inv001pf_bil02src_variant (_batch_id, _source_offset);
 
@@ -788,8 +788,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv002pf (
   ituntpr NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd, mlcd, itmcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv002pf_batch_offset ON abstracts.inv002pf (_batch_id, _source_offset);
 
@@ -807,8 +807,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv003pf (
   qstk NUMERIC(5,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd, mlcd, itmcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv003pf_batch_offset ON abstracts.inv003pf (_batch_id, _source_offset);
 
@@ -829,8 +829,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv004pf (
   lohnum INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd, lohser)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd, mlcd, itmcd, lohser
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv004pf_batch_offset ON abstracts.inv004pf (_batch_id, _source_offset);
 
@@ -844,8 +844,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv005pf (
   pilval NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv005pf_batch_offset ON abstracts.inv005pf (_batch_id, _source_offset);
 
@@ -860,8 +860,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv006pf (
   incrm NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd, wrkcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd, wrkcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv006pf_batch_offset ON abstracts.inv006pf (_batch_id, _source_offset);
 
@@ -880,8 +880,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv007pf (
   qstk NUMERIC(5,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd, lohser)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd, mlcd, itmcd, lohser
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv007pf_batch_offset ON abstracts.inv007pf (_batch_id, _source_offset);
 
@@ -899,8 +899,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv008pf (
   qstk NUMERIC(5,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd, mlcd, itmcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd, mlcd, itmcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv008pf_batch_offset ON abstracts.inv008pf (_batch_id, _source_offset);
 
@@ -918,8 +918,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv009pf (
   trmval NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd, trmsr)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd, trmsr
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv009pf_batch_offset ON abstracts.inv009pf (_batch_id, _source_offset);
 
@@ -932,8 +932,8 @@ CREATE TABLE IF NOT EXISTS abstracts.inv010pf (
   doccd INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_inv010pf_batch_offset ON abstracts.inv010pf (_batch_id, _source_offset);
 
@@ -958,8 +958,8 @@ CREATE TABLE IF NOT EXISTS abstracts.invo01pf (
   opnusr BIGINT,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, subtyp, ttncd, doccd, opnsr)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, subtyp, ttncd, doccd, opnsr
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_invo01pf_batch_offset ON abstracts.invo01pf (_batch_id, _source_offset);
 
@@ -978,8 +978,8 @@ CREATE TABLE IF NOT EXISTS abstracts.mxm001pf (
   exmval NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, type, tetnno, year, strcd, exmser)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, type, tetnno, year, strcd, exmser
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_mxm001pf_batch_offset ON abstracts.mxm001pf (_batch_id, _source_offset);
 
@@ -999,8 +999,8 @@ CREATE TABLE IF NOT EXISTS school_map.pbladdit (
   coutsw INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (alcd, alno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): alcd, alno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbladdit_batch_offset ON school_map.pbladdit (_batch_id, _source_offset);
 
@@ -1016,8 +1016,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblareas (
   tflar NUMERIC(9,3),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (arblc)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): arblc
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblareas_batch_offset ON school_map.pblareas (_batch_id, _source_offset);
 
@@ -1048,8 +1048,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblbuldg (
   nousiv INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblbuldg_batch_offset ON school_map.pblbuldg (_batch_id, _source_offset);
 
@@ -1062,8 +1062,8 @@ CREATE TABLE IF NOT EXISTS school_map.pbldmg17 (
   dmgdt INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (ordrno, blcda, blcdb)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): ordrno, blcda, blcdb
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbldmg17_batch_offset ON school_map.pbldmg17 (_batch_id, _source_offset);
 
@@ -1075,8 +1075,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblefect (
   efcd INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (elcd, efcdty)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): elcd, efcdty
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblefect_batch_offset ON school_map.pblefect (_batch_id, _source_offset);
 
@@ -1095,8 +1095,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblelsup (
   psdis NUMERIC(6,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (elblc)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): elblc
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblelsup_batch_offset ON school_map.pblelsup (_batch_id, _source_offset);
 
@@ -1121,8 +1121,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblgases (
   cougas INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (gald, gblno1)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): gald, gblno1
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblgases_batch_offset ON school_map.pblgases (_batch_id, _source_offset);
 
@@ -1139,8 +1139,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblgates (
   gcount INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (gatbl, noofga)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): gatbl, noofga
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblgates_batch_offset ON school_map.pblgates (_batch_id, _source_offset);
 
@@ -1182,8 +1182,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblintrv (
   nclas INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (tmblc, ivno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): tmblc, ivno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblintrv_batch_offset ON school_map.pblintrv (_batch_id, _source_offset);
 
@@ -1198,8 +1198,8 @@ CREATE TABLE IF NOT EXISTS school_map.pbllevel (
   seqlvl NUMERIC(5,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lvbl, lbno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lvbl, lbno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllevel_batch_offset ON school_map.pbllevel (_batch_id, _source_offset);
 
@@ -1211,8 +1211,8 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd01 (
   cmtdt INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (cmttyp, cmtno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): cmttyp, cmtno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd01_batch_offset ON real_estate.pbllnd01 (_batch_id, _source_offset);
 
@@ -1224,8 +1224,8 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd02 (
   mbrno INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (cmttyp, cmtno, mbrno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): cmttyp, cmtno, mbrno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd02_batch_offset ON real_estate.pbllnd02 (_batch_id, _source_offset);
 
@@ -1239,8 +1239,8 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd03 (
   provdt INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (cmttyp, cmtno, lndno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): cmttyp, cmtno, lndno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd03_batch_offset ON real_estate.pbllnd03 (_batch_id, _source_offset);
 
@@ -1259,8 +1259,8 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd04 (
   lndown INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lndno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lndno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd04_batch_offset ON real_estate.pbllnd04 (_batch_id, _source_offset);
 
@@ -1276,8 +1276,8 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd05 (
   wall INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lndno, dirsid)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lndno, dirsid
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd05_batch_offset ON real_estate.pbllnd05 (_batch_id, _source_offset);
 
@@ -1289,8 +1289,8 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd15 (
   lnsmsd NUMERIC(4,1),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (sgcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): sgcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd15_batch_offset ON real_estate.pbllnd15 (_batch_id, _source_offset);
 
@@ -1301,8 +1301,8 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd16 (
   thropn INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lndno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lndno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd16_batch_offset ON real_estate.pbllnd16 (_batch_id, _source_offset);
 
@@ -1319,8 +1319,8 @@ CREATE TABLE IF NOT EXISTS real_estate.pbllnd50 (
   docscg INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lndno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lndno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbllnd50_batch_offset ON real_estate.pbllnd50 (_batch_id, _source_offset);
 
@@ -1334,8 +1334,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblrooms (
   rcoun INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, rblno, rflor, rkin)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, rblno, rflor, rkin
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblrooms_batch_offset ON school_map.pblrooms (_batch_id, _source_offset);
 
@@ -1346,8 +1346,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblsppls (
   spyty INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (sblcd, spyty)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): sblcd, spyty
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblsppls_batch_offset ON school_map.pblsppls (_batch_id, _source_offset);
 
@@ -1375,8 +1375,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblsromn (
   spar NUMERIC(5,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, blno, flno, spcd, spno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, blno, flno, spcd, spno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblsromn_batch_offset ON school_map.pblsromn (_batch_id, _source_offset);
 
@@ -1405,8 +1405,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblswlok (
   trudh NUMERIC(5,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (plcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): plcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblswlok_batch_offset ON school_map.pblswlok (_batch_id, _source_offset);
 
@@ -1421,8 +1421,8 @@ CREATE TABLE IF NOT EXISTS school_map.pblwall (
   statu INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lbld, lacd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lbld, lacd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pblwall_batch_offset ON school_map.pblwall (_batch_id, _source_offset);
 
@@ -1456,8 +1456,8 @@ CREATE TABLE IF NOT EXISTS purchases.pbyclaim (
   gh NUMERIC(10,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (clmno, type, tetnno, tnsrno, supcd2)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): clmno, type, tetnno, tnsrno, supcd2
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbyclaim_batch_offset ON purchases.pbyclaim (_batch_id, _source_offset);
 
@@ -1482,8 +1482,8 @@ CREATE TABLE IF NOT EXISTS purchases.pbymant (
   mtcd INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, grpno, tblno, ordno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, grpno, tblno, ordno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbymant_batch_offset ON purchases.pbymant (_batch_id, _source_offset);
 
@@ -1526,8 +1526,8 @@ CREATE TABLE IF NOT EXISTS purchases.pbypartt (
   tnprp NUMERIC(5,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno, tnsrno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno, tnsrno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbypartt_batch_offset ON purchases.pbypartt (_batch_id, _source_offset);
 
@@ -1556,8 +1556,8 @@ CREATE TABLE IF NOT EXISTS purchases.pbysupl2 (
   haccd VARCHAR(30),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (supcd, supkn)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): supcd, supkn
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbysupl2_batch_offset ON purchases.pbysupl2 (_batch_id, _source_offset);
 
@@ -1575,8 +1575,8 @@ CREATE TABLE IF NOT EXISTS purchases.pbytendr (
   finmod VARCHAR(1),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (type, tetnno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): type, tetnno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pbytendr_batch_offset ON purchases.pbytendr (_batch_id, _source_offset);
 
@@ -1605,8 +1605,8 @@ CREATE TABLE IF NOT EXISTS school_map.pln01pf (
   sdat INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (mosum)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): mosum
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pln01pf_batch_offset ON school_map.pln01pf (_batch_id, _source_offset);
 
@@ -1616,8 +1616,8 @@ CREATE TABLE IF NOT EXISTS school_map.pln02pf (
   blcd01 INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd01)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd01
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pln02pf_batch_offset ON school_map.pln02pf (_batch_id, _source_offset);
 
@@ -1665,8 +1665,8 @@ CREATE TABLE IF NOT EXISTS school_map.pln105pf (
   date0 INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blrd00)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blrd00
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pln105pf_batch_offset ON school_map.pln105pf (_batch_id, _source_offset);
 
@@ -1691,8 +1691,8 @@ CREATE TABLE IF NOT EXISTS school_map.pln501pf (
   dat INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (mossum, optsum, yersum, brsum, dssum, vlsum, blcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): mossum, optsum, yersum, brsum, dssum, vlsum, blcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pln501pf_batch_offset ON school_map.pln501pf (_batch_id, _source_offset);
 
@@ -1703,8 +1703,8 @@ CREATE TABLE IF NOT EXISTS school_map.plndmdpf (
   blcdb INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcda, blcdb)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcda, blcdb
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_plndmdpf_batch_offset ON school_map.plndmdpf (_batch_id, _source_offset);
 
@@ -1733,8 +1733,8 @@ CREATE TABLE IF NOT EXISTS real_estate.prc002pf (
   techdt INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (lndcod)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): lndcod
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_prc002pf_batch_offset ON real_estate.prc002pf (_batch_id, _source_offset);
 
@@ -1748,8 +1748,8 @@ CREATE TABLE IF NOT EXISTS school_map.projsrpf (
   planno INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (planno, date1, kwrk1, klcd1, klno1)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): planno, date1, kwrk1, klcd1, klno1
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_projsrpf_batch_offset ON school_map.projsrpf (_batch_id, _source_offset);
 
@@ -1779,8 +1779,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv01pf (
   remtyp INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv01pf_batch_offset ON real_estate.remv01pf (_batch_id, _source_offset);
 
@@ -1801,8 +1801,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv02pf (
   nume INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, numd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, numd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv02pf_batch_offset ON real_estate.remv02pf (_batch_id, _source_offset);
 
@@ -1819,8 +1819,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv03pf (
   datn INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, numd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, numd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv03pf_batch_offset ON real_estate.remv03pf (_batch_id, _source_offset);
 
@@ -1833,8 +1833,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv04pf (
   chpr NUMERIC(9,2),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, numc)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, numc
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv04pf_batch_offset ON real_estate.remv04pf (_batch_id, _source_offset);
 
@@ -1848,8 +1848,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv05pf (
   dat2 INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, nume)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, nume
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv05pf_batch_offset ON real_estate.remv05pf (_batch_id, _source_offset);
 
@@ -1863,8 +1863,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv06pf (
   area NUMERIC(10,4),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, numd, ser)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, numd, ser
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv06pf_batch_offset ON real_estate.remv06pf (_batch_id, _source_offset);
 
@@ -1880,8 +1880,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv07pf (
   type INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, nume)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, nume
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv07pf_batch_offset ON real_estate.remv07pf (_batch_id, _source_offset);
 
@@ -1893,8 +1893,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv08pf (
   dat1 INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, numm)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, numm
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv08pf_batch_offset ON real_estate.remv08pf (_batch_id, _source_offset);
 
@@ -1905,8 +1905,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv09pf (
   remnm VARCHAR(30),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (remty)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): remty
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv09pf_batch_offset ON real_estate.remv09pf (_batch_id, _source_offset);
 
@@ -1919,8 +1919,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv10pf (
   dat3 INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, chnum)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, chnum
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv10pf_batch_offset ON real_estate.remv10pf (_batch_id, _source_offset);
 
@@ -1936,8 +1936,8 @@ CREATE TABLE IF NOT EXISTS real_estate.remv12pf (
   area NUMERIC(10,4),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, unitno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, unitno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remv12pf_batch_offset ON real_estate.remv12pf (_batch_id, _source_offset);
 
@@ -1950,8 +1950,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rent02pf (
   tyct INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcdt)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcdt
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rent02pf_batch_offset ON real_estate.rent02pf (_batch_id, _source_offset);
 
@@ -1966,8 +1966,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rent03pf (
   "law#" INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY ("blcd#")
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): "blcd#"
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rent03pf_batch_offset ON real_estate.rent03pf (_batch_id, _source_offset);
 
@@ -1981,8 +1981,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rent05pf (
   law INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rent05pf_batch_offset ON real_estate.rent05pf (_batch_id, _source_offset);
 
@@ -1994,8 +1994,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt001pf (
   stat INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, stat)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, stat
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt001pf_batch_offset ON real_estate.rnt001pf (_batch_id, _source_offset);
 
@@ -2007,8 +2007,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt002pf (
   red INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, date)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, date
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt002pf_batch_offset ON real_estate.rnt002pf (_batch_id, _source_offset);
 
@@ -2026,8 +2026,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt003pf (
   t7 INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, date)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, date
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt003pf_batch_offset ON real_estate.rnt003pf (_batch_id, _source_offset);
 
@@ -2039,8 +2039,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt004pf (
   des INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, date)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, date
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt004pf_batch_offset ON real_estate.rnt004pf (_batch_id, _source_offset);
 
@@ -2052,8 +2052,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt006pf (
   kind INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, date)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, date
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt006pf_batch_offset ON real_estate.rnt006pf (_batch_id, _source_offset);
 
@@ -2065,8 +2065,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt007pf (
   tabr INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, date)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, date
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt007pf_batch_offset ON real_estate.rnt007pf (_batch_id, _source_offset);
 
@@ -2079,8 +2079,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt008pf (
   lgno INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, date)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, date
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt008pf_batch_offset ON real_estate.rnt008pf (_batch_id, _source_offset);
 
@@ -2093,8 +2093,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt009pf (
   lgdt INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, stad)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, stad
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt009pf_batch_offset ON real_estate.rnt009pf (_batch_id, _source_offset);
 
@@ -2107,8 +2107,8 @@ CREATE TABLE IF NOT EXISTS real_estate.rnt011pf (
   tnno INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd, stad)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd, stad
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rnt011pf_batch_offset ON real_estate.rnt011pf (_batch_id, _source_offset);
 
@@ -2133,8 +2133,8 @@ CREATE TABLE IF NOT EXISTS school_map.sch05spf (
   dat INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (mossum, optsum, yersum, brsum, dssum, vlsum, blcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): mossum, optsum, yersum, brsum, dssum, vlsum, blcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_sch05spf_batch_offset ON school_map.sch05spf (_batch_id, _source_offset);
 
@@ -2151,8 +2151,8 @@ CREATE TABLE IF NOT EXISTS school_map.schdbf07 (
   schds INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (dscd7, sgtyp)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): dscd7, sgtyp
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_schdbf07_batch_offset ON school_map.schdbf07 (_batch_id, _source_offset);
 
@@ -2172,8 +2172,8 @@ CREATE TABLE IF NOT EXISTS school_map.schdbf77 (
   mosno INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (dscd7, sgtyp, mosno)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): dscd7, sgtyp, mosno
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_schdbf77_batch_offset ON school_map.schdbf77 (_batch_id, _source_offset);
 
@@ -2190,8 +2190,8 @@ CREATE TABLE IF NOT EXISTS school_map.schdbfpd (
   mosno INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (mosno, year, brcdpu, dscdpu)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): mosno, year, brcdpu, dscdpu
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_schdbfpd_batch_offset ON school_map.schdbfpd (_batch_id, _source_offset);
 
@@ -2202,8 +2202,8 @@ CREATE TABLE IF NOT EXISTS school_map.schdes1f (
   desnm VARCHAR(20),
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY ("desc")
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): "desc"
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_schdes1f_batch_offset ON school_map.schdes1f (_batch_id, _source_offset);
 
@@ -2214,8 +2214,8 @@ CREATE TABLE IF NOT EXISTS school_map.schmhmpf (
   typ INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (mhmsum)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): mhmsum
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_schmhmpf_batch_offset ON school_map.schmhmpf (_batch_id, _source_offset);
 
@@ -2240,8 +2240,8 @@ CREATE TABLE IF NOT EXISTS school_map.schpf5 (
   dat INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (mossum, optsum, yersum, brsum, dssum, vlsum, blcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): mossum, optsum, yersum, brsum, dssum, vlsum, blcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_schpf5_batch_offset ON school_map.schpf5 (_batch_id, _source_offset);
 
@@ -2260,8 +2260,8 @@ CREATE TABLE IF NOT EXISTS school_map.schplnpf (
   mokfp INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (mossum, optsum, yersum)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): mossum, optsum, yersum
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_schplnpf_batch_offset ON school_map.schplnpf (_batch_id, _source_offset);
 
@@ -2273,8 +2273,8 @@ CREATE TABLE IF NOT EXISTS school_map.schsum (
   des INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (blcd)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): blcd
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_schsum_batch_offset ON school_map.schsum (_batch_id, _source_offset);
 
@@ -2298,8 +2298,8 @@ CREATE TABLE IF NOT EXISTS school_map.sem001pf (
   sour2 INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY (vgpln)
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): vgpln
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_sem001pf_batch_offset ON school_map.sem001pf (_batch_id, _source_offset);
 
@@ -2311,8 +2311,8 @@ CREATE TABLE IF NOT EXISTS school_map.tes001pf (
   "sgcd#" INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY ("vgcd#", "sgcd#")
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): "vgcd#", "sgcd#"
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tes001pf_batch_offset ON school_map.tes001pf (_batch_id, _source_offset);
 
@@ -2325,7 +2325,7 @@ CREATE TABLE IF NOT EXISTS school_map.tes002pf (
   "sgcd#" INTEGER,
   _batch_id TEXT,
   _source_offset INTEGER,
-  _raw_hex TEXT,
-  PRIMARY KEY ("blcd#")
+  _raw_hex TEXT
+  -- legacy key (not enforced in staging): "blcd#"
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tes002pf_batch_offset ON school_map.tes002pf (_batch_id, _source_offset);

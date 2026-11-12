@@ -6,11 +6,12 @@ function fakeDb(approvals: { rows: any[] }, captured: string[]) {
   return { query: async (text: string, values?: unknown[]) => {
     captured.push(text);
     if (text.includes("mig.mapping_approvals")) return approvals;
+    if (text.includes("mig.batches")) return { rows: [] }; // no batch provenance in unit fixtures
     return { rowCount: 2 };
   } } as any;
 }
-function approvalRows(spec: any, hash = transformHash(spec), by = "fixture-approver") {
-  return { rows: spec.fields.map((f: any) => ({ legacy_field: f.legacy, approved_by: by, transform_hash: hash })) };
+function approvalRows(spec: any, hash = transformHash(spec), by: string | null = "fixture-approver") {
+  return { rows: spec.fields.map((f: any) => ({ legacy_field: f.legacy, approved_by: by, approved_by_user_id: by === null ? null : 42, transform_hash: hash, mode: "demo", status: "active" })) };
 }
 
 test("transform refuses when no approval records exist", async () => {
@@ -19,8 +20,14 @@ test("transform refuses when no approval records exist", async () => {
 test("transform refuses when the approval was for an altered definition (hash mismatch)", async () => {
   await assert.rejects(() => runTransform(fakeDb(approvalRows(BUILDINGS_TRANSFORM, "deadbeef"), []), BUILDINGS_TRANSFORM, "mig-x"), /DIFFERENT transform definition/);
 });
-test("transform refuses when the approver is missing", async () => {
-  await assert.rejects(() => runTransform(fakeDb(approvalRows(BUILDINGS_TRANSFORM, transformHash(BUILDINGS_TRANSFORM), ""), []), BUILDINGS_TRANSFORM, "mig-x"), /no approver/);
+test("transform refuses when the approval is not bound to an authenticated user", async () => {
+  await assert.rejects(() => runTransform(fakeDb(approvalRows(BUILDINGS_TRANSFORM, transformHash(BUILDINGS_TRANSFORM), null), []), BUILDINGS_TRANSFORM, "mig-x"), /not bound to an authenticated user/);
+});
+test("transform refuses revoked approvals and wrong-mode approvals", async () => {
+  const revoked = approvalRows(BUILDINGS_TRANSFORM); revoked.rows.forEach((r: any) => r.status = "revoked");
+  await assert.rejects(() => runTransform(fakeDb(revoked, []), BUILDINGS_TRANSFORM, "mig-x"), /approval is revoked/);
+  const customerMode = approvalRows(BUILDINGS_TRANSFORM); customerMode.rows.forEach((r: any) => r.mode = "customer");
+  await assert.rejects(() => runTransform(fakeDb(customerMode, []), BUILDINGS_TRANSFORM, "mig-x"), /requires 'demo' approvals/);
 });
 test("approved transform executes its insert and reports row count", async () => {
   const captured: string[] = [];

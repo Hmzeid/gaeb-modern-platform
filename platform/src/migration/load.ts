@@ -24,12 +24,15 @@ export function buildStagingInsert(schemaTable: string, batchId: string, rec: De
   };
 }
 
-export function buildBatchInsert(report: ImportReport, sourceFile: string, layoutName: string): Parameterized {
+export function buildBatchInsert(report: ImportReport, sourceFile: string, layoutName: string, opts: { dataClass?: string; importedByUserId?: number | null } = {}): Parameterized {
   return {
-    text: `INSERT INTO mig.batches (batch_id, source_file, source_sha256, layout_name, total_records, loaded, rejected, control_totals, source_totals, finished_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, now()) ON CONFLICT (batch_id) DO UPDATE SET loaded = mig.batches.loaded + EXCLUDED.loaded, rejected = mig.batches.rejected + EXCLUDED.rejected, finished_at = now()`,
+    // data_class and importer are written by the FIRST run that creates the batch and
+    // never overwritten by retries (they are provenance, not progress).
+    text: `INSERT INTO mig.batches (batch_id, source_file, source_sha256, layout_name, total_records, loaded, rejected, control_totals, source_totals, data_class, imported_by_user_id, finished_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, now()) ON CONFLICT (batch_id) DO UPDATE SET loaded = mig.batches.loaded + EXCLUDED.loaded, rejected = mig.batches.rejected + EXCLUDED.rejected, finished_at = now()`,
     values: [report.batchId, sourceFile, report.sourceSha256, layoutName, report.totalRecords, report.loaded,
-      report.rejected.length, JSON.stringify(report.controlTotals), JSON.stringify(report.sourceTotals)],
+      report.rejected.length, JSON.stringify(report.controlTotals), JSON.stringify(report.sourceTotals),
+      opts.dataClass ?? "synthetic", opts.importedByUserId ?? null],
   };
 }
 
@@ -51,7 +54,7 @@ export interface SqlExecutor { query(text: string, values?: unknown[]): Promise<
  *  double-counted. Totals accumulate in mig.batch_totals only for newly recorded runs. */
 export async function persistImport(db: { query(text: string, values?: unknown[]): Promise<any> },
   schemaTable: string, sourceFile: string, layoutName: string,
-  records: DecodedRecord[], report: ImportReport, jobState?: JobState): Promise<{ alreadyRecorded: boolean }> {
+  records: DecodedRecord[], report: ImportReport, jobState?: JobState, batchOpts: { dataClass?: string; importedByUserId?: number | null } = {}): Promise<{ alreadyRecorded: boolean }> {
   await db.query("BEGIN");
   try {
     const run = await db.query(
@@ -59,7 +62,7 @@ export async function persistImport(db: { query(text: string, values?: unknown[]
        VALUES ($1,$2,$3,$4,$5) ON CONFLICT (batch_id, start_offset, source_sha256) DO NOTHING RETURNING id`,
       [report.batchId, report.startOffset, report.sourceSha256, report.loaded, report.rejected.length]);
     if (!run.rows.length) { await db.query("COMMIT"); return { alreadyRecorded: true }; }
-    const b = buildBatchInsert(report, sourceFile, layoutName);
+    const b = buildBatchInsert(report, sourceFile, layoutName, batchOpts);
     await db.query(b.text, b.values);
     // cumulative totals: add this run's slice exactly once
     for (const [kind, totals] of [["control", report.controlTotals], ["source", report.sourceTotals]] as const)

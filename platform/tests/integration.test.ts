@@ -52,7 +52,7 @@ async function runE2E(admin: pg.Client) {
   const db = { query: (t: string, v?: unknown[]) => admin.query(t, v as any) };
   await admin.query("DROP SCHEMA IF EXISTS app CASCADE; DROP SCHEMA IF EXISTS mig CASCADE; DROP SCHEMA IF EXISTS school_map CASCADE; DROP SCHEMA IF EXISTS purchases CASCADE; DROP SCHEMA IF EXISTS real_estate CASCADE; DROP SCHEMA IF EXISTS abstracts CASCADE");
   const migDir = new URL("../../migrations/", import.meta.url);
-  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql"])
+  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql", "006_secure_approvals.sql"])
     await admin.query(readFileSync(new URL(f, migDir), "utf8"));
   await admin.query(readFileSync(new URL("../../../migration/reconciled/schema_v2.sql", import.meta.url), "utf8"));
   for (const [u, role] of [["admin1", "admin"], ["tech1", "technical"], ["budget1", "budget"]] as const)
@@ -107,10 +107,11 @@ async function runE2E(admin: pg.Client) {
 
   // --- transform gate: no DB approvals -> refusal; authenticated fixture approvals allow ---
   await assert.rejects(() => runTransform(db, BUILDINGS_TRANSFORM, batchId), /no approval record/);
+  const adminRow = await admin.query("SELECT id FROM app.users WHERE username = 'admin1'");
   const approve = async (spec: any) => {
     for (const f of spec.fields)
-      await admin.query("INSERT INTO mig.mapping_approvals (legacy_member, legacy_field, target_table, target_column, transform_name, transform_hash, approved_by, evidence_ref) VALUES ($1,$2,$3,$4,$5,$6,'integration-fixture-approver','synthetic fixture approval — NOT a customer approval')",
-        [spec.legacyMember, f.legacy, "app", f.target, spec.name, transformHash(spec)]);
+      await admin.query("INSERT INTO mig.mapping_approvals (legacy_member, legacy_field, target_table, target_column, transform_name, transform_hash, approved_by, approved_by_user_id, approved_role, mode, status, evidence_ref) VALUES ($1,$2,$3,$4,$5,$6,'integration-fixture-approver',$7,'admin','demo','active','synthetic fixture approval — NOT a customer approval')",
+        [spec.legacyMember, f.legacy, "app", f.target, spec.name, transformHash(spec), adminRow.rows[0].id]);
   };
   await approve(BUILDINGS_TRANSFORM);
   await runTransform(db, BUILDINGS_TRANSFORM, batchId);
@@ -136,6 +137,44 @@ async function runE2E(admin: pg.Client) {
   const cert = await admin.query("SELECT gross::text g, net::text n FROM app.certificates");
   assert.equal(cert.rows.length, 1); assert.equal(cert.rows[0].g, "125000.5000"); assert.equal(cert.rows[0].n, "125000.5000"); // NUMERIC(19,4) storage scale
 
+  // --- streaming import: interruption after chunk 1, then resume to completion ---
+  const { streamImportFile } = await import("../src/migration/stream.js");
+  const { writeFileSync: wf2, mkdtempSync: mk2 } = await import("node:fs");
+  const streamDir = mk2(join(tmpdir(), "gaeb-stream-"));
+  const streamPath = join(streamDir, "big.dat");
+  { const recs: Buffer[] = [];
+    const enc420 = (s: string) => { const tbl = JSON.parse(readFileSync(new URL("../src/codepages/ibm_tables.json", import.meta.url), "utf8"))["ibm420"] as Record<string, number>;
+      const inv = new Map<number, number>(); for (const [b, cp] of Object.entries(tbl)) inv.set(cp, Number(b));
+      return Buffer.from([...s].map(ch => inv.get(ch.codePointAt(0)!) ?? 0x40)); };
+    for (let i = 0; i < 1200; i++) {
+      const blcd = i === 700 ? "2000000" : String(2000000 + i); // record 700 duplicates record 0's key
+      const rec = Buffer.alloc(58, 0x40); // EBCDIC space padding, as on the real system
+      rec.write("01", 0, "utf8"); rec.write("02", 2, "utf8"); rec.write(blcd, 4, "utf8");
+      enc420("مدرسة النيل الابتدائية").copy(rec, 11);
+      const vg = Buffer.alloc(7, 0xF0); const digits = String(3000000 + i); // zoned: F0-padded digits, last byte zone+digit
+      for (let d = 0; d < digits.length; d++) vg[vg.length - digits.length + d] = 0xF0 + Number(digits[d]);
+      vg.copy(rec, 51);
+      recs.push(rec);
+    }
+    wf2(streamPath, Buffer.concat(recs));
+  }
+  const streamLayout = { recordLength: 58, fields: [
+    { name: "BECD", type: "char", length: 2, encoding: "utf8" }, { name: "BLRD", type: "char", length: 2, encoding: "utf8" },
+    { name: "BLCD", type: "char", length: 7, encoding: "utf8", key: true },
+    { name: "SHNM", type: "char", length: 40, encoding: "ibm420" }, { name: "VGCD", type: "zoned", length: 7, decimals: 0 } ] } as any;
+  let chunkCalls = 0;
+  await assert.rejects(() => streamImportFile(db, streamPath, streamLayout, { table: "school_map.pblbuldg", layoutName: "pbl-stream", chunkRecords: 500,
+    afterChunk: () => { chunkCalls++; if (chunkCalls === 1) throw new Error("simulated crash after chunk 1"); } }), /simulated crash/);
+  const streamSha = (await import("node:crypto")).createHash("sha256").update(readFileSync(streamPath)).digest("hex");
+  const midState = await loadJobState(db, `mig-${streamSha.slice(0, 16)}`);
+  assert.equal(midState.nextOffset, 500, "checkpoint must hold exactly the committed chunks");
+  const resumed = await streamImportFile(db, streamPath, streamLayout, { table: "school_map.pblbuldg", layoutName: "pbl-stream", chunkRecords: 500 });
+  assert.equal(resumed.resumedFromRecord, 500);
+  assert.equal(resumed.totalRecords, 1200);
+  const sBatch = await admin.query("SELECT loaded, rejected FROM mig.batches WHERE batch_id = $1", [resumed.batchId]);
+  assert.equal(sBatch.rows[0].loaded, 1199); assert.equal(sBatch.rows[0].rejected, 1); // the duplicate key
+  const sSum = await admin.query("SELECT SUM(vgcd)::text s FROM school_map.pblbuldg WHERE _batch_id = $1", [resumed.batchId]);
+  assert.equal(sSum.rows[0].s, "3597718700"); // sum(3000000..3001199)=3600719400 minus record 700's 3000700 (rejected as duplicate key)
   // --- API surface (what the screens read): login, buildings, report authorization ---
   const server: ChildProcess = spawn("node", ["dist/src/server.js"], {
     cwd: new URL("../..", import.meta.url).pathname,
@@ -153,5 +192,26 @@ async function runE2E(admin: pg.Client) {
     const csvBudget = await fetch("http://127.0.0.1:18099/api/reports/budget-utilization.csv", { headers: { Authorization: `Bearer ${budgetToken}` } });
     assert.equal(csvBudget.status, 200);
     assert.match(await csvBudget.text(), /fiscal_year,allocated,committed,spent,available/);
+
+    // --- secure approvals (§3/§8): operator cannot approve; approver can; revocation bites ---
+    const post = (path: string, token: string, body: object) => fetch(`http://127.0.0.1:18099${path}`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    assert.equal((await post("/api/migration/approvals", techToken, { transform: "buildings", mode: "demo", evidenceRef: "x" })).status, 403,
+      "technical (operator) must not hold the approve grant — separation of duties");
+    assert.equal((await post("/api/migration/approvals", budgetToken, { transform: "buildings", mode: "customer", evidenceRef: "" })).status, 400,
+      "customer-mode approvals require evidence");
+    assert.equal((await post("/api/migration/approvals", budgetToken, { transform: "buildings", mode: "demo", evidenceRef: "integration fixture sign-off" })).status, 200);
+    const appr = await admin.query("SELECT approved_by_user_id, mode, status FROM mig.mapping_approvals WHERE transform_name = 'pblbuldg-to-buildings'");
+    assert.ok(appr.rows.every((r: any) => r.approved_by_user_id !== null && r.mode === "demo" && r.status === "active"),
+      "approvals must be identity-bound (user id), demo-mode, active");
+    assert.equal((await post("/api/migration/approvals/revoke", budgetToken, { transform: "buildings", reason: "integration revocation drill" })).status, 200);
+    const afterRevoke = await post("/api/migration/transform", techToken, { name: "buildings", batchId });
+    assert.equal(afterRevoke.status, 422, "revoked approvals must block the transform");
+    assert.match((await afterRevoke.json()).error, /revoked/);
+    assert.equal((await post("/api/migration/approvals", budgetToken, { transform: "buildings", mode: "demo", evidenceRef: "re-approved for integration" })).status, 200);
+    const okTr = await post("/api/migration/transform", techToken, { name: "buildings", batchId });
+    assert.equal(okTr.status, 200);
+    const events = await admin.query("SELECT COUNT(*)::int n FROM mig.mapping_approval_events WHERE transform_name = 'pblbuldg-to-buildings'");
+    assert.ok(events.rows[0].n >= 6, "approval history must be append-only and complete (3 fields x approve/revoke/re-approve)");
   } finally { server.kill(); }
 }

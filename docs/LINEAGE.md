@@ -37,3 +37,13 @@ Identifier safety in generated DDL: legacy field names that are PostgreSQL reser
 words (a real field is named `NOT`) or contain characters such as `#` (a real field
 is `W#`) are double-quoted by the generator. Both defects were found by executing
 the DDL against PostgreSQL 16.4 — they were invisible to text inspection.
+
+## Amendment (2026-11-12, second release)
+Staging tables no longer carry the legacy files' PRIMARY KEY constraints. A staging
+area is an evidence store: the same legacy key legitimately appears across many
+batches (re-extracts, corrections), and enforcing the legacy PK aborted whole import
+chunks when a later batch contained an already-seen key (found by the 25 MB
+benchmark run). Staging identity is exactly (_batch_id, _source_offset) via the
+unique lineage index; duplicate natural keys inside one extract are quarantined by
+the engine with reasons. The generator (gen_ddl_v2.py) now emits the legacy key as a
+comment only.
