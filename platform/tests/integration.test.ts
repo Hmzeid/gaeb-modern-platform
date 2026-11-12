@@ -314,5 +314,17 @@ async function runE2E(admin: pg.Client) {
     assert.equal((await trans(techToken, "CANCELLED")).status, 200, "creator can cancel");
     const metrics = await (await fetch("http://127.0.0.1:18099/api/migration/metrics", { headers: { Authorization: `Bearer ${techToken}` } })).json();
     assert.ok(metrics.batches >= 3 && metrics.indexedKeys >= 4, "metrics reflect live state");
+
+    // --- Phase 5 (Workstream D): reconciliation report — provenance + three separate outcomes ---
+    const repRes = await fetch(`http://127.0.0.1:18099/api/migration/batches/${batchId}/reconciliation/report`, { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(repRes.status, 200);
+    const rep = await repRes.json();
+    assert.equal(rep.technicalOutcome, "PASSED");
+    assert.match(rep.businessEquivalence, /PENDING/);
+    assert.match(rep.customerAcceptance, /PENDING/);
+    assert.ok(rep.sourceSha256 && rep.sourceSha256.length === 64, "report carries the source checksum");
+    const repText = await (await fetch(`http://127.0.0.1:18099/api/migration/batches/${batchId}/reconciliation/report?format=text`, { headers: { Authorization: `Bearer ${techToken}` } })).text();
+    assert.match(repText, /RECONCILIATION REPORT/);
+    assert.match(repText, /Business equivalence: PENDING/);
   } finally { server.kill(); }
 }

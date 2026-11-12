@@ -37,12 +37,14 @@ export default function App() {
   const [migApprovals, setMigApprovals] = useState<any[]>([]); const [migMsg, setMigMsg] = useState("");
   const [migRecon, setMigRecon] = useState<any>(null); const [migIntake, setMigIntake] = useState<any[]>([]);
   const [migAudit, setMigAudit] = useState<any[]>([]); const [migMember, setMigMember] = useState("PBLBULDG");
+  const [migMetrics, setMigMetrics] = useState<any>(null);
   const [migFile, setMigFile] = useState<ArrayBuffer | null>(null);
   const [migFix, setMigFix] = useState(""); const [migFixId, setMigFixId] = useState<number | null>(null);
   const loadMigration = async () => { try {
     setMigInv(await api("/api/migration/inventory")); setMigBatches(await api("/api/migration/batches")); setMigApprovals(await api("/api/migration/approvals"));
     try { setMigIntake(await api("/api/migration/intake")); } catch { setMigIntake([]); }
     try { setMigAudit(await api("/api/audit")); } catch { setMigAudit([]); }
+    try { setMigMetrics(await api("/api/migration/metrics")); } catch { setMigMetrics(null); }
   } catch (e: any) { setErr(String(e.message || e)); } };
   useEffect(() => { if (tab === "migration" && authed) loadMigration(); }, [tab, authed]);
   const [catForm, setCatForm] = useState({ code: "", name_en: "", name_ar: "", unit: "m2", standard_price: "100" });
@@ -185,6 +187,9 @@ export default function App() {
       <tbody>{migPreview.preview.map((r: any, i: number) => <tr key={i}>{Object.values(r).map((v: any, j: number) => <td key={j}>{String(v)}</td>)}</tr>)}</tbody></table>
       <p>control totals: {JSON.stringify(migPreview.controlTotals)} · source totals: {JSON.stringify(migPreview.sourceTotals)} · rejected: {migPreview.rejected.length}</p></>}
       </section>
+      {migMetrics && <section className="card"><h2>Operations</h2>
+      <p>batches {migMetrics.batches} · loaded {migMetrics.recordsLoaded} · quarantined {migMetrics.recordsRejected} · indexed keys {migMetrics.indexedKeys} · active approvals {migMetrics.activeApprovals} · last batch {migMetrics.lastBatchAt ? String(migMetrics.lastBatchAt).slice(0, 19).replace("T", " ") : "—"}</p>
+      <p>intake: {migMetrics.intakeByStage.map((x: any) => `${x.stage} ${x.n}`).join(" · ") || "—"} · jobs: {migMetrics.jobsByState.map((x: any) => `${x.state} ${x.n}`).join(" · ") || "—"}</p></section>}
       <section className="card"><h2>{t.batches}</h2>
       <table><thead><tr><th>Batch</th><th>Layout</th><th>Total</th><th>Loaded</th><th>Rejected</th><th></th></tr></thead>
       <tbody>{migBatches.map(b => <tr key={b.batch_id}><td>{b.batch_id}</td><td>{b.layout_name}</td><td>{b.total_records}</td><td>{b.loaded}</td><td>{b.rejected}</td>

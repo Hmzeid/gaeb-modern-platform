@@ -1,0 +1,12 @@
+{"id":"1","at":"2026-11-12T19:43:22.871Z","user_id":"1","action":"login","entity":"session","entity_id":"1","detail":{}}
+{"id":"2","at":"2026-11-12T19:43:23.071Z","user_id":"2","action":"login","entity":"session","entity_id":"2","detail":{}}
+{"id":"3","at":"2026-11-12T19:43:23.247Z","user_id":"3","action":"login","entity":"session","entity_id":"3","detail":{}}
+{"id":"4","at":"2026-11-12T19:43:23.349Z","user_id":"3","action":"migration.approve","entity":"pblbuldg-to-buildings","entity_id":"demo","detail":{"evidence":"integration fixture sign-off"}}
+{"id":"5","at":"2026-11-12T19:43:23.405Z","user_id":"3","action":"migration.approve.revoke","entity":"pblbuldg-to-buildings","entity_id":"","detail":{"reason":"integration revocation drill"}}
+{"id":"6","at":"2026-11-12T19:43:23.470Z","user_id":"3","action":"migration.approve","entity":"pblbuldg-to-buildings","entity_id":"demo","detail":{"evidence":"re-approved for integration"}}
+{"id":"7","at":"2026-11-12T19:43:23.497Z","user_id":"2","action":"migration.transform","entity":"pblbuldg-to-buildings","entity_id":"mig-integration-fixture","detail":{"mode":"demo","inserted":0}}
+{"id":"8","at":"2026-11-12T19:43:23.602Z","user_id":"2","action":"migration.intake.register","entity":"intake_dataset","entity_id":"1","detail":{"member":"PBLBULDG"}}
+{"id":"9","at":"2026-11-12T19:43:23.655Z","user_id":"2","action":"migration.intake.advance","entity":"intake_dataset","entity_id":"1","detail":{"to":"registered","from":"received"}}
+{"id":"10","at":"2026-11-12T19:43:23.704Z","user_id":"2","action":"migration.intake.advance","entity":"intake_dataset","entity_id":"1","detail":{"to":"verified","from":"registered"}}
+{"id":"11","at":"2026-11-12T19:43:23.757Z","user_id":"3","action":"migration.approve","entity":"pbytendr-to-tenders","entity_id":"demo","detail":{"evidence":""}}
+{"id":"12","at":"2026-11-12T19:43:24.333Z","user_id":"4","action":"login","entity":"session","entity_id":"4","detail":{}}

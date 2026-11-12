@@ -255,3 +255,27 @@ Suite: 53/53, 0 skipped, real PostgreSQL 16.4. Docker gate stays NOT VERIFIED
 (no Docker in sandbox) — deployment-verification workflow written for a
 Docker-capable runner. Gates unchanged otherwise: real data BLOCKED on GAEB,
 equivalence/UAT/security-approval/production NOT STARTED.
+
+## Addendum 8 — Phase 5 (2026-11-12, branch phase-5-certification)
+Baseline 53/53 reproduced on phase-4-readiness (969fcd9) before changes; PR #2
+depends on PR #1 (stacked). Headline: the O(n^2) checkpoint bottleneck is
+ELIMINATED — root cause was mig.job_state.loaded_keys re-serialized per chunk;
+fix = mig.loaded_keys incremental table + O(1) checkpoint (offset + key count)
++ advisory-locked persistChunk with in-transaction cross-chunk duplicate
+quarantine and accepted-only exact totals. Benchmarks (same methodology):
+18k@5,136 / 108k@5,380 / 506k@4,818 / 1,012,418@4,940 rec/s, RSS flat (vs
+2,737 rec/s and growing RSS at ~450k before). An environment kill mid-benchmark
+left exactly 35 committed chunks — durability confirmed by the accident.
+Also: import job orchestration (009: lifecycle, lease claims, duplicate-active
+unique index, creator/admin-only cancel — all E2E-tested); reconciliation
+REPORT (JSON + text, provenance, transform hash + approval refs, three outcomes
+kept separate); Arabic fidelity suite (5 tests) + report; metrics endpoint +
+Operations dashboard strip; logical backup/restore of the 17-table evidence
+chain executed PASS against two databases (fingerprints match); synthetic
+pilot rehearsal PASS (all runbook steps via the real API); UAT cases 24 -> 30;
+Docker certification + CI activation remain blocked on the same facts (no
+Docker locally; token scopes gist/read:org/repo, no workflow) and are
+documented as such in docs/release/PHASE5_*. Suite: 58/58, 0 skipped.
+Gate changes: Scalability improvement VERIFIED; Backup/restore VERIFIED at the
+logical+restart level (physical pg_dump cycle NOT verified — no pg_dump binary
+in the sandbox distribution; all other gates unchanged.

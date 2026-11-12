@@ -278,7 +278,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 // pipeline on one connection), batches, quarantine, audited reject resubmission,
 // approval-gated transforms, approvals register, legacy inventory.
 import { importFixedWidth, validateLayout, type Layout } from "./migration/engine.js";
-import { computeReconciliation } from "./migration/reconcile.js";
+import { computeReconciliation, computeReconciliationReport, renderReconciliationReport } from "./migration/reconcile.js";
 import { persistImport, loadJobState } from "./migration/load.js";
 import { TRANSFORMS, runTransform } from "./migration/transform.js";
 import { readFileSync as rf2 } from "node:fs";
@@ -323,6 +323,14 @@ app.get("/api/migration/batches/:id/reconciliation", requireAuth, requirePerm("m
   const rec = await computeReconciliation(pool, req.params.id);
   if (!rec) return res.status(404).json({ error: "batch not found" });
   res.json(rec);
+});
+/** Full reconciliation report: ?format=text renders the human-readable version;
+ *  default is the machine-readable JSON. Both carry the three separate outcomes. */
+app.get("/api/migration/batches/:id/reconciliation/report", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const rep = await computeReconciliationReport(pool, req.params.id);
+  if (!rep) return res.status(404).json({ error: "batch not found" });
+  if (req.query.format === "text") return res.type("text/plain").send(renderReconciliationReport(rep));
+  res.json(rep);
 });
 
 const INTAKE_STAGES = ["received", "registered", "verified", "profiled", "mapped", "approved", "imported", "reconciled", "reviewed", "accepted"];

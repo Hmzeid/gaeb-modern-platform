@@ -1,0 +1,279 @@
+{
+  "app.users": {
+    "rows": 4,
+    "fingerprint": "6539c77aaae87dc2b9baf069ce1c848440dea2e4b3ed2b256f2062365cb223ce",
+    "columns": [
+      "id",
+      "username",
+      "password_hash",
+      "name_en",
+      "name_ar",
+      "role",
+      "is_active",
+      "created_at"
+    ]
+  },
+  "mig.batches": {
+    "rows": 3,
+    "fingerprint": "e3e7653791bf8eb8024287a51db4c0a951929af575ed4b644ab12319be67d9b2",
+    "columns": [
+      "batch_id",
+      "source_file",
+      "source_sha256",
+      "layout_name",
+      "total_records",
+      "loaded",
+      "rejected",
+      "control_totals",
+      "source_totals",
+      "started_at",
+      "finished_at",
+      "data_class",
+      "imported_by_user_id"
+    ]
+  },
+  "mig.batch_runs": {
+    "rows": 8,
+    "fingerprint": "ecfbdb24992a030265026b8cd78ffb0dc146f04aa6246760b83f8510e33861c6",
+    "columns": [
+      "id",
+      "batch_id",
+      "start_offset",
+      "source_sha256",
+      "loaded",
+      "rejected_new",
+      "ran_at"
+    ]
+  },
+  "mig.batch_totals": {
+    "rows": 6,
+    "fingerprint": "65d7f6a85d5181f6cbfc7142b10ee33bf93df03e68c55fcd12c75a2573886108",
+    "columns": [
+      "batch_id",
+      "field",
+      "kind",
+      "amount"
+    ]
+  },
+  "mig.rejects": {
+    "rows": 5,
+    "fingerprint": "12509f098269440b6dd673e2548ef68bd377d12211decfc31f5b92d20cf52f7f",
+    "columns": [
+      "id",
+      "batch_id",
+      "record_offset",
+      "reason",
+      "raw_hex",
+      "resubmitted_batch",
+      "created_at"
+    ]
+  },
+  "mig.job_state": {
+    "rows": 3,
+    "fingerprint": "5b47f7bd4fa46aa7d1be6265fc6b957f0b47ddb78f2263e72c751d4a9aa2c09c",
+    "columns": [
+      "batch_id",
+      "next_offset",
+      "loaded_keys",
+      "updated_at",
+      "key_count"
+    ]
+  },
+  "mig.loaded_keys": {
+    "rows": 1203,
+    "fingerprint": "a7e3f10b9de86edb2ac42b24358cad555fea48861076c18f7662b3f5c8756e56",
+    "columns": [
+      "batch_id",
+      "key_value"
+    ]
+  },
+  "mig.mapping_approvals": {
+    "rows": 9,
+    "fingerprint": "8133f1e209fc2cb6c00f30c08deedccce7a54ae24307ed4409169182004adf79",
+    "columns": [
+      "id",
+      "legacy_member",
+      "legacy_field",
+      "target_table",
+      "target_column",
+      "transform_name",
+      "transform_hash",
+      "approved_by",
+      "evidence_ref",
+      "approved_at",
+      "approved_by_user_id",
+      "approved_role",
+      "mode",
+      "status",
+      "revoked_by_user_id",
+      "revoked_at",
+      "revoke_reason"
+    ]
+  },
+  "mig.mapping_approval_events": {
+    "rows": 12,
+    "fingerprint": "e0873058e9db74049a2cc7f97b93c9bab799e48502ff00a76ff4f0b23dcd1dad",
+    "columns": [
+      "id",
+      "transform_name",
+      "legacy_member",
+      "legacy_field",
+      "event",
+      "actor_user_id",
+      "actor_role",
+      "transform_hash",
+      "evidence_ref",
+      "at"
+    ]
+  },
+  "mig.layouts": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "name",
+      "sha256",
+      "layout_json",
+      "registered_by",
+      "registered_at"
+    ]
+  },
+  "mig.intake_datasets": {
+    "rows": 1,
+    "fingerprint": "6b10ee0d16fb5cb424e588c86754a128e1642d708d703c492f64cc732d6699e0",
+    "columns": [
+      "id",
+      "member",
+      "layout_name",
+      "layout_hash",
+      "source_sha256",
+      "size_bytes",
+      "batch_id",
+      "data_class",
+      "stage",
+      "created_by_user_id",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "mig.intake_events": {
+    "rows": 3,
+    "fingerprint": "d5b1e69b54b864b07aa79e11823dee4e28394232009349dcccabdfd0e3263251",
+    "columns": [
+      "id",
+      "dataset_id",
+      "from_stage",
+      "to_stage",
+      "evidence",
+      "actor_user_id",
+      "created_at"
+    ]
+  },
+  "mig.import_jobs": {
+    "rows": 1,
+    "fingerprint": "e461e0a1e6b440233657d49b6e9fad2c028eb003818cb0faea6fcd343ab3b46a",
+    "columns": [
+      "id",
+      "dataset_id",
+      "batch_id",
+      "member",
+      "layout_name",
+      "source_sha256",
+      "state",
+      "claimed_by",
+      "lease_expires_at",
+      "attempts",
+      "failure_class",
+      "error",
+      "created_by_user_id",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "mig.import_job_events": {
+    "rows": 3,
+    "fingerprint": "eea7c7e87b74c5df305725fa19c39885ce97d29857e3b77923e1d5b83b6fcae5",
+    "columns": [
+      "id",
+      "job_id",
+      "from_state",
+      "to_state",
+      "actor",
+      "note",
+      "created_at"
+    ]
+  },
+  "app.audit_log": {
+    "rows": 12,
+    "fingerprint": "17508e73ee45dda598544a2fda7a8b271693054efae8cbf377cabe1195f44b08",
+    "columns": [
+      "id",
+      "at",
+      "user_id",
+      "action",
+      "entity",
+      "entity_id",
+      "detail"
+    ]
+  },
+  "app.governorates": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "code",
+      "name_en",
+      "name_ar",
+      "regional_center"
+    ]
+  },
+  "app.buildings": {
+    "rows": 2,
+    "fingerprint": "7c8c5f20ab784569f1967d618adf08eeffffbcad01d779288d8736717a3093c7",
+    "columns": [
+      "id",
+      "legacy_blcd",
+      "name_en",
+      "name_ar",
+      "governorate_code",
+      "center_code",
+      "village_code",
+      "stage_code",
+      "plot_area",
+      "building_area",
+      "floors",
+      "classrooms",
+      "status",
+      "created_at"
+    ]
+  },
+  "school_map.pblbuldg": {
+    "rows": 1205,
+    "fingerprint": "a7a1ca10b081ef8aadd727bd9f0b777b66e1758d46d126c6b6167816f52a8e46",
+    "columns": [
+      "becd",
+      "blrd",
+      "blcd",
+      "shnm",
+      "edara",
+      "tycd",
+      "dscd",
+      "vgcd",
+      "cicd",
+      "street",
+      "strno",
+      "bltl",
+      "ldowcd",
+      "blowcd",
+      "tyc",
+      "vilg",
+      "bgcd",
+      "tblno",
+      "cotmk",
+      "cotes",
+      "cotev",
+      "nousiv",
+      "_batch_id",
+      "_source_offset",
+      "_raw_hex"
+    ]
+  }
+}

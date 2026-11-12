@@ -33,3 +33,15 @@ checkpoint + database-side duplicate detection — see docs/BENCHMARK.md.
   concurrent import throughput is unmeasured).
 - Sustained multi-hour imports; network-transfer throughput (customer-side).
 - Frontend behaviour with >10k-row tables (pagination is a UAT observation item).
+
+## Phase 5 update — bottleneck eliminated (measured)
+Root cause (diagnosed in code, not assumed): `mig.job_state.loaded_keys` held
+the entire loaded-key set as JSONB, re-serialized on EVERY chunk commit —
+chunk k wrote O(k·chunk) bytes; resume parsed the whole set; the importer's
+memory grew with the file. Fix: keys moved to an indexed table
+(`mig.loaded_keys`) inserted incrementally per chunk; the checkpoint is O(1)
+(offset + key count); duplicate detection across chunks happens inside the
+chunk transaction; memory is bounded by chunk size. New measurements (same
+methodology): 18k → 5,136 rec/s; 108k → 5,380; 506k → 4,818; **1,012,418
+records → 4,940 rec/s with RSS flat**. The scaling limit recorded in earlier
+phases is closed; the scoped fix described there is exactly what shipped.
