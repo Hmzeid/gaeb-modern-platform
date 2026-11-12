@@ -1,0 +1,33 @@
+
+> gaeb-platform@1.0.0-production-scaffold test
+> npm run build && cp tests/testvectors.json tests/codepage_vectors.json dist/tests/ && node --test "dist/tests/*.test.js"
+
+
+> gaeb-platform@1.0.0-production-scaffold build
+> tsc -p tsconfig.json && cp -r src/codepages dist/src/
+
+✔ windows-1256 decodes to the exact original Arabic (independent Python-generated vector) (1.423306ms)
+✔ ibm420 (CCSID 420) EBCDIC bytes decode to the exact original Arabic (glibc charmap vector) (0.239069ms)
+✔ ibm864 decodes shaped presentation forms back to standard letters (0.407802ms)
+✔ ibm425 fails loudly instead of silently corrupting (no verified table) (0.715734ms)
+✔ mojibake is flagged, never auto-repaired (0.319199ms)
+✔ search normalization is separate from the preserved original (0.45919ms)
+✔ password hashing is salted, verifies, and rejects wrong passwords (543.505081ms)
+✔ RBAC: viewer cannot write; certifier cannot authorize payment (separation of duties) (0.36661ms)
+✔ tender stages cannot be skipped (0.250486ms)
+✔ certificate: 'paid' requires a payment reference; sequence is enforced (0.298438ms)
+✔ expropriation: decree gate blocks post-decree actions before the decree exists (0.274572ms)
+✔ CHK5DAYS implementation: 5 working days skip Fri/Sat weekend (0.760382ms)
+✔ packed decimal decodes value, scale and sign (1.895405ms)
+✔ zoned decimal (EBCDIC) decodes with negative sign zone (0.369825ms)
+✔ certificate valuation is exact decimal (no float error) (2.214553ms)
+✔ certificate with deductions exceeding gross is rejected, not silently negative (0.258017ms)
+✔ large packed-decimal contract value keeps full precision (0.448383ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 769.805361

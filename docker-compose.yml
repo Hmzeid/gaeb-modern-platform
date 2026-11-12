@@ -1,0 +1,29 @@
+# GAEB Modern Enterprise Platform — reference deployment (customer infrastructure).
+# Air-gapped use: build images on a connected machine, `docker save` them, transfer, `docker load`.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: gaeb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: gaeb
+    volumes:
+      - gaeb_pgdata:/var/lib/postgresql/data
+      - ./platform/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gaeb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  api:
+    build: ./platform
+    environment:
+      DATABASE_URL: postgres://gaeb:${POSTGRES_PASSWORD}@db:5432/gaeb
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  gaeb_pgdata:

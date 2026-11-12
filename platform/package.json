@@ -1,0 +1,28 @@
+{
+  "name": "gaeb-platform",
+  "version": "1.0.0-production-scaffold",
+  "private": true,
+  "type": "module",
+  "description": "GAEB Modern Enterprise Platform \u2014 standalone production backend (Milestone 2 scaffold). Independent of Meta/Hatch runtime.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && cp -r src/codepages dist/src/",
+    "test": "npm run build && cp tests/testvectors.json tests/codepage_vectors.json dist/tests/ && node --test \"dist/tests/*.test.js\"",
+    "start": "node dist/src/server.js",
+    "migrate": "node dist/src/cli/migrate.js",
+    "create-admin": "node dist/src/cli/create-admin.js"
+  },
+  "dependencies": {
+    "decimal.js": "^10.4.3",
+    "express": "^4.19.2",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.5.0",
+    "@types/pg": "^8.11.6",
+    "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
