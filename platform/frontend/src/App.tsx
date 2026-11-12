@@ -38,6 +38,8 @@ export default function App() {
   const [migRecon, setMigRecon] = useState<any>(null); const [migIntake, setMigIntake] = useState<any[]>([]);
   const [migAudit, setMigAudit] = useState<any[]>([]); const [migMember, setMigMember] = useState("PBLBULDG");
   const [migMetrics, setMigMetrics] = useState<any>(null);
+  const [liveBatch, setLiveBatch] = useState(""); const [liveProg, setLiveProg] = useState<any>(null);
+  const [liveOn, setLiveOn] = useState(false);
   const [migFile, setMigFile] = useState<ArrayBuffer | null>(null);
   const [migFix, setMigFix] = useState(""); const [migFixId, setMigFixId] = useState<number | null>(null);
   const loadMigration = async () => { try {
@@ -47,6 +49,16 @@ export default function App() {
     try { setMigMetrics(await api("/api/migration/metrics")); } catch { setMigMetrics(null); }
   } catch (e: any) { setErr(String(e.message || e)); } };
   useEffect(() => { if (tab === "migration" && authed) loadMigration(); }, [tab, authed]);
+  useEffect(() => {
+    if (!liveOn || !liveBatch) return;
+    let stop = false;
+    const tick = async () => {
+      try { const p = await api(`/api/migration/batches/${encodeURIComponent(liveBatch)}/progress`); if (!stop) setLiveProg(p); } catch { if (!stop) setLiveProg(null); }
+    };
+    tick();
+    const iv = setInterval(tick, 2000);
+    return () => { stop = true; clearInterval(iv); };
+  }, [liveOn, liveBatch]);
   const [catForm, setCatForm] = useState({ code: "", name_en: "", name_ar: "", unit: "m2", standard_price: "100" });
   const [estForm, setEstForm] = useState({ title: "", catalogue_item_id: "", qty: "10" });
   const [form, setForm] = useState({ username: "", password: "" });
@@ -186,6 +198,17 @@ export default function App() {
       <table><thead><tr>{Object.keys(migPreview.preview[0] ?? {}).map(k => <th key={k}>{k}</th>)}</tr></thead>
       <tbody>{migPreview.preview.map((r: any, i: number) => <tr key={i}>{Object.values(r).map((v: any, j: number) => <td key={j}>{String(v)}</td>)}</tr>)}</tbody></table>
       <p>control totals: {JSON.stringify(migPreview.controlTotals)} · source totals: {JSON.stringify(migPreview.sourceTotals)} · rejected: {migPreview.rejected.length}</p></>}
+      </section>
+      <section className="card"><h2>{lang === "ar" ? "مراقبة الاستيراد المباشرة" : "Live import monitor"}</h2>
+      <div className="row">
+      <input placeholder="batch id" value={liveBatch} onChange={e => setLiveBatch(e.target.value)} />
+      <button onClick={() => setLiveOn(!liveOn)}>{liveOn ? (lang === "ar" ? "إيقاف" : "Stop") : (lang === "ar" ? "مراقبة" : "Watch")}</button>
+      </div>
+      {liveProg && <div aria-live="polite">
+      <p>{liveProg.batchId} · {liveProg.status}{liveProg.percentComplete !== null ? ` · ${liveProg.percentComplete}%` : ""}</p>
+      <p>{lang === "ar" ? "تمت معالجة" : "processed"} {liveProg.processed} · {lang === "ar" ? "مقبول" : "accepted"} {liveProg.loaded} · {lang === "ar" ? "معزول" : "quarantined"} {liveProg.rejected} · checkpoint {liveProg.checkpointRecord} · keys {liveProg.keysIndexed}</p>
+      <p>{liveProg.recordsPerSec ? `${liveProg.recordsPerSec} rec/s` : ""}{liveProg.etaSeconds ? ` · ETA ~${liveProg.etaSeconds}s (${lang === "ar" ? "تقدير" : "estimate"})` : ""}</p>
+      </div>}
       </section>
       {migMetrics && <section className="card"><h2>Operations</h2>
       <p>batches {migMetrics.batches} · loaded {migMetrics.recordsLoaded} · quarantined {migMetrics.recordsRejected} · indexed keys {migMetrics.indexedKeys} · active approvals {migMetrics.activeApprovals} · last batch {migMetrics.lastBatchAt ? String(migMetrics.lastBatchAt).slice(0, 19).replace("T", " ") : "—"}</p>

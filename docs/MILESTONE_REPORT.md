@@ -322,3 +322,21 @@ Unchanged externals: CI BLOCKED (token scope), Docker NOT VERIFIED (no host),
 npm audit registry-blocked, real data BLOCKED, UAT/security approval external.
 Environment note: the VM replacement wiped the apt-installed PG client tools;
 reinstalled from the local apt cache via dpkg.
+
+## Addendum 11 — Phase 8 (2026-11-12, branch phase-8-pilot-execution)
+65/65 baseline reproduced and held at close. CI/CD AUDIT executed with fresh
+API evidence and the activation attempted three ways: HTTPS push REJECTED
+with GitHub's explicit workflow-scope message for the OAuth (gho_) token;
+Contents API 404 (masked refusal); SSH transports reset by the sandbox egress
+proxy. No alternate credential exists. Owner resolution = 3 documented routes
+(~2 min). Docker therefore still NOT VERIFIED — the blocker is the same
+credential, runners were never the issue (public repo, Actions enabled, 0
+runs ever). Delivered: security headers on all responses (verified live);
+live migration monitoring — GET /batches/:id/progress (counts, checkpoint,
+keys, run-ledger throughput, ETA labeled estimate, percent only when the
+source total is knowable) + Migration Center live panel (2s polling, EN/AR,
+aria-live); an endpoint crash during development (batch_runs has ran_at, not
+started_at/finished_at) was caught by the E2E, fixed, and the handler
+hardened. Preflight validated at scale: 29MB/500k records in 0.19s. Perf
+regression: 506k @ 5,336 rec/s (P7: 5,416 — noise). Logical restore PASS
+re-executed. SBOM unchanged (no dependency changes).

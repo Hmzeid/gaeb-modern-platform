@@ -315,6 +315,16 @@ async function runE2E(admin: pg.Client) {
     const metrics = await (await fetch("http://127.0.0.1:18099/api/migration/metrics", { headers: { Authorization: `Bearer ${techToken}` } })).json();
     assert.ok(metrics.batches >= 3 && metrics.indexedKeys >= 4, "metrics reflect live state");
 
+    // --- Phase 8 (Workstream 10): live progress endpoint for the streamed batch ---
+    const progRes = await fetch(`http://127.0.0.1:18099/api/migration/batches/${r5.batchId}/progress`, { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(progRes.status, 200);
+    const prog = await progRes.json();
+    assert.ok(prog.processed >= 5 && prog.checkpointRecord >= 5, "progress reflects the streamed import");
+    assert.ok(prog.keysIndexed >= 4 && prog.etaIsEstimate === true, "progress carries keys + estimate flag");
+    assert.ok(["complete", "recorded"].includes(prog.status), "finished batch is not reported as in-progress");
+    const progMissing = await fetch("http://127.0.0.1:18099/api/migration/batches/mig-nope/progress", { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(progMissing.status, 404);
+
     // --- Phase 5 (Workstream D): reconciliation report — provenance + three separate outcomes ---
     const repRes = await fetch(`http://127.0.0.1:18099/api/migration/batches/${batchId}/reconciliation/report`, { headers: { Authorization: `Bearer ${techToken}` } });
     assert.equal(repRes.status, 200);

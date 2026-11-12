@@ -8,6 +8,18 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 const PORT = Number(process.env.PORT || 8080);
 
+// Security headers (Phase 8, Workstream 6): applied to every response. The
+// API serves JSON only; the policy denies framing and sniffing and keeps
+// referrers on-origin. TLS itself terminates at the deployment proxy.
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 // Correlation IDs (Phase 7, Workstream I): every request carries an id,
 // echoed to the caller and attached to error logs, so an operator can trace
 // one request across the API, the audit trail, and support reports.
@@ -349,6 +361,48 @@ app.post("/api/migration/import", requireAuth, requirePerm("migration.run"), exp
     res.json({ ...report, alreadyRecorded: persisted.alreadyRecorded, stagedRowsForBatch: staged.rows[0].n });
   } catch (e: any) { res.status(422).json({ error: String(e.message || e) }); }
   finally { client.release(); }
+});
+/** Live import progress for one batch (Phase 8, Workstream 10). Computed from
+ *  the batch totals + checkpoint + run ledger — three indexed reads, no
+ *  per-record work. Throughput/ETA derive from the run ledger's wall-clock
+ *  span; ETA is explicitly an estimate and is null when it cannot be derived. */
+app.get("/api/migration/batches/:id/progress", requireAuth, requirePerm("migration.run"), async (req, res) => {
+ try {
+  const id = req.params.id;
+  const b = await pool.query("SELECT loaded, rejected, source_file FROM mig.batches WHERE batch_id = $1", [id]);
+  if (!b.rows.length) return res.status(404).json({ error: "batch not found" });
+  const js = await pool.query("SELECT next_offset, key_count FROM mig.job_state WHERE batch_id = $1", [id]);
+  const runs = await pool.query(
+    "SELECT COUNT(*)::int n, MIN(ran_at) first_at, MAX(ran_at) last_at FROM mig.batch_runs WHERE batch_id = $1", [id]);
+  const active = await pool.query(
+    "SELECT COUNT(*)::int n FROM mig.import_jobs WHERE batch_id = $1 AND state IN ('QUEUED','VALIDATING','RUNNING','RECONCILING','RECOVERING')", [id]);
+  const loaded = Number(b.rows[0].loaded), rejected = Number(b.rows[0].rejected);
+  const processed = loaded + rejected;
+  const checkpoint = js.rows.length ? Number(js.rows[0].next_offset) : processed;
+  // The source record total is only KNOWABLE once the file has been fully
+  // consumed (checkpoint = file records) and no job is still active. During
+  // an active import the endpoint reports counts + checkpoint and leaves
+  // percent/ETA null rather than inventing a denominator.
+  const isActive = Number(active.rows[0].n) > 0;
+  const total = !isActive && js.rows.length && checkpoint >= processed ? checkpoint : null;
+  const firstAt = runs.rows[0].first_at ? new Date(runs.rows[0].first_at).getTime() : null;
+  const lastAt = runs.rows[0].last_at ? new Date(runs.rows[0].last_at).getTime() : null;
+  const elapsedSec = firstAt && lastAt && lastAt > firstAt ? (lastAt - firstAt) / 1000 : null;
+  const rps = elapsedSec && processed > 0 ? processed / elapsedSec : null;
+  const remaining = total !== null ? total - processed : null;
+  res.json({
+    batchId: id, sourceFile: b.rows[0].source_file,
+    totalRecords: total, processed, loaded, rejected,
+    percentComplete: total ? Math.round((processed / total) * 10000) / 100 : null,
+    checkpointRecord: checkpoint,
+    keysIndexed: js.rows.length ? Number(js.rows[0].key_count) : loaded,
+    runs: Number(runs.rows[0].n),
+    status: isActive ? "in-progress" : total !== null && processed >= total ? "complete" : processed > 0 ? "recorded" : "not-started",
+    recordsPerSec: rps ? Math.round(rps * 10) / 10 : null,
+    etaSeconds: rps && remaining !== null && remaining > 0 ? Math.ceil(remaining / rps) : null,
+    etaIsEstimate: true,
+  });
+ } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
 });
 /** Executable reconciliation for one batch (Workstream D definitions). */
 app.get("/api/migration/batches/:id/reconciliation", requireAuth, requirePerm("migration.run"), async (req, res) => {
