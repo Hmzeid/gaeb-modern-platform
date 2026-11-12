@@ -1,0 +1,7 @@
+exception_id,module,field_or_object,decision,business_impact,owner,status
+EX-01,School Map,app.buildings.name_en,Deliberately unmapped — PBLBULDG carries the Arabic name (SHNM); no English name is fabricated,English-name displays stay empty until GAEB supplies names or approves transliteration,Veebase,OPEN — awaiting GAEB
+EX-02,Real Estate,REMV01PF.TOT,Deliberately unmapped — business meaning unconfirmed; NOT treated as compensation,Compensation figures absent from migrated cases until GAEB defines TOT,Veebase,OPEN — B-questionnaire
+EX-03,Abstracts,INV001PF definition variant,Follows BIL02SRC variant of three delivered definitions,If NGHADA is authoritative the certificate transform must be re-approved and re-run,GAEB,OPEN — B-02
+EX-04,Budget,Entire operational transform,Blocked — PBA3* master DDS never delivered,No Budget migration until evidence arrives,GAEB,OPEN — B-01
+EX-05,Estimates,Item-master transform,Blocked — item-master PF never identified in the delivery,No Estimates migration until the file is identified,GAEB,OPEN — B-13
+EX-06,All,IBM425-CCSID files,Cannot decode (no verified table); records quarantine with the reason,Any 425 file needs its CCSID confirmed or a table supplied before migration,GAEB,OPEN — B-05

@@ -233,3 +233,25 @@ not claim otherwise. Full suite: 47/47 passing with integration enabled.
 - Security approved: NO — controls implemented and tested; no customer security review
 - Customer UAT approved: NO — not started (B-12)
 - Production deployment authorized: NO
+
+## Addendum 7 — Phase 4 (2026-11-12, branch phase-4-readiness)
+Baseline a756241 reproduced exactly (47/47) before any change. Delivered:
+customer pack x7 in docs/customer/ (inventory template generated from the
+reconciled register: 1,095 field rows, unknowns marked REQUIRES CUSTOMER
+CONFIRMATION; count template for all 125 PFs); controlled intake pipeline
+(mig.intake_datasets/events, stage machine, evidence-mandatory transitions,
+API + Migration Center panel); executable reconciliation endpoint implementing
+the Workstream D metric definitions (count equation + totals asserted in E2E);
+6 adversarial importer tests (empty extract, packed precision extremes,
+conflicting duplicates preserved as evidence, IBM425 quarantine, delimited
+null-never-zero, impossible dates); identity-forgery approval test (caught and
+fixed a real defect: approver display name now resolved from the user record);
+security pack (STRIDE threat model, self-assessment, RBAC matrix generated
+from auth.ts, remediation register); validation pack (equivalence matrix,
+reconciliation methodology, business-rule + exception registers); UAT package
+(24 cases); performance report; deployment/rollback/operations runbooks;
+PostgreSQL restart-recovery executed for real (PASS, evidence/phase4/recovery).
+Suite: 53/53, 0 skipped, real PostgreSQL 16.4. Docker gate stays NOT VERIFIED
+(no Docker in sandbox) — deployment-verification workflow written for a
+Docker-capable runner. Gates unchanged otherwise: real data BLOCKED on GAEB,
+equivalence/UAT/security-approval/production NOT STARTED.

@@ -35,10 +35,14 @@ export default function App() {
   const [migPreview, setMigPreview] = useState<any>(null); const [migBatches, setMigBatches] = useState<MigBatch[]>([]);
   const [migRejects, setMigRejects] = useState<MigReject[]>([]); const [migBatchSel, setMigBatchSel] = useState("");
   const [migApprovals, setMigApprovals] = useState<any[]>([]); const [migMsg, setMigMsg] = useState("");
+  const [migRecon, setMigRecon] = useState<any>(null); const [migIntake, setMigIntake] = useState<any[]>([]);
+  const [migAudit, setMigAudit] = useState<any[]>([]); const [migMember, setMigMember] = useState("PBLBULDG");
   const [migFile, setMigFile] = useState<ArrayBuffer | null>(null);
   const [migFix, setMigFix] = useState(""); const [migFixId, setMigFixId] = useState<number | null>(null);
   const loadMigration = async () => { try {
     setMigInv(await api("/api/migration/inventory")); setMigBatches(await api("/api/migration/batches")); setMigApprovals(await api("/api/migration/approvals"));
+    try { setMigIntake(await api("/api/migration/intake")); } catch { setMigIntake([]); }
+    try { setMigAudit(await api("/api/audit")); } catch { setMigAudit([]); }
   } catch (e: any) { setErr(String(e.message || e)); } };
   useEffect(() => { if (tab === "migration" && authed) loadMigration(); }, [tab, authed]);
   const [catForm, setCatForm] = useState({ code: "", name_en: "", name_ar: "", unit: "m2", standard_price: "100" });
@@ -185,7 +189,8 @@ export default function App() {
       <table><thead><tr><th>Batch</th><th>Layout</th><th>Total</th><th>Loaded</th><th>Rejected</th><th></th></tr></thead>
       <tbody>{migBatches.map(b => <tr key={b.batch_id}><td>{b.batch_id}</td><td>{b.layout_name}</td><td>{b.total_records}</td><td>{b.loaded}</td><td>{b.rejected}</td>
         <td><button onClick={() => act(async () => { setMigBatchSel(b.batch_id); setMigRejects(await api(`/api/migration/batches/${b.batch_id}/rejects`)); })}>{t.rejects}</button>{" "}
-        <button onClick={() => act(async () => { const r: any = await api("/api/migration/transform", { method: "POST", body: JSON.stringify({ name: "buildings", batchId: b.batch_id }) }); setMigMsg(`transform buildings on ${b.batch_id}: inserted ${r.inserted}`); await load(); })}>{t.transform}</button></td></tr>)}</tbody></table>
+        <button onClick={() => act(async () => { const r: any = await api("/api/migration/transform", { method: "POST", body: JSON.stringify({ name: "buildings", batchId: b.batch_id }) }); setMigMsg(`transform buildings on ${b.batch_id}: inserted ${r.inserted}`); await load(); })}>{t.transform}</button>{" "}
+        <button onClick={() => act(async () => setMigRecon(await api(`/api/migration/batches/${b.batch_id}/reconciliation`)))}>Reconciliation</button></td></tr>)}</tbody></table>
       {migBatchSel && <><h3>{t.rejects} — {migBatchSel}</h3>
       <table><thead><tr><th>#</th><th>Offset</th><th>Reason</th><th></th></tr></thead>
       <tbody>{migRejects.map(r => <tr key={r.id}><td>{r.id}</td><td>{r.record_offset}</td><td>{r.reason}{r.resubmitted_batch ? ` → ${r.resubmitted_batch}` : ""}</td>
@@ -193,6 +198,19 @@ export default function App() {
       {migFixId !== null && <p><input style={{ width: "70%" }} value={migFix} onChange={e => setMigFix(e.target.value)} />{" "}
         <button onClick={() => act(async () => { await api(`/api/migration/rejects/${migFixId}/resubmit`, { method: "POST", body: JSON.stringify({ values: JSON.parse(migFix) }) }); setMigFixId(null); setMigRejects(await api(`/api/migration/batches/${migBatchSel}/rejects`)); })}>{t.resubmit} #{migFixId}</button></p>}</>}
       <p><button onClick={() => setTab("map")}>{t.viewInModule} →</button></p></section>
+      {migRecon && <section className="card"><h2>Reconciliation — {migRecon.batchId}</h2>
+      <p>source {migRecon.sourceRecords} = loaded {migRecon.loadedRecords} + quarantined {migRecon.quarantinedRecords} · equation holds: {String(migRecon.countEquationHolds)} · duplicates preserved: {migRecon.duplicateOccurrences} · runs: {migRecon.runs}</p>
+      <p>control totals: {JSON.stringify(migRecon.controlTotals)} · source totals: {JSON.stringify(migRecon.sourceTotals)}</p>
+      <table><thead><tr><th>Quarantine reason</th><th>Count</th></tr></thead><tbody>{migRecon.quarantineReasons.map((q: any, i: number) => <tr key={i}><td>{q.reason}</td><td>{q.count}</td></tr>)}</tbody></table></section>}
+      <section className="card"><h2>Intake pipeline</h2>
+      <p><input value={migMember} onChange={e => setMigMember(e.target.value)} />{" "}
+      <button onClick={() => act(async () => { await api("/api/migration/intake", { method: "POST", body: JSON.stringify({ member: migMember, dataClass: "customer" }) }); await loadMigration(); })}>Register received dataset</button></p>
+      <table><thead><tr><th>#</th><th>Member</th><th>Class</th><th>Stage</th><th>By</th><th></th></tr></thead>
+      <tbody>{migIntake.map(d => <tr key={d.id}><td>{d.id}</td><td>{d.member}</td><td>{d.data_class}</td><td>{d.stage}</td><td>{d.created_by}</td>
+      <td>{!["accepted", "rejected"].includes(d.stage) && <button onClick={() => act(async () => { const ev = window.prompt("Evidence for this stage transition:"); if (!ev) return; const stages = ["received","registered","verified","profiled","mapped","approved","imported","reconciled","reviewed","accepted"]; const to = stages[stages.indexOf(d.stage) + 1]; await api(`/api/migration/intake/${d.id}/advance`, { method: "POST", body: JSON.stringify({ to, evidence: ev }) }); await loadMigration(); })}>Advance →</button>}</td></tr>)}</tbody></table></section>
+      {migAudit.length > 0 && <section className="card"><h2>Audit trail (admin)</h2>
+      <table><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th></tr></thead>
+      <tbody>{migAudit.slice(0, 50).map((a: any) => <tr key={a.id}><td>{String(a.at).slice(0, 19).replace("T", " ")}</td><td>{a.username ?? "—"}</td><td>{a.action}</td><td>{a.entity} {a.entity_id ?? ""}</td></tr>)}</tbody></table></section>}
       <section className="card"><h2>{t.approvals}</h2>
       <table><thead><tr><th>Member</th><th>Field</th><th>Transform</th><th>Approved by</th><th>Evidence</th></tr></thead>
       <tbody>{migApprovals.map((x, i) => <tr key={i}><td>{x.legacy_member}</td><td>{x.legacy_field}</td><td>{x.transform_name}</td><td>{x.approved_by}</td><td>{x.evidence_ref}</td></tr>)}</tbody></table></section></>}
