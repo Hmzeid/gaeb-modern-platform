@@ -4,3 +4,8 @@ app.db-*
 audits/
 dist/
 *.log
+.space-build/
+.space-build-cvm/
+.harness/
+client/dist-cvm/
+*.tsbuildinfo

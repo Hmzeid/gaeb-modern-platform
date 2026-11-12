@@ -1,8 +1,0 @@
-{
-  "ok": true,
-  "audited_at_ms": 1794497611916,
-  "audit_dir": "/home/hatch/workspace/ts-spaces/gaeb-modern-platform-as-400-migration-poc/audits/2026-11-12T15-33-22Z-623461855",
-  "declared_post_submit_action": "ensureSeed",
-  "rendered_data_digest": "773a35c0455f58860be099733806bf14384d09797bb431ef43071fa36f856da6",
-  "rendered_blob_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-}
