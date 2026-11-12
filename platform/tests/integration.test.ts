@@ -52,7 +52,7 @@ async function runE2E(admin: pg.Client) {
   const db = { query: (t: string, v?: unknown[]) => admin.query(t, v as any) };
   await admin.query("DROP SCHEMA IF EXISTS app CASCADE; DROP SCHEMA IF EXISTS mig CASCADE; DROP SCHEMA IF EXISTS school_map CASCADE; DROP SCHEMA IF EXISTS purchases CASCADE; DROP SCHEMA IF EXISTS real_estate CASCADE; DROP SCHEMA IF EXISTS abstracts CASCADE");
   const migDir = new URL("../../migrations/", import.meta.url);
-  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql", "006_secure_approvals.sql", "007_intake.sql"])
+  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql", "006_secure_approvals.sql", "007_intake.sql", "008_scalable_checkpoint.sql", "009_import_jobs.sql"])
     await admin.query(readFileSync(new URL(f, migDir), "utf8"));
   await admin.query(readFileSync(new URL("../../../migration/reconciled/schema_v2.sql", import.meta.url), "utf8"));
   for (const [u, role] of [["admin1", "admin"], ["tech1", "technical"], ["budget1", "budget"]] as const)
@@ -264,5 +264,55 @@ async function runE2E(admin: pg.Client) {
     const auditRes = await fetch("http://127.0.0.1:18099/api/audit", { headers: { Authorization: `Bearer ${adminToken}` } });
     assert.equal(auditRes.status, 200);
     assert.ok((await auditRes.json()).length > 0);
+
+    // --- Phase 5 (Workstream B): cross-chunk duplicates caught by the keys table; O(1) checkpoint ---
+    const { streamImportFile: stream2 } = await import("../src/migration/stream.js");
+    const { writeFileSync: wf5, mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const dir5 = mkdtempSync(`${tmpdir()}/gaeb-p5-`);
+    const recs5: Buffer[] = [];
+    const mkRec5 = (blcd: string, vg: number) => {
+      const z = (s: string) => Buffer.from(s.split("").map(c => String.fromCharCode(0xf0 + Number(c))).join(""), "binary");
+      return Buffer.concat([Buffer.from("01", "utf8"), Buffer.from("02", "utf8"),
+        Buffer.from(blcd.padEnd(7, " "), "utf8"), Buffer.alloc(40, 0x40), z(String(vg).padStart(7, "0"))]);
+    };
+    // numeric keys (staging BLCD is INTEGER) across 3 chunks of 2; record 5 duplicates record 1's key (cross-chunk)
+    for (const [k, v] of [["1000001", 10], ["1000002", 20], ["1000003", 30], ["1000004", 40], ["1000001", 99]] as const) recs5.push(mkRec5(k, v));
+    const path5 = `${dir5}/cross-chunk.dat`; wf5(path5, Buffer.concat(recs5));
+    const r5 = await stream2(db, path5, streamLayout, { table: "school_map.pblbuldg", layoutName: "pbl-stream", chunkRecords: 2 });
+    const b5 = await admin.query("SELECT loaded, rejected FROM mig.batches WHERE batch_id = $1", [r5.batchId]);
+    assert.equal(b5.rows[0].loaded, 4, "cross-chunk duplicate must not load");
+    assert.equal(b5.rows[0].rejected, 1);
+    const js5 = await admin.query("SELECT next_offset, key_count, loaded_keys FROM mig.job_state WHERE batch_id = $1", [r5.batchId]);
+    assert.equal(js5.rows[0].next_offset, 5);
+    assert.equal(Number(js5.rows[0].key_count), 4, "checkpoint tracks the key count, not the set");
+    assert.deepEqual(js5.rows[0].loaded_keys, [], "the O(n^2) JSONB key set is no longer written on the streaming path");
+    const lk5 = await admin.query("SELECT COUNT(*)::int n FROM mig.loaded_keys WHERE batch_id = $1", [r5.batchId]);
+    assert.equal(lk5.rows[0].n, 4);
+    const sum5 = await admin.query("SELECT SUM(vgcd)::text s FROM school_map.pblbuldg WHERE _batch_id = $1", [r5.batchId]);
+    assert.equal(sum5.rows[0].s, "100", "control value excludes the duplicate's 99 (10+20+30+40)");
+
+    // --- Phase 5 (Workstream C): import job lifecycle ---
+    const jobPost = (token: string, body: object) => fetch("http://127.0.0.1:18099/api/migration/jobs", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const job1 = await jobPost(techToken, { member: "PBLBULDG", layoutName: "pblbuldg-v1", sourceSha256: "p5-sha-1" });
+    assert.equal(job1.status, 201); const jobId = (await job1.json()).id;
+    assert.equal((await jobPost(techToken, { member: "PBLBULDG", layoutName: "pblbuldg-v1", sourceSha256: "p5-sha-1" })).status, 409,
+      "duplicate active job for the same extract is refused");
+    const claim = (worker: string) => fetch(`http://127.0.0.1:18099/api/migration/jobs/${jobId}/claim`, {
+      method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ worker }) });
+    assert.equal((await claim("worker-a")).status, 200);
+    assert.equal((await claim("worker-b")).status, 409, "a live lease cannot be claimed by a second worker");
+    const trans = (token: string, to: string) => fetch(`http://127.0.0.1:18099/api/migration/jobs/${jobId}/transition`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ to }) });
+    assert.equal((await trans(techToken, "COMPLETED")).status, 422, "QUEUED cannot jump to COMPLETED");
+    assert.equal((await trans(budgetToken, "CANCELLED")).status, 403, "budget lacks migration.run entirely");
+    // a second operator (not the creator) cannot cancel
+    await admin.query("INSERT INTO app.users (username, password_hash, role) VALUES ('tech2', $1, 'technical') ON CONFLICT (username) DO NOTHING", [hashPassword("password-123")]);
+    const tech2Token = await login("tech2");
+    assert.equal((await trans(tech2Token, "CANCELLED")).status, 403, "non-creator operator cannot cancel");
+    assert.equal((await trans(techToken, "CANCELLED")).status, 200, "creator can cancel");
+    const metrics = await (await fetch("http://127.0.0.1:18099/api/migration/metrics", { headers: { Authorization: `Bearer ${techToken}` } })).json();
+    assert.ok(metrics.batches >= 3 && metrics.indexedKeys >= 4, "metrics reflect live state");
   } finally { server.kill(); }
 }

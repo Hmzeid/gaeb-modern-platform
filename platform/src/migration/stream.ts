@@ -1,17 +1,23 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { parseRecord, parseTextRecord, type Layout, type ImportReport, type DecodedRecord, type RejectedRecord, type JobState } from "./engine.js";
-import { persistImport, loadJobState, type SqlExecutor } from "./load.js";
+import { parseRecord, parseTextRecord, type Layout, type DecodedRecord, type RejectedRecord } from "./engine.js";
+import { persistChunk, loadStreamCheckpoint, type SqlExecutor } from "./load.js";
 import { money, type Money } from "../money.js";
 
-// Streaming importer for large extracts (Directive §4). The file is never fully loaded
-// into memory: records are decoded from a rolling buffer, persisted in chunks, and the
-// durable checkpoint advances inside the SAME transaction as each chunk — a crash
-// between chunks loses nothing, and a restart resumes at the checkpoint. The only
-// unbounded in-memory structure is the loaded-key set (one short string per loaded
-// record) which duplicate detection requires; everything else is bounded by the
-// chunk size. Progress is reported in records actually processed, never estimated.
+// Streaming importer for large extracts. The file is never fully loaded into
+// memory: records are decoded from a rolling buffer and persisted in chunks,
+// and the durable checkpoint advances inside the SAME transaction as each
+// chunk — a crash between chunks loses nothing, and a restart resumes at the
+// checkpoint.
+//
+// Phase 5 scalability fix: this path no longer keeps or checkpoints the full
+// loaded-key set. Duplicate detection is split — within a chunk, a bounded
+// in-memory set (<= chunk size); across chunks and across resumes, the
+// mig.loaded_keys table inside persistChunk's transaction. The checkpoint is
+// O(1) (offset + key count). Memory is therefore bounded by the chunk size,
+// and total checkpoint bytes are O(records), not O(records^2 / chunk).
+// Progress is reported in records actually processed, never estimated.
 
 export interface StreamOptions {
   table: string; layoutName: string; chunkRecords?: number;
@@ -37,40 +43,39 @@ export async function streamImportFile(db: SqlExecutor & { query(t: string, v?: 
   const totalFull = Math.floor(size / layout.recordLength);
   const remainder = size % layout.recordLength;
   const totalRecords = totalFull + (remainder ? 1 : 0);
-  const state: JobState = await loadJobState(db, batchId);
-  const resumedFrom = state.nextOffset;
-  const loadedKeys = new Set(state.loadedKeys);
+  const checkpoint = await loadStreamCheckpoint(db, batchId);
+  const resumedFrom = checkpoint.nextOffset;
   const parser = (layout.format ?? "native-binary") === "fixed-text" ? parseTextRecord : parseRecord;
   const numericFields = layout.fields.filter(f => f.type === "packed" || f.type === "zoned");
   const keyFields = layout.fields.filter(f => f.key);
   const chunkSize = opts.chunkRecords ?? 500;
 
   let chunk: DecodedRecord[] = []; let chunkRejects: RejectedRecord[] = [];
-  let chunkTotals: Record<string, Money> = {}, chunkSource: Record<string, Money> = {};
-  const resetChunk = () => { chunk = []; chunkRejects = []; chunkTotals = {}; chunkSource = {};
-    for (const f of numericFields) { chunkTotals[f.name] = money("0"); chunkSource[f.name] = money("0"); } };
+  let chunkKeys = new Set<string>();   // bounded: within-chunk duplicates only
+  let chunkSource: Record<string, Money> = {};
+  const resetChunk = () => { chunk = []; chunkRejects = []; chunkKeys = new Set(); chunkSource = {};
+    for (const f of numericFields) chunkSource[f.name] = money("0"); };
   resetChunk();
-  let chunkStart = state.nextOffset; let processed = state.nextOffset; let chunks = 0;
+  let chunkStart = checkpoint.nextOffset; let processed = checkpoint.nextOffset; let chunks = 0;
 
   const flush = async (final = false) => {
     if (!chunk.length && !chunkRejects.length && !final) return;
-    const report: ImportReport = { batchId, sourceSha256: sha, startOffset: chunkStart,
-      totalRecords, loaded: chunk.length, rejected: chunkRejects,
-      controlTotals: Object.fromEntries(Object.entries(chunkTotals).map(([k, v]) => [k, v.toString()])),
-      sourceTotals: Object.fromEntries(Object.entries(chunkSource).map(([k, v]) => [k, v.toString()])) };
-    state.nextOffset = processed; state.loadedKeys = [...loadedKeys];
-    await persistImport(db, opts.table, path, opts.layoutName, chunk, report, state,
-      { dataClass: opts.dataClass ?? "synthetic", importedByUserId: opts.importedByUserId ?? null });
+    await persistChunk(db, {
+      batchId, sourceSha256: sha, sourceFile: path, layoutName: opts.layoutName,
+      schemaTable: opts.table, layout, startOffset: chunkStart, nextOffset: processed,
+      totalRecords, candidates: chunk, parseRejects: chunkRejects,
+      sourceTotals: Object.fromEntries(Object.entries(chunkSource).map(([k, v]) => [k, v.toString()])),
+      dataClass: opts.dataClass ?? "synthetic", importedByUserId: opts.importedByUserId ?? null });
     chunks++; opts.afterChunk?.(chunks);
     opts.onProgress?.(processed, totalRecords);
     resetChunk(); chunkStart = processed;
   };
 
   let buffer: Buffer = Buffer.alloc(0);
-  let recordIndex = state.nextOffset;
+  let recordIndex = checkpoint.nextOffset;
   const stream = createReadStream(path, { highWaterMark: 256 * 1024 });
   // Skip the already-processed prefix without decoding it (checkpoint resume).
-  let bytesToSkip = state.nextOffset * layout.recordLength;
+  let bytesToSkip = checkpoint.nextOffset * layout.recordLength;
   for await (const data of stream) {
     let d = data as Buffer;
     if (bytesToSkip > 0) { const skip = Math.min(bytesToSkip, d.length); d = d.subarray(skip); bytesToSkip -= skip; if (!d.length) continue; }
@@ -85,12 +90,8 @@ export async function streamImportFile(db: SqlExecutor & { query(t: string, v?: 
       if (rec) {
         for (const f of numericFields) chunkSource[f.name] = chunkSource[f.name].plus(rec.values[f.name]);
         const key = keyFields.map(f => rec!.values[f.name]).join("|");
-        if (keyFields.length && loadedKeys.has(key)) chunkRejects.push({ offset: off, reason: `duplicate key ${key}`, rawHex: slice.toString("hex") });
-        else {
-          if (keyFields.length) loadedKeys.add(key);
-          for (const f of numericFields) chunkTotals[f.name] = chunkTotals[f.name].plus(rec.values[f.name]);
-          chunk.push(rec);
-        }
+        if (keyFields.length && chunkKeys.has(key)) chunkRejects.push({ offset: off, reason: `duplicate key ${key}`, rawHex: slice.toString("hex") });
+        else { if (keyFields.length) chunkKeys.add(key); chunk.push(rec); }
       }
       recordIndex++; processed = recordIndex;
       if (chunk.length + chunkRejects.length >= chunkSize) await flush();

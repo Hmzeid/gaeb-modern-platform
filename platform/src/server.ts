@@ -367,6 +367,83 @@ app.post("/api/migration/intake/:id/advance", requireAuth, requirePerm("migratio
   res.json({ id: Number(req.params.id), from, to });
 });
 
+/** Import orchestration (Phase 5 Workstream C): execution-level jobs with
+ *  lease-based worker ownership. Governance stays in the intake pipeline —
+ *  a COMPLETED job is a technical outcome, never customer acceptance. */
+const JOB_TRANSITIONS: Record<string, string[]> = {
+  QUEUED: ["VALIDATING", "CANCELLED"],
+  VALIDATING: ["RUNNING", "FAILED", "CANCELLED"],
+  RUNNING: ["RECONCILING", "FAILED", "CANCELLED", "RECOVERING"],
+  RECONCILING: ["COMPLETED", "FAILED", "CANCELLED"],
+  RECOVERING: ["QUEUED", "RUNNING", "FAILED", "CANCELLED"],
+  FAILED: ["QUEUED", "CANCELLED"],
+  COMPLETED: [], CANCELLED: [],
+};
+app.post("/api/migration/jobs", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { member, layoutName, sourceSha256, datasetId, batchId } = req.body ?? {};
+  if (!member || !layoutName) return res.status(400).json({ error: "member and layoutName are required" });
+  try {
+    const ins = await pool.query(
+      `INSERT INTO mig.import_jobs (member, layout_name, source_sha256, dataset_id, batch_id, created_by_user_id)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+      [member, layoutName, sourceSha256 ?? null, datasetId ?? null, batchId ?? null, (req as any).session.userId]);
+    await pool.query(`INSERT INTO mig.import_job_events (job_id, from_state, to_state, actor, note) VALUES ($1, NULL, 'QUEUED', $2, 'job registered')`,
+      [ins.rows[0].id, (req as any).session.username ?? String((req as any).session.userId)]);
+    res.status(201).json({ id: ins.rows[0].id, state: "QUEUED" });
+  } catch (e: any) {
+    if (String(e.code) === "23505") return res.status(409).json({ error: "an active job already exists for this source extract" });
+    throw e;
+  }
+});
+app.get("/api/migration/jobs", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  const r = await pool.query(`SELECT * FROM mig.import_jobs ORDER BY id DESC LIMIT 200`);
+  res.json(r.rows);
+});
+app.post("/api/migration/jobs/:id/claim", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const worker = String((req.body ?? {}).worker ?? "");
+  if (!worker) return res.status(400).json({ error: "worker identity is required" });
+  const r = await pool.query(
+    `UPDATE mig.import_jobs SET claimed_by = $2, lease_expires_at = now() + interval '10 minutes',
+       attempts = attempts + 1, updated_at = now()
+      WHERE id = $1 AND state IN ('QUEUED','RUNNING','RECOVERING')
+        AND (claimed_by IS NULL OR lease_expires_at < now())
+      RETURNING id, state`, [req.params.id, worker]);
+  if (!r.rows.length) return res.status(409).json({ error: "job is not claimable (already claimed, live lease, or terminal)" });
+  await pool.query(`INSERT INTO mig.import_job_events (job_id, from_state, to_state, actor, note) VALUES ($1, $2, $2, $3, 'lease claimed')`,
+    [req.params.id, r.rows[0].state, worker]);
+  res.json({ id: Number(req.params.id), claimedBy: worker, state: r.rows[0].state });
+});
+app.post("/api/migration/jobs/:id/transition", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { to, note, failureClass } = req.body ?? {};
+  const job = await pool.query(`SELECT state, created_by_user_id FROM mig.import_jobs WHERE id = $1`, [req.params.id]);
+  if (!job.rows.length) return res.status(404).json({ error: "job not found" });
+  const from = job.rows[0].state;
+  if (to === "CANCELLED" && job.rows[0].created_by_user_id !== (req as any).session.userId && (req as any).session.role !== "admin")
+    return res.status(403).json({ error: "only the job's creator or an admin may cancel it" });
+  if (!(JOB_TRANSITIONS[from] ?? []).includes(to))
+    return res.status(422).json({ error: `invalid job transition ${from} -> ${to}` });
+  await pool.query(`UPDATE mig.import_jobs SET state = $1, failure_class = $2, error = $3, updated_at = now(),
+      claimed_by = CASE WHEN $1 IN ('COMPLETED','FAILED','CANCELLED') THEN claimed_by ELSE claimed_by END WHERE id = $4`,
+    [to, failureClass ?? null, note ?? null, req.params.id]);
+  await pool.query(`INSERT INTO mig.import_job_events (job_id, from_state, to_state, actor, note) VALUES ($1,$2,$3,$4,$5)`,
+    [req.params.id, from, to, String((req as any).session.userId), note ?? null]);
+  res.json({ id: Number(req.params.id), from, to });
+});
+
+/** Operational metrics (Phase 5 Workstream H): every figure is computed from
+ *  live database state. No source record content is ever included. */
+app.get("/api/migration/metrics", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  const b = await pool.query(`SELECT COUNT(*)::int AS batches, COALESCE(SUM(loaded),0)::bigint AS loaded,
+    COALESCE(SUM(rejected),0)::bigint AS rejected, MAX(finished_at) AS last_batch_at FROM mig.batches`);
+  const intake = await pool.query(`SELECT stage, COUNT(*)::int AS n FROM mig.intake_datasets GROUP BY stage ORDER BY stage`);
+  const jobs = await pool.query(`SELECT state, COUNT(*)::int AS n FROM mig.import_jobs GROUP BY state ORDER BY state`);
+  const appr = await pool.query(`SELECT COUNT(*)::int AS n FROM mig.mapping_approvals WHERE status = 'active'`);
+  const keys = await pool.query(`SELECT COUNT(*)::bigint AS n FROM mig.loaded_keys`);
+  res.json({ batches: b.rows[0].batches, recordsLoaded: Number(b.rows[0].loaded), recordsRejected: Number(b.rows[0].rejected),
+    lastBatchAt: b.rows[0].last_batch_at, intakeByStage: intake.rows, jobsByState: jobs.rows,
+    activeApprovals: appr.rows[0].n, indexedKeys: Number(keys.rows[0].n) });
+});
+
 /** Audit trail (Workstream F): admin-only, newest first. */
 app.get("/api/audit", requireAuth, requirePerm("*"), async (_req, res) => {
   const r = await pool.query(
