@@ -1,0 +1,90 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..7ddced6
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,44 @@
++name: CI
++on:
++  push:
++    branches: [main, production-upgrade, phase-4-readiness]
++  pull_request:
++jobs:
++  platform-tests:
++    runs-on: ubuntu-latest
++    services:
++      postgres:
++        image: postgres:16
++        env:
++          POSTGRES_USER: gaeb
++          POSTGRES_PASSWORD: ci-password
++          POSTGRES_DB: gaeb_test
++        ports: ["5432:5432"]
++        options: >-
++          --health-cmd "pg_isready -U gaeb" --health-interval 5s
++          --health-timeout 3s --health-retries 10
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with: { node-version: "22" }
++      - name: Install, build, test (platform backend + real-PostgreSQL integration)
++        working-directory: platform
++        env:
++          # Integration tests MUST run in CI: they skip only when this variable
++          # is unset, and CI always sets it. The grep below fails the job if
++          # the E2E test did not actually execute.
++          TEST_DATABASE_URL: postgres://gaeb:ci-password@127.0.0.1:5432/gaeb_test
++        run: |
++          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
++          npm test 2>&1 | tee test-output.txt
++          grep -q "E2E: extract" test-output.txt || (echo "integration E2E did not run" && exit 1)
++      - name: Regenerate reconciled schema and check determinism
++        run: |
++          python3 migration/gen_ddl_v2.py
++          git diff --exit-code migration/reconciled/ || (echo "reconciled artifacts drifted from generator" && exit 1)
++      - name: Dependency audit (reported, not yet gating)
++        working-directory: platform
++        run: npm audit --audit-level=high || true
++      - name: Secret scan
++        run: |
++          ! grep -rInE "(gho_|ghp_|sk-[A-Za-z0-9]{16,}|BEGIN (RSA|OPENSSH) PRIVATE KEY)" --exclude-dir=node_modules --exclude-dir=.git . || (echo "possible secret found" && exit 1)
+diff --git a/.github/workflows/deployment-verification.yml b/.github/workflows/deployment-verification.yml
+new file mode 100644
+index 0000000..a0f902c
+--- /dev/null
++++ b/.github/workflows/deployment-verification.yml
+@@ -0,0 +1,34 @@
++name: deployment-verification
++# Phase 4 Workstream A: executes the full Docker deployment smoke test on a
++# Docker-capable runner. The sandbox used for development has no Docker; this
++# workflow is the deployment-evidence path. A script in the repo is not
++# evidence — this workflow's uploaded artifacts are.
++on:
++  workflow_dispatch:
++  pull_request:
++    paths:
++      - "docker-compose.yml"
++      - "platform/Dockerfile"
++      - "platform/frontend/**"
++      - "scripts/smoke-test.sh"
++jobs:
++  smoke:
++    runs-on: ubuntu-latest
++    timeout-minutes: 30
++    steps:
++      - uses: actions/checkout@v4
++      - name: Build and run the 12-check smoke test
++        run: |
++          set -o pipefail
++          bash scripts/smoke-test.sh 2>&1 | tee smoke-output.log
++      - name: Collect service logs (secrets redacted by compose env design)
++        if: always()
++        run: docker compose logs --no-color > compose-logs.txt 2>&1 || true
++      - uses: actions/upload-artifact@v4
++        if: always()
++        with:
++          name: deployment-verification-evidence
++          path: |
++            smoke-output.log
++            compose-logs.txt
++          retention-days: 90

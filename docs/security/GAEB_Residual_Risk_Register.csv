@@ -1,0 +1,7 @@
+risk_id,risk,severity,likelihood,impact,owner,mitigation,status
+RR-01,TLS not terminated inside the app; a deployment without proxy TLS exposes credentials,Medium,Low,High,Deployment,Runbook mandates proxy TLS; pilot checklist verifies it,OPEN
+RR-02,Audit log integrity rests on database access control (no external WORM export),Medium,Low,High,Platform,Signed nightly export scoped (R-03) not built,OPEN
+RR-03,Dependency vulnerabilities cannot be scanned from the sandbox (registry policy blocks npm audit),Low,Medium,Medium,Release eng.,CI audit step (advisory) once workflows activate,OPEN — blocked on CI activation
+RR-04,IBM425-CCSID files cannot be migrated (no verified table),Low,Unknown,Medium,GAEB,CCSID confirmation requested in the Data Request Pack (B-05),OPEN — external
+RR-05,Session idle timeout not implemented (absolute TTL only),Low,Low,Low,Platform,Scoped (R-04),OPEN
+RR-06,Single-host deployment has no failover; DR beyond restore is unverified,Medium,Low,High,GAEB infrastructure,Physical backup verified Phase 6; multi-host DR is an infrastructure decision,OPEN — external
