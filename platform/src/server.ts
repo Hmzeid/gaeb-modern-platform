@@ -305,6 +305,37 @@ app.get("/api/reports/certificates-summary", requireAuth, requirePerm("reports.f
      FROM app.certificates GROUP BY status ORDER BY status`);
   res.json(rows.map(r => ({ ...r, gross: String(r.gross), deductions: String(r.deductions), net: String(r.net) })));
 });
+app.get("/api/overview", requireAuth, async (req, res) => {
+  try {
+    const counts = await pool.query(`SELECT
+      (SELECT COUNT(*)::int FROM app.buildings) AS buildings,
+      (SELECT COUNT(*)::int FROM app.tenders) AS tenders,
+      (SELECT COUNT(*)::int FROM app.certificates) AS certificates,
+      (SELECT COUNT(*)::int FROM app.expropriation_cases) AS expropriation_cases,
+      (SELECT COUNT(*)::int FROM app.estimates) AS estimates`);
+    const tStages = await pool.query("SELECT stage, COUNT(*)::int AS n FROM app.tenders GROUP BY stage ORDER BY n DESC");
+    const cStatus = await pool.query("SELECT status, COUNT(*)::int AS n FROM app.certificates GROUP BY status ORDER BY n DESC");
+    const queues = await pool.query(`SELECT
+      (SELECT COUNT(*)::int FROM app.certificates WHERE status = 'draft') AS certificates_draft,
+      (SELECT COUNT(*)::int FROM app.estimates WHERE status = 'draft') AS estimates_draft,
+      (SELECT COUNT(*)::int FROM mig.mapping_approvals WHERE status = 'active') AS approvals_active`);
+    let moneyAgg: unknown = null;
+    if (can((req as any).session.role as Role, "reports.finance")) {
+      const b = await pool.query(`SELECT COALESCE(SUM(allocated),0) AS allocated, COALESCE(SUM(committed),0) AS committed,
+        COALESCE(SUM(spent),0) AS spent FROM app.budget_allocations`);
+      const cs = await pool.query(`SELECT COALESCE(SUM(gross),0) AS gross, COALESCE(SUM(net),0) AS net,
+        COALESCE(SUM(net) FILTER (WHERE status = 'paid'),0) AS paid_net FROM app.certificates`);
+      const bb = b.rows[0], cc = cs.rows[0];
+      moneyAgg = {
+        budget: { allocated: String(bb.allocated), committed: String(bb.committed), spent: String(bb.spent),
+          available: money(String(bb.allocated)).minus(String(bb.committed)).minus(String(bb.spent)).toString() },
+        certificates: { gross: String(cc.gross), net: String(cc.net), paidNet: String(cc.paid_net) },
+      };
+    }
+    res.json({ counts: counts.rows[0], tendersByStage: tStages.rows, certificatesByStatus: cStatus.rows,
+      queues: queues.rows[0], money: moneyAgg });
+  } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
+});
 app.get("/api/reports/buildings-by-governorate", requireAuth, async (_req, res) => {
   const { rows } = await pool.query(
     `SELECT g.code, g.name_en, g.name_ar, COUNT(b.id)::int AS buildings

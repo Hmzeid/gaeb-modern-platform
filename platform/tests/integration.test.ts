@@ -187,6 +187,12 @@ async function runE2E(admin: pg.Client) {
     const buildings = await (await fetch("http://127.0.0.1:18099/api/buildings", { headers: { Authorization: `Bearer ${adminToken}` } })).json();
     assert.equal(buildings.length, 2);
     assert.equal(buildings[0].name_ar, "مدرسة النيل الابتدائية");
+    // Phase UX: overview aggregate — counts for every role, money only with reports.finance
+    const ovTech = await (await fetch("http://127.0.0.1:18099/api/overview", { headers: { Authorization: `Bearer ${techToken}` } })).json();
+    assert.ok(ovTech.counts.buildings >= 1 && ovTech.counts.tenders >= 1, "overview counts reflect seeded data");
+    assert.equal(ovTech.money, null, "technical role must not receive money aggregates");
+    const ovBudget = await (await fetch("http://127.0.0.1:18099/api/overview", { headers: { Authorization: `Bearer ${budgetToken}` } })).json();
+    assert.ok(ovBudget.money && typeof ovBudget.money.budget.allocated === "string", "budget role receives money aggregates");
     const csvTech = await fetch("http://127.0.0.1:18099/api/reports/budget-utilization.csv", { headers: { Authorization: `Bearer ${techToken}` } });
     assert.equal(csvTech.status, 403); // technical role holds no finance-report grant
     const csvBudget = await fetch("http://127.0.0.1:18099/api/reports/budget-utilization.csv", { headers: { Authorization: `Bearer ${budgetToken}` } });
