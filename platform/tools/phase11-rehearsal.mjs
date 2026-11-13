@@ -64,6 +64,8 @@ console.log("setup: gaeb_p11 migrated (001-011 + staging schema), 3 rehearsal us
 
 // ---------- start the real API against the rehearsal DB ----------
 const api = spawn("node", ["dist/src/server.js"], { cwd: new URL("..", import.meta.url).pathname, env: { ...process.env, DATABASE_URL: DB_URL, PORT: String(PORT) }, stdio: ["ignore", "pipe", "pipe"] });
+api.stderr.on("data", d => process.stderr.write(`[api] ${d}`));
+api.on("exit", c => { if (c !== null && c !== 0) console.error(`[api] exited with code ${c}`); });
 let apiLog = "";
 api.stdout.on("data", d => { apiLog += d; });
 api.stderr.on("data", d => { apiLog += d; });
@@ -72,8 +74,9 @@ for (let i = 0; i < 50; i++) { try { const r = await fetch(`${BASE}/health`); if
 const login = async (u) => { const r = await fetch(`${BASE}/api/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username: u, password: PW }) }); const b = await r.json(); return b.token; };
 const adminTok = await login("p11-admin"), opTok = await login("p11-operator"), apTok = await login("p11-approver");
 const J = (tok) => ({ authorization: `Bearer ${tok}`, "content-type": "application/json" });
-const post = async (path, tok, body, raw = false) => { const r = await fetch(`${BASE}${path}`, { method: "POST", headers: raw ? { authorization: `Bearer ${tok}`, "content-type": "application/octet-stream" } : J(tok), body: raw ? body : JSON.stringify(body ?? {}) }); let b = null; try { b = await r.json(); } catch { /* empty */ } return { status: r.status, body: b }; };
-const get = async (path, tok) => { const r = await fetch(`${BASE}${path}`, { headers: J(tok) }); let b = null; try { b = await r.json(); } catch { /* */ } return { status: r.status, body: b }; };
+const fetchRetry = async (url, init) => { try { return await fetch(url, init); } catch { return await fetch(url, init); } };
+const post = async (path, tok, body, raw = false) => { const r = await fetchRetry(`${BASE}${path}`, { method: "POST", headers: raw ? { authorization: `Bearer ${tok}`, "content-type": "application/octet-stream" } : J(tok), body: raw ? body : JSON.stringify(body ?? {}) }); let b = null; try { b = await r.json(); } catch { /* empty */ } return { status: r.status, body: b }; };
+const get = async (path, tok) => { const r = await fetchRetry(`${BASE}${path}`, { headers: J(tok) }); let b = null; try { b = await r.json(); } catch { /* */ } return { status: r.status, body: b }; };
 
 // ---------- R-01..R-04: preview, import, idempotency, reconciliation ----------
 const good = Buffer.concat([
@@ -173,6 +176,33 @@ let backupPass = false, backupTail = "";
   backupPass = out.includes('"mismatches":[]') && out.includes('"tablesCompared":18');
 }
 rec("R-12", "Backup/restore verification on the rehearsal database", "18 tables compared, 0 mismatches (fingerprint path; the tool's fixture-batch check applies only to the test DB)", backupTail, backupPass);
+
+// ---------- Phase 12: pilot activation gate, end to end ----------
+{
+  const custImport = () => post("/api/migration/import?layout=pblbuldg&dataClass=customer", opTok, good, true);
+  const r15 = await custImport();
+  rec("R-15", "Customer-class import refused with no active pilot", "422 no active pilot", `status ${r15.status}`, r15.status === 422 && String(r15.body?.error || "").includes("no active pilot"));
+  const pilot = await post("/api/pilots", adminTok, { name: "Synthetic rehearsal pilot", environment: "rehearsal" });
+  const pid = pilot.body?.id;
+  let attestOk = pilot.status === 201;
+  for (const k of ["charter_approved", "scope_approved", "bd_decisions", "extract_authorization", "environment_approved", "backup_restore_verified", "monitoring_alerts_verified", "transfer_mechanism_approved", "participants_assigned", "security_prerequisites"]) {
+    const a = await post(`/api/pilots/${pid}/conditions/${k}/attest`, adminTok, { evidenceRef: `rehearsal evidence ${k}` });
+    attestOk = attestOk && a.status === 200;
+  }
+  const custAppr = await post("/api/migration/approvals", apTok, { transform: "buildings", mode: "customer", evidenceRef: "rehearsal signed mapping review" });
+  const vT = await post(`/api/pilots/${pid}/conditions/transform_approvals/verify`, adminTok, {});
+  const vE = await post(`/api/pilots/${pid}/conditions/env_preflight/verify`, adminTok, {});
+  const actR = await post(`/api/pilots/${pid}/activate`, adminTok, {});
+  rec("R-16", "Pilot created, conditions attested/verified, activation succeeds", "201 + 10 attests + 2 verifies + activate 200 active", `attests ${attestOk}, approval ${custAppr.status}, verifies ${vT.status}/${vE.status}, activate ${actR.status}`, attestOk && custAppr.status === 200 && vT.status === 200 && vE.status === 200 && actR.status === 200 && actR.body?.status === "active");
+  const r17 = await custImport();
+  rec("R-17", "Customer-class import proceeds under the active pilot (synthetic bytes)", "200", `status ${r17.status}`, r17.status === 200);
+  const closeR = await post(`/api/pilots/${pid}/close`, adminTok, {});
+  const r18 = await custImport();
+  rec("R-18", "Pilot closed; customer-class import refused again", "close 200, import 422", `close ${closeR.status}, import ${r18.status}`, closeR.status === 200 && r18.status === 422);
+  const pilot2 = await post("/api/pilots", adminTok, { name: "Incomplete pilot", environment: "rehearsal" });
+  const act2 = await post(`/api/pilots/${pilot2.body?.id}/activate`, adminTok, {});
+  rec("R-19", "Activation refused with the missing-conditions list", "422 with >=10 missing", `status ${act2.status}, missing ${act2.body?.missing?.length}`, act2.status === 422 && Array.isArray(act2.body?.missing) && act2.body.missing.length >= 10);
+}
 
 // ---------- not executable in a shared sandbox ----------
 rec("R-13", "Insufficient-storage fault injection", "NOT EXECUTED — shared sandbox; quota faults are a pilot-host P0 test", "not executed", true);
