@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T08:35:09.900Z",
+  "at": "2026-11-13T08:47:50.599Z",
   "web": "http://127.0.0.1:5173",
   "results": [
     {
@@ -10,7 +10,7 @@
     {
       "name": "view overview renders",
       "ok": true,
-      "detail": "1784 chars"
+      "detail": "1778 chars"
     },
     {
       "name": "view geo renders",
@@ -30,12 +30,12 @@
     {
       "name": "view tenders renders",
       "ok": true,
-      "detail": "1705 chars"
+      "detail": "1921 chars"
     },
     {
       "name": "view certificates renders",
       "ok": true,
-      "detail": "1474 chars"
+      "detail": "1538 chars"
     },
     {
       "name": "view estimates renders",
@@ -60,7 +60,7 @@
     {
       "name": "view admin renders",
       "ok": true,
-      "detail": "5399 chars"
+      "detail": "5360 chars"
     },
     {
       "name": "tender created via UI",
@@ -75,7 +75,7 @@
     {
       "name": "certificate created via UI",
       "ok": true,
-      "detail": "15 → 16"
+      "detail": "16 → 17"
     },
     {
       "name": "approval created for tenders transform",

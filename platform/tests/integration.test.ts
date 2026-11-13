@@ -402,5 +402,18 @@ async function runE2E(admin: pg.Client) {
     assert.equal(badGov.status, 400);
     const unauthPg = await fetch("http://127.0.0.1:18099/api/buildings?page=1");
     assert.equal(unauthPg.status, 401, "paged mode still requires authentication");
+
+    // --- Phase 10: tenders server-side pagination ---
+    const tAll = await (await fetch("http://127.0.0.1:18099/api/tenders", { headers: H })).json();
+    const tPg = await (await fetch("http://127.0.0.1:18099/api/tenders?page=1&pageSize=2", { headers: H })).json();
+    assert.equal(tPg.total, tAll.length, "tenders paged total matches the full list");
+    assert.equal(tPg.rows.length, Math.min(2, tAll.length));
+    assert.equal(tPg.rows[0].id, tAll[0].id, "default order remains id DESC");
+    const tStage = await (await fetch("http://127.0.0.1:18099/api/tenders?page=1&pageSize=100&stage=draft", { headers: H })).json();
+    assert.ok(tStage.rows.every((r: any) => r.stage === "draft"), "stage filter is exact");
+    const tBadStage = await fetch("http://127.0.0.1:18099/api/tenders?page=1&stage=banana", { headers: H });
+    assert.equal(tBadStage.status, 400, "unknown stage rejected");
+    const tBadSort = await fetch("http://127.0.0.1:18099/api/tenders?page=1&sort=title%3BDROP", { headers: H });
+    assert.equal(tBadSort.status, 400, "tenders sort whitelist enforced");
   } finally { server.kill(); }
 }

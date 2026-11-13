@@ -312,9 +312,47 @@ app.post("/api/budget", requireAuth, requirePerm("budget.write"), async (req, re
   res.status(201).json({ id: rows[0].id });
 });
 // Tenders: creation + stage advancement through the enforced stage machine.
-app.get("/api/tenders", requireAuth, requirePerm("tenders.read"), async (_req, res) => {
-  const { rows } = await pool.query("SELECT id, legacy_type, legacy_no, title, stage FROM app.tenders ORDER BY id DESC");
-  res.json(rows);
+const TENDER_SORTS: Record<string, string> = { id: "id", title: "title", stage: "stage", legacy_no: "legacy_no" };
+const TENDER_STAGE_SET = new Set(["draft", "booklet", "published", "bids_open", "bids_closed", "exclusion_review", "envelope_committee", "financial_evaluation", "award_committee", "negotiation", "awarded", "contracted"]);
+app.get("/api/tenders", requireAuth, requirePerm("tenders.read"), async (req, res) => {
+  const paged = ["page", "pageSize", "q", "stage", "sort", "dir"].some(k => req.query[k] !== undefined);
+  if (!paged) {
+    const { rows } = await pool.query("SELECT id, legacy_type, legacy_no, title, stage FROM app.tenders ORDER BY id DESC");
+    return res.json(rows);
+  }
+  // Phase 10 (Section 6): server-side pagination for the tenders list,
+  // same contract as the School Map: whitelisted sorts, parameterized
+  // filters, primary-key tiebreak for stable pages.
+  const pageRaw = Number(req.query.page ?? 1);
+  const sizeRaw = Number(req.query.pageSize ?? 25);
+  if (!Number.isInteger(pageRaw) || pageRaw < 1) return res.status(400).json({ error: "page must be a positive integer" });
+  if (!Number.isInteger(sizeRaw) || sizeRaw < 1 || sizeRaw > 100) return res.status(400).json({ error: "pageSize must be an integer between 1 and 100" });
+  const sortCol = TENDER_SORTS[String(req.query.sort ?? "id")];
+  if (!sortCol) return res.status(400).json({ error: "unsupported sort field" });
+  const dirRaw = String(req.query.dir ?? "desc").toLowerCase();
+  if (dirRaw !== "asc" && dirRaw !== "desc") return res.status(400).json({ error: "dir must be asc or desc" });
+  const where: string[] = [];
+  const params: unknown[] = [];
+  if (req.query.stage !== undefined && req.query.stage !== "") {
+    const stage = String(req.query.stage);
+    if (!TENDER_STAGE_SET.has(stage)) return res.status(400).json({ error: "unknown tender stage" });
+    params.push(stage); where.push(`stage = $${params.length}`);
+  }
+  const q = String(req.query.q ?? "").trim();
+  if (q) {
+    const esc = q.replace(/[\\%_]/g, c => "\\" + c);
+    params.push(`%${esc}%`);
+    const p = `$${params.length}`;
+    where.push(`(title ILIKE ${p} ESCAPE '\\' OR COALESCE(legacy_no::text, '') ILIKE ${p} ESCAPE '\\')`);
+  }
+  const wsql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+  const totalRes = await pool.query(`SELECT COUNT(*)::int AS total FROM app.tenders${wsql}`, params);
+  const total = totalRes.rows[0].total as number;
+  const order = sortCol === "id" ? `id ${dirRaw}` : `${sortCol} ${dirRaw} NULLS LAST, id DESC`;
+  const rowsRes = await pool.query(
+    `SELECT id, legacy_type, legacy_no, title, stage FROM app.tenders${wsql} ORDER BY ${order} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, sizeRaw, (pageRaw - 1) * sizeRaw]);
+  return res.json({ rows: rowsRes.rows, total, page: pageRaw, pageSize: sizeRaw, pages: Math.max(1, Math.ceil(total / sizeRaw)) });
 });
 app.post("/api/tenders", requireAuth, requirePerm("tenders.write"), async (req, res) => {
   const b = req.body ?? {};
