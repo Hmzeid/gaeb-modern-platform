@@ -479,3 +479,30 @@ real import). Bilingual launch package delivered. GitHub workflow
 scope still absent (6th check). Gates: G1 VERIFIED; G2
 CONDITIONAL, integrity-enforced; G3 NOT STARTED; G4 NOT
 AUTHORIZED.
+
+## Addendum 19 — Phase 14: Customer Pilot Launch & Executive Engagement (2026-11-13)
+
+No application code changed; baseline spot-verified on the branch
+point (backend 65/65, rehearsal 34/34; frontend/E2E/visual as
+verified at the identical Phase 13 code state). Deliverables in
+docs/phase14-customer-pilot-launch/: executive briefs AR (primary)
++ EN covering all 17 mandated sections; REAL presentation files —
+EXECUTIVE_PRESENTATION_AR.pptx / _EN.pptx, 21 slides each, built
+with python-pptx in the platform's navy executive identity with
+embedded current-build screenshots (synthetic data labeled) and
+rendered PDFs for distribution; decision workshop package
+(one-day agenda, BD-07/BD-08 first, signable register);
+PILOT_CHARTER_FINAL (names blank by design); first-extract
+authorization for PBLBULDG/PBPTNDR (GAEB confirmations itemized);
+infrastructure mobilization (minimum pilot topology explicitly
+NOT production HA; production architecture specified separately);
+three-week execution plan; customer UAT package (execution sheet
+unchanged, all scenarios NOT RUN); executive + technical demo
+scripts mapped to implemented behavior; responsibility matrix;
+customer action register (13 actions, every row OPEN);
+release/security status (workflow scope NOT re-investigated per
+directive; one precise owner action restated); pilot GO/NO-GO:
+NO-GO pending GAEB actions, checklist identical to the platform's
+enforced entry conditions. No approvals fabricated; no customer
+data processed; no deployment. Gates: G1 VERIFIED; G2 CONDITIONAL;
+G3 NOT STARTED (package complete); G4 NOT AUTHORIZED.
