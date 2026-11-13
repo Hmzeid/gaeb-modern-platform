@@ -398,3 +398,22 @@ executive gallery, scale evidence). CI/Docker still BLOCKED on the
 owner's GitHub workflow scope; screen-reader validation NOT VERIFIED
 (external gate). Recommendation: accept the UI release with those
 two external conditions. Production readiness is not claimed.
+
+## Addendum 15 — Phase 10: Pilot Readiness & Production Qualification (2026-11-13)
+
+Phase 9 conditionally accepted (UI engineering milestone; not visual
+sign-off, customer acceptance, or production authorization). Phase 10
+engineering: tenders list converted to server-side pagination
+(stage filter, search, whitelist sorts; integration assertions);
+the residual 2px mobile overflow root-caused (grid minmax(380px)
+floor) and fixed in Migration and Reports; backup/restore
+re-verified on the current build (logical: 18/18 tables, restored-DB
+reconciliation holds). Suites hold: backend 65/65, frontend 32/32,
+E2E 40/40, visual 31/31 (3 baselines updated under review for the
+intentional tenders controls + the overflow correction). Deliverable:
+docs/phase10-pilot-package/ — 12 documents + accessibility external
+validation pack + evidence + current executive gallery. Gates kept
+separate: engineering VERIFIED; pilot READY conditional on GAEB
+provisioning; customer acceptance NOT STARTED; production NOT
+AUTHORIZED. CI/Docker still BLOCKED/NOT VERIFIED on the owner's
+GitHub workflow scope (re-checked 2026-11-13).
