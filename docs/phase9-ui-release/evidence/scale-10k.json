@@ -1,0 +1,139 @@
+buildings 10000/10000
+generated: buildings=10000 tenders=2000 audit=50000 in 712 ms
+{
+ "buildings": 10000,
+ "tenders": 2000,
+ "generationMs": 712,
+ "results": [
+  {
+   "label": "buildings page 1 (sort id)",
+   "samples": 30,
+   "p50": 4.9,
+   "p95": 11.9,
+   "p99": 12.9,
+   "max": 12.9,
+   "responseBytes": 7604
+  },
+  {
+   "label": "buildings last page (sort id)",
+   "samples": 30,
+   "p50": 4.8,
+   "p95": 5.4,
+   "p99": 5.6,
+   "max": 5.6,
+   "responseBytes": 7859
+  },
+  {
+   "label": "buildings page 1 sort name_en",
+   "samples": 30,
+   "p50": 3.7,
+   "p95": 4.5,
+   "p99": 4.9,
+   "max": 4.9,
+   "responseBytes": 7837
+  },
+  {
+   "label": "buildings governorate=1 page 1",
+   "samples": 30,
+   "p50": 2.7,
+   "p95": 3,
+   "p99": 3.3,
+   "max": 3.3,
+   "responseBytes": 7680
+  },
+  {
+   "label": "buildings search 'School No. 999'",
+   "samples": 30,
+   "p50": 33.1,
+   "p95": 35.6,
+   "p99": 39,
+   "max": 39,
+   "responseBytes": 3476
+  },
+  {
+   "label": "buildings legacy mode limit=200",
+   "samples": 30,
+   "p50": 4.6,
+   "p95": 4.9,
+   "p99": 8.4,
+   "max": 8.4,
+   "responseBytes": 61066
+  },
+  {
+   "label": "reports buildings-by-governorate",
+   "samples": 30,
+   "p50": 5.5,
+   "p95": 7.8,
+   "p99": 8.6,
+   "max": 8.6,
+   "responseBytes": 1860
+  },
+  {
+   "label": "overview",
+   "samples": 30,
+   "p50": 6.1,
+   "p95": 14.5,
+   "p99": 23.7,
+   "max": 23.7,
+   "responseBytes": 744
+  },
+  {
+   "label": "tenders list (all)",
+   "samples": 10,
+   "p50": 6.9,
+   "p95": 9.6,
+   "p99": 9.6,
+   "max": 9.6,
+   "responseBytes": 188800
+  },
+  {
+   "label": "audit list (limit 200)",
+   "samples": 10,
+   "p50": 3.9,
+   "p95": 11.5,
+   "p99": 11.5,
+   "max": 11.5,
+   "responseBytes": 27400
+  }
+ ],
+ "plans": {
+  "page1_sort_id": [
+   "Limit (actual time=0.014..0.021 rows=25 loops=1)",
+   "  ->  Index Scan using buildings_pkey on buildings (actual time=0.011..0.015 rows=25 loops=1)",
+   "Planning Time: 0.405 ms",
+   "Execution Time: 0.042 ms"
+  ],
+  "deep_page_sort_id": [
+   "Limit (actual time=2.194..2.195 rows=0 loops=1)",
+   "  ->  Index Scan using buildings_pkey on buildings (actual time=0.017..1.636 rows=10000 loops=1)",
+   "Planning Time: 0.081 ms",
+   "Execution Time: 2.211 ms"
+  ],
+  "gov_filter": [
+   "Limit (actual time=0.021..0.057 rows=25 loops=1)",
+   "  ->  Index Scan using buildings_pkey on buildings (actual time=0.019..0.052 rows=25 loops=1)",
+   "Planning Time: 0.211 ms",
+   "Execution Time: 0.079 ms"
+  ],
+  "count_all": [
+   "  ->  Seq Scan on buildings (actual time=0.005..1.086 rows=10000 loops=1)",
+   "Planning Time: 0.088 ms",
+   "Execution Time: 1.752 ms"
+  ],
+  "count_gov": [
+   "  ->  Bitmap Heap Scan on buildings (actual time=0.121..0.408 rows=1169 loops=1)",
+   "        ->  Bitmap Index Scan on idx_buildings_governorate (actual time=0.074..0.074 rows=1169 loops=1)",
+   "              Index Cond: (governorate_code = 1)",
+   "Planning Time: 0.057 ms",
+   "Execution Time: 0.500 ms"
+  ],
+  "search_substring": [
+   "Limit (actual time=5.450..5.454 rows=11 loops=1)",
+   "  ->  Sort (actual time=5.449..5.451 rows=11 loops=1)",
+   "        Sort Key: id",
+   "        Sort Method: quicksort  Memory: 27kB",
+   "        ->  Seq Scan on buildings (actual time=0.554..5.441 rows=11 loops=1)",
+   "Planning Time: 0.193 ms"
+  ]
+ }
+}

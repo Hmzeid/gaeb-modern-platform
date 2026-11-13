@@ -57,7 +57,7 @@ export default function App() {
     (async () => {
       try {
         const ov: any = await api("/api/overview");
-        setBadges({ tenders: ov.counts.tenders, certs: ov.queues.certificates_draft });
+        setBadges({ tenders: ov.counts.tenders, certs: ov.counts.certificates });
       } catch { /* badges are decorative */ }
     })();
   }, [authed, view]);
@@ -161,9 +161,8 @@ export default function App() {
         </aside>
 
         <div style={{ minWidth: 0 }}>
-          <h1 className="sr-only">GAEB — General Authority for Educational Buildings</h1>
           <header className="topbar" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 26px", background: "#fff", borderBottom: "1px solid var(--color-line)", position: "sticky", top: 0, zIndex: 30 }}>
-            <form onSubmit={e => { e.preventDefault(); setMapQuery(search); go("map"); }} style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, maxWidth: 460 }}>
+            <form role="search" onSubmit={e => { e.preventDefault(); setMapQuery(search); go("map"); }} style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, maxWidth: 460 }}>
               <Search size={15} color="#8494ad" />
               <input className="inp" style={{ border: 0, background: "#f4f6fa" }} placeholder={t.search} value={search} onChange={e => setSearch(e.target.value)} aria-label={t.search} />
             </form>
@@ -174,6 +173,8 @@ export default function App() {
           </header>
 
           <main className="main" style={{ padding: "22px 26px 30px", maxWidth: 1520, margin: "0 auto" }}>
+            <h1 className="sr-only">GAEB — General Authority for Educational Buildings</h1>
+            <h2 className="page-title">{nav.flatMap(g => g.items).find(([v]) => v === view)?.[1] ?? ""}</h2>
             <ErrorBoundary key={view}>
             <Suspense fallback={<Skel h={300} />}>
               {view === "overview" && <OverviewView {...ctx} />}

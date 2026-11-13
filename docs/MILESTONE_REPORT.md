@@ -377,3 +377,24 @@ evidence: docs/ui-certification/ (9 documents, 176 matrix screenshots,
 verification captures). Gates 1–14 assessed in VISUAL_ACCEPTANCE_REPORT.md;
 recommendation: accept with tracked residuals. CI/Docker remain blocked
 on the owner's GitHub workflow-scope grant — unchanged.
+
+## Addendum 14 — Phase 9: UI Release Hardening & Scale Validation (2026-11-13)
+
+Baseline verified before changes (HEAD 0c6c8a1; 65/27/25 reproduced
+exactly). All six certification residuals closed: drawer focus
+management with keyboard tests; automated visual regression
+(puppeteer + pixelmatch, 31 baselines, 0.00% repeat diff);
+server-side School Map pagination/sort/filter/search with migrations
+010 (btree) + 011 (guarded pg_trgm), validated at 10k/100k/1M
+synthetic records (search at 1M: 1,299 ms -> 277 ms p50); Arabic
+localization completed (249-key parity); heading hierarchy and
+landmarks corrected — axe zero violations of any severity on all 11
+views. Disclosure: the certification's F-01 mobile fix was incomplete
+(rail nav inflated the shell grid to ~1,807 px at phone widths);
+fixed and guarded by a permanent E2E no-overflow assertion. Suites on
+the final build: backend 65/65, frontend 32/32, browser E2E 40/40,
+visual 31/31. Evidence: docs/phase9-ui-release/ (13 documents,
+executive gallery, scale evidence). CI/Docker still BLOCKED on the
+owner's GitHub workflow scope; screen-reader validation NOT VERIFIED
+(external gate). Recommendation: accept the UI release with those
+two external conditions. Production readiness is not claimed.

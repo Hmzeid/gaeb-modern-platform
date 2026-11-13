@@ -76,7 +76,7 @@ export function MigrationView(ctx: Ctx & { goMap: () => void }) {
           <button className="btn sec" disabled={!file} onClick={() => act(async () => setPreview(await apiRaw("/api/migration/preview?layout=pblbuldg", file!)))}>{t.preview}</button>
           <button className="btn teal" disabled={!file} onClick={() => act(async () => {
             const r: any = await apiRaw("/api/migration/import?layout=pblbuldg", file!);
-            setMsg(`batch ${r.batchId}: loaded ${r.loaded}, rejected ${r.rejected.length}, staged ${r.stagedRowsForBatch}${r.alreadyRecorded ? " (already recorded — retry changed nothing)" : ""}`);
+            setMsg(`${t.msg_batch} ${r.batchId}: ${t.msg_loaded} ${fmtInt(r.loaded, lang)}, ${t.msg_rejected} ${fmtInt(r.rejected.length, lang)}, ${t.msg_staged} ${fmtInt(r.stagedRowsForBatch, lang)}${r.alreadyRecorded ? ` (${t.msg_already})` : ""}`);
             setLiveBatch(r.batchId);
           })}>{t.runImport}</button>
         </div>
@@ -144,7 +144,7 @@ export function MigrationView(ctx: Ctx & { goMap: () => void }) {
                 <td className="num">{fmtInt(b.total_records, lang)}</td><td className="num">{fmtInt(b.loaded, lang)}</td><td className="num">{fmtInt(b.rejected, lang)}</td>
                 <td><span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
                   <button className="btn sm sec" onClick={() => act(async () => { setBatchSel(b.batch_id); setRejects(await api(`/api/migration/batches/${b.batch_id}/rejects`)); })}>{t.rejects}</button>
-                  <button className="btn sm sec" onClick={() => act(async () => { const r: any = await api("/api/migration/transform", { method: "POST", body: JSON.stringify({ name: "buildings", batchId: b.batch_id }) }); setMsg(`transform buildings on ${b.batch_id}: inserted ${r.inserted}`); })}>{t.transform}</button>
+                  <button className="btn sm sec" onClick={() => act(async () => { const r: any = await api("/api/migration/transform", { method: "POST", body: JSON.stringify({ name: "buildings", batchId: b.batch_id }) }); setMsg(`${t.msg_transform} ${b.batch_id}: ${t.msg_inserted} ${fmtInt(r.inserted, lang)}`); })}>{t.transform}</button>
                   <button className="btn sm sec" onClick={() => act(async () => setRecon(await api(`/api/migration/batches/${b.batch_id}/reconciliation`)))}>{t.reconciliation}</button>
                 </span></td>
               </tr>))}

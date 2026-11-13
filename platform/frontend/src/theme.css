@@ -124,8 +124,8 @@ table.dt tr.sel td { background: #eef6ff; }
 /* ── responsive shell (UI certification fix: mobile was unusable) ── */
 @media (max-width: 900px) {
   .shell { grid-template-columns: 1fr !important; }
-  .rail { position: static !important; height: auto !important; padding: 12px 12px 10px !important; }
-  .rail-nav { flex-direction: row !important; overflow-x: auto !important; overflow-y: hidden !important; padding-bottom: 4px; }
+  .rail { position: static !important; height: auto !important; padding: 12px 12px 10px !important; min-width: 0; overflow: hidden; }
+  .rail-nav { flex-direction: row !important; overflow-x: auto !important; overflow-y: hidden !important; padding-bottom: 4px; min-width: 0; max-width: 100%; }
   .rail-nav > div { display: flex; align-items: center; gap: 2px; }
   .rail-h { display: none; }
   .rail-link { white-space: nowrap; }
@@ -145,3 +145,5 @@ table.dt tr.sel td { background: #eef6ff; }
   .tabs > * { white-space: nowrap; flex: none; }
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.page-title { font-size: 19px; font-weight: 750; letter-spacing: -.01em; margin: 0 0 14px; color: var(--color-ink); }

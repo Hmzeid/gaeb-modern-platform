@@ -90,8 +90,7 @@ export function OverviewView({ t, lang, go }: Ctx) {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 21 }}>{t.nav_overview}</h1>
-          <div style={{ color: "var(--color-ink2)", fontSize: 13, marginTop: 2 }}>{t.ov_sub}</div>
+          <div style={{ color: "var(--color-ink2)", fontSize: 13 }}>{t.ov_sub}</div>
         </div>
         <div style={{ marginInlineStart: "auto", display: "flex", gap: 8 }}>
           <span style={{ border: "1px solid var(--color-line)", background: "#eef1f6", color: "var(--color-ink2)", borderRadius: 20, padding: "3px 11px", fontSize: 12, fontWeight: 600 }}>{t.allDirectorates}</span>
