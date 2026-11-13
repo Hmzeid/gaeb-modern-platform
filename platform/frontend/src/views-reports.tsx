@@ -89,20 +89,45 @@ export function ReportsView(ctx: Ctx) {
 
 /* ═══════════════ ADMINISTRATION (audit) ═══════════════ */
 
-function PilotPanel({ ctx }: { ctx: Ctx & { role: string } }) {
+function PilotPanel({ ctx }: { ctx: Ctx & { role: string; username: string } }) {
   const { t } = ctx;
   const [pilots, setPilots] = useState<any[]>([]);
   const [detail, setDetail] = useState<any>(null);
+  const [evidence, setEvidence] = useState<any[]>([]);
+  const [datasets, setDatasets] = useState<any[]>([]);
+  const [authz, setAuthz] = useState<any>(null);
   const [name, setName] = useState("");
+  const [evKey, setEvKey] = useState("charter_approved");
+  const [evType, setEvType] = useState("");
+  const [evSignatory, setEvSignatory] = useState("");
+  const [dsKey, setDsKey] = useState("");
+  const [dsRef, setDsRef] = useState("");
+  const [dsSha, setDsSha] = useState("");
   const isAdmin = ctx.role === "admin";
+  const canVerify = ctx.role === "admin" || ctx.role === "budget";
+  const ATTEST_KEYS = ["charter_approved", "scope_approved", "bd_decisions", "extract_authorization", "environment_approved", "backup_restore_verified", "monitoring_alerts_verified", "transfer_mechanism_approved", "participants_assigned", "security_prerequisites"];
   const loadPilots = async () => { try { setPilots(await api("/api/pilots")); } catch { /* requires migration.run */ } };
   useEffect(() => { loadPilots(); }, []);
-  const open = async (id: number) => { try { setDetail(await api(`/api/pilots/${id}`)); } catch (e: any) { ctx.notify(e.message, true); } };
+  const open = async (id: number) => {
+    try {
+      setDetail(await api(`/api/pilots/${id}`));
+      setEvidence(await api(`/api/pilots/${id}/evidence`));
+      setDatasets(await api(`/api/pilots/${id}/datasets`));
+      setAuthz(await api(`/api/pilots/${id}/authorization`));
+    } catch (e: any) { ctx.notify(e.message, true); }
+  };
   const act = async (fn: () => Promise<any>, reopen = true) => { try { await fn(); await loadPilots(); if (reopen && detail) await open(detail.id); } catch (e: any) { ctx.notify(e.message, true); } };
-  const attest = (key: string) => { const ref = window.prompt(t.evidence_ref); if (ref) act(() => api(`/api/pilots/${detail.id}/conditions/${key}/attest`, { method: "POST", body: JSON.stringify({ evidenceRef: ref }) })); };
+  const evStatus = (st: string) => (t as any)[`ev_${st.toLowerCase()}`] ?? st;
+  const hashLabel = (h: string) => h === "verified-bytes" ? t.hash_verified : h === "declared-unverified" ? t.hash_unverified : t.hash_none;
+  const submitEvidence = (ev: any) => { const ref = window.prompt(t.doc_ref); if (ref) act(() => api(`/api/pilots/${detail.id}/evidence/${ev.id}/submit`, { method: "POST", body: JSON.stringify({ documentRef: ref }) })); };
+  const verifyEvidence = (ev: any, decision: string) => act(() => api(`/api/pilots/${detail.id}/evidence/${ev.id}/verify`, { method: "POST", body: JSON.stringify({ decision }) }));
+  const revokeEvidence = (ev: any) => { const r = window.prompt(t.suspension_reason); if (r) act(() => api(`/api/pilots/${detail.id}/evidence/${ev.id}/revoke`, { method: "POST", body: JSON.stringify({ reason: r }) })); };
   return (
     <Panel title={t.pilots}>
       <p className="hint" style={{ marginTop: 0 }}>{t.pilot_hint}</p>
+      {detail && authz && (
+        <p className="hint" role="status">{t.auth_status}: <b>{authz.eligible ? t.eligible : t.not_eligible}</b>{!authz.eligible && authz.reasons?.length ? ` — ${authz.reasons.join("; ")}` : ""}</p>
+      )}
       {isAdmin && (
         <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-ink2)" }}>{t.pilot_name}
@@ -118,9 +143,11 @@ function PilotPanel({ ctx }: { ctx: Ctx & { role: string } }) {
       )}
       {detail && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
             <b>{detail.name}</b><StatusChip s={detail.status} t={t} />
             {isAdmin && detail.status === "draft" && <button className="btn sm" onClick={() => act(() => api(`/api/pilots/${detail.id}/activate`, { method: "POST", body: "{}" }))}>{t.activate_pilot}</button>}
+            {isAdmin && detail.status === "active" && <button className="btn sm sec" onClick={() => { const r = window.prompt(t.suspension_reason); if (r) act(() => api(`/api/pilots/${detail.id}/suspend`, { method: "POST", body: JSON.stringify({ reason: r }) })); }}>{t.suspend_pilot}</button>}
+            {isAdmin && detail.status === "suspended" && <button className="btn sm" onClick={() => act(() => api(`/api/pilots/${detail.id}/reactivate`, { method: "POST", body: "{}" }))}>{t.reactivate_pilot}</button>}
             {isAdmin && detail.status === "active" && <button className="btn sm danger" onClick={() => act(() => api(`/api/pilots/${detail.id}/close`, { method: "POST", body: "{}" }))}>{t.close_pilot}</button>}
           </div>
           <table className="dt"><thead><tr><th>{t.conditions}</th><th>{t.kind}</th><th>{t.status}</th><th>{t.evidence}</th><th>{t.actions}</th></tr></thead>
@@ -130,11 +157,63 @@ function PilotPanel({ ctx }: { ctx: Ctx & { role: string } }) {
                 <td>{c.kind === "auto" ? t.auto_lbl : t.attest_lbl}</td>
                 <td><StatusChip s={c.status} t={t} /></td>
                 <td style={{ fontSize: 12 }}>{c.evidence_ref ?? "—"}</td>
-                <td>{isAdmin && detail.status === "draft" && c.status !== "satisfied" && (c.kind === "auto"
-                  ? <button className="btn sm sec" onClick={() => act(() => api(`/api/pilots/${detail.id}/conditions/${c.condition_key}/verify`, { method: "POST", body: "{}" }))}>{t.verify_btn}</button>
-                  : <button className="btn sm sec" onClick={() => attest(c.condition_key)}>{t.attest}</button>)}</td>
+                <td>{isAdmin && detail.status === "draft" && c.status !== "satisfied" && c.kind === "auto" &&
+                  <button className="btn sm sec" onClick={() => act(() => api(`/api/pilots/${detail.id}/conditions/${c.condition_key}/verify`, { method: "POST", body: "{}" }))}>{t.verify_btn}</button>}</td>
               </tr>))}
             </tbody></table>
+
+          <h3 style={{ fontSize: 13, margin: "14px 0 6px" }}>{t.evidence}</h3>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 8 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-ink2)" }}>{t.select_condition}
+              <select className="inp" aria-label={t.select_condition} value={evKey} onChange={e => setEvKey(e.target.value)}>
+                {ATTEST_KEYS.map(k => <option key={k} value={k}>{(t as any)[`cond_${k}`] ?? k}</option>)}
+              </select></label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-ink2)" }}>{t.doc_type}
+              <input className="inp" value={evType} onChange={e => setEvType(e.target.value)} /></label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-ink2)" }}>{t.signatory}
+              <input className="inp" value={evSignatory} onChange={e => setEvSignatory(e.target.value)} /></label>
+            <button className="btn sm" onClick={() => act(() => api(`/api/pilots/${detail.id}/evidence`, { method: "POST", body: JSON.stringify({ conditionKey: evKey, documentType: evType || undefined, signatory: evSignatory || undefined }) }))}>{t.submit_evidence}</button>
+          </div>
+          {canVerify && <p className="hint">{t.own_evidence_note}</p>}
+          {evidence.length > 0 && (
+            <table className="dt"><thead><tr><th>#</th><th>{t.select_condition}</th><th>{t.doc_ref}</th><th>{t.status}</th><th>SHA-256</th><th>{t.actions}</th></tr></thead>
+              <tbody>{evidence.map((ev: any) => (
+                <tr key={ev.id}>
+                  <td>{ev.ref}</td>
+                  <td>{(t as any)[`cond_${ev.condition_key}`] ?? ev.condition_key}</td>
+                  <td style={{ fontSize: 12 }}>{ev.document_ref ?? "—"}</td>
+                  <td>{evStatus(ev.status)}</td>
+                  <td style={{ fontSize: 12 }}>{hashLabel(ev.hash_status)}</td>
+                  <td style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {ev.status === "PENDING" && <button className="btn sm sec" onClick={() => submitEvidence(ev)}>{t.submit_evidence}</button>}
+                    {canVerify && ev.status === "SUBMITTED" && <>
+                      <button className="btn sm" onClick={() => verifyEvidence(ev, "VERIFIED")}>{t.verify_ev}</button>
+                      <button className="btn sm sec" onClick={() => verifyEvidence(ev, "REJECTED")}>{t.reject_ev}</button></>}
+                    {canVerify && ev.status === "VERIFIED" && <button className="btn sm danger" onClick={() => revokeEvidence(ev)}>{t.revoke_ev}</button>}
+                  </td>
+                </tr>))}
+              </tbody></table>
+          )}
+
+          <h3 style={{ fontSize: 13, margin: "14px 0 6px" }}>{t.datasets}</h3>
+          {isAdmin && (
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 8 }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-ink2)" }}>{t.dataset_key}
+                <input className="inp" value={dsKey} onChange={e => setDsKey(e.target.value)} /></label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-ink2)" }}>{t.extract_ref}
+                <input className="inp" value={dsRef} onChange={e => setDsRef(e.target.value)} /></label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-ink2)" }}>{t.file_sha}
+                <input className="inp" value={dsSha} onChange={e => setDsSha(e.target.value)} /></label>
+              <button className="btn sm" onClick={() => act(() => api(`/api/pilots/${detail.id}/datasets`, { method: "POST", body: JSON.stringify({ datasetKey: dsKey, extractRef: dsRef || undefined, sourceSha256: dsSha || undefined }) }))}>{t.register_dataset}</button>
+            </div>
+          )}
+          {datasets.length > 0 && (
+            <table className="dt"><thead><tr><th>{t.dataset_key}</th><th>{t.extract_ref}</th><th>{t.status}</th><th>{t.actions}</th></tr></thead>
+              <tbody>{datasets.map((d: any) => (
+                <tr key={d.id}><td>{d.dataset_key}</td><td style={{ fontSize: 12 }}>{d.extract_ref ?? "—"}</td><td><StatusChip s={d.status} t={t} /></td>
+                  <td>{isAdmin && d.status === "registered" && <button className="btn sm sec" onClick={() => act(() => api(`/api/pilots/${detail.id}/datasets/${d.id}/authorize`, { method: "POST", body: "{}" }))}>{t.authorize_dataset}</button>}</td></tr>
+              ))}</tbody></table>
+          )}
         </div>
       )}
     </Panel>
