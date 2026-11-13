@@ -154,6 +154,20 @@ app.get("/api/certificates", requireAuth, requirePerm("certificates.read"), asyn
   const { rows } = await pool.query("SELECT id, building_id, kind, status, gross, deductions, net, payment_ref FROM app.certificates ORDER BY id DESC LIMIT $1", [limit]);
   res.json(rows.map(r => ({ ...r, gross: String(r.gross), deductions: String(r.deductions), net: String(r.net) })));
 });
+// Certificate detail: header + building context + valued item lines.
+app.get("/api/certificates/:id", requireAuth, requirePerm("certificates.read"), async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT c.id, c.building_id, c.kind, c.status, c.gross, c.deductions, c.net, c.payment_ref,
+            b.name_en AS building_name_en, b.name_ar AS building_name_ar, b.legacy_blcd
+       FROM app.certificates c LEFT JOIN app.buildings b ON b.id = c.building_id WHERE c.id = $1`, [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: "certificate not found" });
+  const items = await pool.query("SELECT id, description, unit, qty, price, value FROM app.certificate_items WHERE certificate_id = $1 ORDER BY id", [req.params.id]);
+  const c = rows[0];
+  res.json({
+    ...c, gross: String(c.gross), deductions: String(c.deductions), net: String(c.net),
+    items: items.rows.map(i => ({ ...i, qty: String(i.qty), price: String(i.price), value: String(i.value) })),
+  });
+});
 // Item catalogue (PMPITMAR): estimates may only draw lines from here.
 app.get("/api/catalogue", requireAuth, async (_req, res) => {
   const { rows } = await pool.query("SELECT id, code, name_en, name_ar, unit, standard_price FROM app.item_catalogue WHERE is_active ORDER BY code");
@@ -199,6 +213,27 @@ app.get("/api/estimates", requireAuth, async (req, res) => {
   const limit = Math.min(Number(req.query.limit || 50), 200);
   const { rows } = await pool.query("SELECT id, building_id, title, status, revision, total FROM app.estimates ORDER BY id DESC LIMIT $1", [limit]);
   res.json(rows.map(r => ({ ...r, total: String(r.total) })));
+});
+// Estimate detail: header + catalogue-backed item lines + revision history.
+app.get("/api/estimates/:id", requireAuth, async (req, res) => {
+  const { rows } = await pool.query("SELECT id, building_id, title, status, revision, total FROM app.estimates WHERE id = $1", [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: "estimate not found" });
+  const items = await pool.query(
+    `SELECT i.id, i.catalogue_item_id, cat.code, cat.name_en, cat.name_ar, cat.unit, i.qty, i.price, i.value
+       FROM app.estimate_items i JOIN app.item_catalogue cat ON cat.id = i.catalogue_item_id
+      WHERE i.estimate_id = $1 ORDER BY i.id`, [req.params.id]);
+  const revs = await pool.query("SELECT revision, total, changed_by, changed_at, note FROM app.estimate_revisions WHERE estimate_id = $1 ORDER BY revision", [req.params.id]);
+  const e = rows[0];
+  res.json({
+    ...e, total: String(e.total),
+    items: items.rows.map(i => ({ ...i, qty: String(i.qty), price: String(i.price), value: String(i.value) })),
+    revisions: revs.rows.map(r => ({ ...r, total: String(r.total) })),
+  });
+});
+// User directory (admin only): identity + role + status. Password material is never exposed.
+app.get("/api/users", requireAuth, requirePerm("*"), async (_req, res) => {
+  const { rows } = await pool.query("SELECT id, username, name_en, name_ar, role, is_active, created_at FROM app.users ORDER BY username");
+  res.json(rows);
 });
 app.post("/api/estimates/:id/transition", requireAuth, async (req, res) => {
   const s = (req as any).session as Session;
@@ -609,7 +644,7 @@ app.post("/api/migration/rejects/:id/resubmit", requireAuth, requirePerm("migrat
   finally { client.release(); }
 });
 app.get("/api/migration/approvals", requireAuth, requirePerm("migration.run"), async (_req, res) => {
-  const r = await pool.query("SELECT legacy_member, legacy_field, target_column, transform_name, transform_hash, approved_by, evidence_ref, approved_at FROM mig.mapping_approvals ORDER BY transform_name, legacy_field");
+  const r = await pool.query("SELECT legacy_member, legacy_field, target_column, transform_name, transform_hash, approved_by, evidence_ref, approved_at, mode, status FROM mig.mapping_approvals ORDER BY transform_name, legacy_field");
   res.json(r.rows);
 });
 app.post("/api/migration/approvals", requireAuth, requirePerm("migration.approve"), async (req, res) => {

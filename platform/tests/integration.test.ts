@@ -193,6 +193,37 @@ async function runE2E(admin: pg.Client) {
     assert.equal(ovTech.money, null, "technical role must not receive money aggregates");
     const ovBudget = await (await fetch("http://127.0.0.1:18099/api/overview", { headers: { Authorization: `Bearer ${budgetToken}` } })).json();
     assert.ok(ovBudget.money && typeof ovBudget.money.budget.allocated === "string", "budget role receives money aggregates");
+    // UI certification: detail endpoints return valued lines + revision history
+    const newCert = await (await fetch("http://127.0.0.1:18099/api/certificates", {
+      method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ building_id: buildings[0].id, kind: "construction", items: [{ description: "Concrete works", unit: "m3", qty: "10", price: "100" }], deductions: [{ kind: "retention", percent: "10" }] }),
+    })).json();
+    const certDetail = await (await fetch(`http://127.0.0.1:18099/api/certificates/${newCert.id}`, { headers: { Authorization: `Bearer ${techToken}` } })).json();
+    assert.ok(Array.isArray(certDetail.items) && certDetail.items.length === 1 && certDetail.items[0].value === "1000.0000", "certificate detail returns valued item lines");
+    assert.equal(certDetail.net, "900.0000", "certificate detail net = gross - retention, exact decimal");
+    const certList = await (await fetch("http://127.0.0.1:18099/api/certificates", { headers: { Authorization: `Bearer ${techToken}` } })).json();
+    assert.equal(certList[0].net, certDetail.net, "certificate detail net matches list");
+    let catalogue = await (await fetch("http://127.0.0.1:18099/api/catalogue", { headers: { Authorization: `Bearer ${adminToken}` } })).json();
+    if (!catalogue.length) {
+      await fetch("http://127.0.0.1:18099/api/catalogue", { method: "POST", headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ code: "CERT-001", name_en: "Certification item", name_ar: "بند اعتماد", unit: "m3", standard_price: "100" }) });
+      catalogue = await (await fetch("http://127.0.0.1:18099/api/catalogue", { headers: { Authorization: `Bearer ${adminToken}` } })).json();
+    }
+    const newEst = await (await fetch("http://127.0.0.1:18099/api/estimates", {
+      method: "POST", headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ building_id: buildings[0].id, title: "Certification estimate", items: [{ catalogue_item_id: catalogue[0].id, qty: "2" }] }),
+    })).json();
+    const estDetail = await (await fetch(`http://127.0.0.1:18099/api/estimates/${newEst.id}`, { headers: { Authorization: `Bearer ${adminToken}` } })).json();
+    assert.ok(Array.isArray(estDetail.items) && estDetail.items.length >= 1, "estimate detail returns catalogue lines");
+    assert.ok(Array.isArray(estDetail.revisions) && estDetail.revisions.length >= 1, "estimate detail returns revision history");
+    // UI certification: authorization negatives — admin directory + unauthenticated access
+    const usersTech = await fetch("http://127.0.0.1:18099/api/users", { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(usersTech.status, 403, "user directory is admin-only");
+    const usersAdmin = await (await fetch("http://127.0.0.1:18099/api/users", { headers: { Authorization: `Bearer ${adminToken}` } })).json();
+    assert.ok(usersAdmin.length >= 3 && !("password_hash" in usersAdmin[0]), "user directory never exposes password material");
+    const ovAnon = await fetch("http://127.0.0.1:18099/api/overview");
+    assert.equal(ovAnon.status, 401, "overview requires authentication");
+    const certAnon = await fetch("http://127.0.0.1:18099/api/certificates/1");
+    assert.equal(certAnon.status, 401, "certificate detail requires authentication");
     const csvTech = await fetch("http://127.0.0.1:18099/api/reports/budget-utilization.csv", { headers: { Authorization: `Bearer ${techToken}` } });
     assert.equal(csvTech.status, 403); // technical role holds no finance-report grant
     const csvBudget = await fetch("http://127.0.0.1:18099/api/reports/budget-utilization.csv", { headers: { Authorization: `Bearer ${budgetToken}` } });
