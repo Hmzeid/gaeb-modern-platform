@@ -1,0 +1,177 @@
+{
+  "at": "2026-11-13T07:36:03.898Z",
+  "web": "http://127.0.0.1:5173",
+  "results": [
+    {
+      "name": "login as admin renders the shell",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "view overview renders",
+      "ok": true,
+      "detail": "1836 chars"
+    },
+    {
+      "name": "view geo renders",
+      "ok": true,
+      "detail": "1072 chars"
+    },
+    {
+      "name": "view map renders",
+      "ok": true,
+      "detail": "936 chars"
+    },
+    {
+      "name": "view budget renders",
+      "ok": true,
+      "detail": "681 chars"
+    },
+    {
+      "name": "view tenders renders",
+      "ok": true,
+      "detail": "1336 chars"
+    },
+    {
+      "name": "view certificates renders",
+      "ok": true,
+      "detail": "1004 chars"
+    },
+    {
+      "name": "view estimates renders",
+      "ok": true,
+      "detail": "778 chars"
+    },
+    {
+      "name": "view realestate renders",
+      "ok": true,
+      "detail": "602 chars"
+    },
+    {
+      "name": "view reports renders",
+      "ok": true,
+      "detail": "802 chars"
+    },
+    {
+      "name": "view migration renders",
+      "ok": true,
+      "detail": "1612 chars"
+    },
+    {
+      "name": "view admin renders",
+      "ok": true,
+      "detail": "5148 chars"
+    },
+    {
+      "name": "tender created via UI",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tender advanced to booklet stage",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "certificate created via UI",
+      "ok": true,
+      "detail": "8 → 9"
+    },
+    {
+      "name": "approval created for tenders transform",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "approval revoke control exercised",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Arabic switch sets dir=rtl",
+      "ok": true,
+      "detail": "dir=rtl"
+    },
+    {
+      "name": "Arabic overview is localized",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "technical role: no money figures rendered (unavailable state shown)",
+      "ok": true,
+      "detail": "labels render with an em-dash value; server withholds the aggregates (backend suite)"
+    },
+    {
+      "name": "axe overview: no critical/serious violations",
+      "ok": true,
+      "detail": "[{\"id\":\"heading-order\",\"impact\":\"moderate\",\"nodes\":1},{\"id\":\"region\",\"impact\":\"moderate\",\"nodes\":1}]"
+    },
+    {
+      "name": "axe map: no critical/serious violations",
+      "ok": true,
+      "detail": "[{\"id\":\"heading-order\",\"impact\":\"moderate\",\"nodes\":1},{\"id\":\"region\",\"impact\":\"moderate\",\"nodes\":1}]"
+    },
+    {
+      "name": "axe migration: no critical/serious violations",
+      "ok": true,
+      "detail": "[{\"id\":\"heading-order\",\"impact\":\"moderate\",\"nodes\":1},{\"id\":\"region\",\"impact\":\"moderate\",\"nodes\":1}]"
+    },
+    {
+      "name": "axe geo: no critical/serious violations",
+      "ok": true,
+      "detail": "[{\"id\":\"region\",\"impact\":\"moderate\",\"nodes\":1}]"
+    },
+    {
+      "name": "no uncaught page errors during the whole run",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "axe": {
+    "overview": [
+      {
+        "id": "heading-order",
+        "impact": "moderate",
+        "nodes": 1
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 1
+      }
+    ],
+    "map": [
+      {
+        "id": "heading-order",
+        "impact": "moderate",
+        "nodes": 1
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 1
+      }
+    ],
+    "migration": [
+      {
+        "id": "heading-order",
+        "impact": "moderate",
+        "nodes": 1
+      },
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 1
+      }
+    ],
+    "geo": [
+      {
+        "id": "region",
+        "impact": "moderate",
+        "nodes": 1
+      }
+    ]
+  },
+  "pageErrors": []
+}
