@@ -1,5 +1,4 @@
 import { Component, createContext, useContext, useEffect, useRef, type ReactNode } from "react";
-import * as echarts from "echarts";
 import { statusTone, type Strs } from "./i18n";
 
 /* ── toasts ─────────────────────────────────────────────────────── */
@@ -62,18 +61,39 @@ export function Panel({ title, hint, more, children, span }: { title?: string; h
 }
 
 /* ── ECharts wrapper (lazy, disposes, RTL font aware) ───────────── */
-export function Chart({ option, height = 230, lang }: { option: Record<string, any>; height?: number; lang: string }) {
+export function Chart({ option, height = 230, lang, onClick }: { option: Record<string, any>; height?: number; lang: string; onClick?: (params: any) => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inst = useRef<echarts.ECharts | null>(null);
+  const inst = useRef<any>(null);
+  const clickRef = useRef(onClick);
+  clickRef.current = onClick;
+  const optRef = useRef(option);
+  optRef.current = option;
+  const langRef = useRef(lang);
+  langRef.current = lang;
+  const apply = () => {
+    if (!inst.current) return;
+    const font = langRef.current === "ar" ? "IBM Plex Sans Arabic" : "Inter";
+    inst.current.setOption({ textStyle: { fontFamily: font }, ...optRef.current }, { notMerge: false });
+  };
   useEffect(() => {
-    if (!ref.current) return;
-    if (!inst.current) inst.current = echarts.init(ref.current);
-    const font = lang === "ar" ? "IBM Plex Sans Arabic" : "Inter";
-    inst.current.setOption({ textStyle: { fontFamily: font }, ...option } as echarts.EChartsOption, { notMerge: false });
+    let cancelled = false;
+    (async () => {
+      // ECharts loads on first chart mount so the entry bundle stays lean.
+      const echarts = await import("echarts");
+      if (cancelled || !ref.current) return;
+      if (!inst.current) {
+        inst.current = echarts.init(ref.current);
+        inst.current.on("click", (p: any) => clickRef.current?.(p));
+      }
+      apply();
+    })();
     const onR = () => inst.current?.resize();
     window.addEventListener("resize", onR);
-    return () => window.removeEventListener("resize", onR);
-  }, [option, lang]);
+    return () => { cancelled = true; window.removeEventListener("resize", onR); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { apply(); }, [option, lang]);
   useEffect(() => () => { inst.current?.dispose(); inst.current = null; }, []);
   return <div ref={ref} style={{ height, width: "100%" }} role="img" aria-label="chart" />;
 }

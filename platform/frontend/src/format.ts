@@ -17,7 +17,10 @@ export function fmtMoney(v: string | number | null | undefined, lang: Lang, curr
   const [int, fracRaw = ""] = (neg ? s.slice(1) : s).split(".");
   const frac = fracRaw.replace(/0+$/, "");
   const grouped = new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-US").format(BigInt(int || "0"));
-  const num = (neg ? "-" : "") + grouped + (frac ? (lang === "ar" ? "٫" : ".") + new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-US", { useGrouping: false }).format(Number("0." + frac)).slice(2) : "");
+  // Fraction digits are localized character-by-character: routing them
+  // through Number/Intl would silently round beyond 3 fraction digits.
+  const locFrac = lang === "ar" ? frac.replace(/[0-9]/g, d => "٠١٢٣٤٥٦٧٨٩"[Number(d)]) : frac;
+  const num = (neg ? "-" : "") + grouped + (frac ? (lang === "ar" ? "٫" : ".") + locFrac : "");
   return currency ? (lang === "ar" ? `${num} ج.م` : `EGP ${num}`) : num;
 }
 

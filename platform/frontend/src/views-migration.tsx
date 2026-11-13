@@ -62,7 +62,8 @@ export function MigrationView(ctx: Ctx & { goMap: () => void }) {
   const act = async (fn: () => Promise<unknown>) => {
     try { await fn(); await load(); } catch (e: any) { ctx.notify(`${t.err}: ${e.message || e}`, true); }
   };
-  const invCounts = inv ? Object.entries(inv.items.reduce((m: any, i: any) => ((m[i.status] = (m[i.status] || 0) + 1), m), {})).map(([k, v]) => `${k}: ${v}`).join(" · ") : "…";
+  const lbl = (k: string) => (t as any)[`st_${k}`] ?? k.replace(/_/g, " ");
+  const invCounts = inv ? Object.entries(inv.items.reduce((m: any, i: any) => ((m[i.status] = (m[i.status] || 0) + 1), m), {})).map(([k, v]) => `${lbl(k)}: ${v}`).join(" · ") : "…";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -106,7 +107,7 @@ export function MigrationView(ctx: Ctx & { goMap: () => void }) {
               </div>
               <div className="prog" style={{ background: "#1c3658", margin: "8px 0" }}><i style={{ width: `${liveProg.percentComplete ?? 0}%` }} /></div>
               <div style={{ color: "#a9bcdf" }}>
-                {t.processed} {fmtInt(liveProg.processed, lang)} · {t.accepted} {fmtInt(liveProg.loaded, lang)} · {t.quarantined} {fmtInt(liveProg.rejected, lang)} · checkpoint {fmtInt(liveProg.checkpointRecord, lang)} · keys {fmtInt(liveProg.keysIndexed, lang)}
+                {t.processed} {fmtInt(liveProg.processed, lang)} · {t.accepted} {fmtInt(liveProg.loaded, lang)} · {t.quarantined} {fmtInt(liveProg.rejected, lang)} · {t.checkpoint} {fmtInt(liveProg.checkpointRecord, lang)} · {t.keys_lbl} {fmtInt(liveProg.keysIndexed, lang)}
               </div>
               <div style={{ color: "#7e97bb", fontSize: 12 }}>
                 {liveProg.recordsPerSec ? `${liveProg.recordsPerSec} rec/s` : ""}{liveProg.etaSeconds ? ` · ETA ~${liveProg.etaSeconds}s` : ""}
@@ -118,7 +119,7 @@ export function MigrationView(ctx: Ctx & { goMap: () => void }) {
           <Panel title={t.operations}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, textAlign: "center" }}>
               {([[t.batches, metrics.batches], [t.accepted, metrics.recordsLoaded], [t.quarantined, metrics.recordsRejected],
-                 ["keys", metrics.indexedKeys], [t.approvals, metrics.activeApprovals], [t.jobs, (metrics.jobsByState ?? []).reduce((a: number, x: any) => a + x.n, 0)]] as const).map(([l, v]) => (
+                 [t.keys_lbl, metrics.indexedKeys], [t.approvals, metrics.activeApprovals], [t.jobs, (metrics.jobsByState ?? []).reduce((a: number, x: any) => a + x.n, 0)]] as const).map(([l, v]) => (
                 <div key={l} style={{ background: "#f7fafd", borderRadius: 9, padding: "10px 6px" }}>
                   <div style={{ fontSize: 19, fontWeight: 800 }}>{fmtInt(v, lang)}</div>
                   <div style={{ fontSize: 11.5, color: "var(--color-ink2)" }}>{l}</div>
@@ -126,8 +127,8 @@ export function MigrationView(ctx: Ctx & { goMap: () => void }) {
               ))}
             </div>
             <p style={{ fontSize: 12.5, color: "var(--color-ink2)", margin: "10px 0 0" }}>
-              {t.intake}: {(metrics.intakeByStage ?? []).map((x: any) => `${x.stage} ${x.n}`).join(" · ") || "—"}<br />
-              {t.jobs}: {(metrics.jobsByState ?? []).map((x: any) => `${x.state} ${x.n}`).join(" · ") || "—"}
+              {t.intake}: {(metrics.intakeByStage ?? []).map((x: any) => `${lbl(x.stage)} ${x.n}`).join(" · ") || "—"}<br />
+              {t.jobs}: {(metrics.jobsByState ?? []).map((x: any) => `${lbl(x.state)} ${x.n}`).join(" · ") || "—"}
             </p>
           </Panel>
         )}
@@ -196,15 +197,15 @@ export function MigrationView(ctx: Ctx & { goMap: () => void }) {
           <button className="btn sm" onClick={() => act(() => api("/api/migration/approvals", { method: "POST", body: JSON.stringify(appr) }))}>{t.approve_new}</button>
         </div>
         {approvals.length === 0 ? <Empty text={t.empty} /> : (
-          <table className="dt"><thead><tr><th>{t.member}</th><th>{t.field}</th><th>{t.transformName}</th><th>{t.approvedBy}</th><th>{t.evidence}</th><th>{t.actions}</th></tr></thead>
+          <table className="dt"><thead><tr><th>{t.member}</th><th>{t.field}</th><th>{t.transformName}</th><th>{t.mode}</th><th>{t.status}</th><th>{t.approvedBy}</th><th>{t.evidence}</th><th>{t.actions}</th></tr></thead>
             <tbody>{approvals.map((x, i) => (
-              <tr key={i}><td>{x.legacy_member}</td><td>{x.legacy_field}</td><td>{x.transform_name}</td>
-                <td>{x.approved_by}</td><td style={{ fontSize: 12.5 }}>{x.evidence_ref}</td>
-                <td><button className="btn sm danger" onClick={() => act(async () => {
+              <tr key={i}><td>{x.legacy_member}</td><td>{x.legacy_field}</td><td>{x.transform_name}</td><td>{x.mode ?? "—"}</td>
+                <td><StatusChip s={x.status} t={t} /></td><td>{x.approved_by}</td><td style={{ fontSize: 12.5 }}>{x.evidence_ref}</td>
+                <td>{x.status === "active" && <button className="btn sm danger" onClick={() => act(async () => {
                   const reason = window.prompt(t.reason + ":"); if (!reason) return;
                   const short = String(x.transform_name).split("-to-")[1] ?? x.transform_name;
                   await api("/api/migration/approvals/revoke", { method: "POST", body: JSON.stringify({ transform: short, reason }) });
-                })}>{t.revoke}</button></td></tr>))}
+                })}>{t.revoke}</button>}</td></tr>))}
             </tbody></table>
         )}
       </Panel>

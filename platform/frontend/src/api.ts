@@ -11,7 +11,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.error || `HTTP ${res.status}`); }
   return res.json() as Promise<T>;
 }
-export interface Certificate { id: number; kind: string; status: string; gross: string; deductions: string; net: string; payment_ref: string | null }
+export interface Certificate { id: number; building_id: number | null; kind: string; status: string; gross: string; deductions: string; net: string; payment_ref: string | null }
 export interface Building { id: number; name_en: string; name_ar: string; legacy_blcd: string | null; governorate_code: number | null }
 export interface Allocation { id: number; fiscal_year: string; chapter: number; item: number; allocated: string; committed: string; spent: string; available: string }
 export interface Tender { id: number; title: string; stage: string; legacy_type: number | null; legacy_no: number | null }

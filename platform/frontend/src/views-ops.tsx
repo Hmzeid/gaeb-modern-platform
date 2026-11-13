@@ -20,12 +20,17 @@ function F({ label, children, w = 170 }: { label: string; children: ReactNode; w
 }
 
 /* ═══════════════ SCHOOL MAP ═══════════════ */
-export function SchoolMapView(ctx: Ctx & { initialQuery?: string }) {
+export function SchoolMapView(ctx: Ctx & { initialQuery?: string; initialGov?: number | null }) {
   const { t, lang } = ctx;
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [govs, setGovs] = useState<{ code: number; name_en: string; name_ar: string }[]>([]);
   const [q, setQ] = useState(ctx.initialQuery ?? "");
   const [govFilter, setGovFilter] = useState("");
+  const [sortKey, setSortKey] = useState<"id" | "name" | "gov">("id");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
+  const [page, setPage] = useState(0);
+  useEffect(() => { if (ctx.initialGov != null) { setGovFilter(String(ctx.initialGov)); setPage(0); } }, [ctx.initialGov]);
+  useEffect(() => { setPage(0); }, [q, govFilter]);
   const [sel, setSel] = useState<Building | null>(null);
   const [form, setForm] = useState({ name_en: "", name_ar: "", legacy_blcd: "", governorate_code: "", village_code: "" });
   const load = async () => {
@@ -36,10 +41,21 @@ export function SchoolMapView(ctx: Ctx & { initialQuery?: string }) {
   useEffect(() => { if (ctx.initialQuery !== undefined) setQ(ctx.initialQuery); }, [ctx.initialQuery]);
   const act = useAct(ctx, load);
   const govName = (code: number | null) => { const g = govs.find(x => x.code === code); return g ? (lang === "ar" ? g.name_ar : g.name_en) : "—"; };
-  const rows = useMemo(() => buildings.filter(b => {
-    const hit = !q || b.name_en.toLowerCase().includes(q.toLowerCase()) || b.name_ar.includes(q) || (b.legacy_blcd ?? "").includes(q);
-    return hit && (!govFilter || String(b.governorate_code ?? "") === govFilter);
-  }), [buildings, q, govFilter]);
+  const rows = useMemo(() => {
+    const filtered = buildings.filter(b => {
+      const hit = !q || b.name_en.toLowerCase().includes(q.toLowerCase()) || b.name_ar.includes(q) || (b.legacy_blcd ?? "").includes(q);
+      return hit && (!govFilter || String(b.governorate_code ?? "") === govFilter);
+    });
+    const key = (b: Building) => sortKey === "name" ? (lang === "ar" ? b.name_ar : b.name_en) : sortKey === "gov" ? (b.governorate_code ?? 0) : Number(b.id);
+    return [...filtered].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * sortDir);
+  }, [buildings, q, govFilter, sortKey, sortDir, lang]);
+  const pageCount = Math.max(1, Math.ceil(rows.length / 25));
+  const pageRows = rows.slice(page * 25, page * 25 + 25);
+  const toggleSort = (k: "id" | "name" | "gov") => {
+    if (sortKey === k) setSortDir(d => (d === 1 ? -1 : 1)); else { setSortKey(k); setSortDir(1); }
+    setPage(0);
+  };
+  const sortMark = (k: string) => (sortKey === k ? (sortDir === 1 ? " ↑" : " ↓") : "");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -69,12 +85,29 @@ export function SchoolMapView(ctx: Ctx & { initialQuery?: string }) {
           </select>
         </span>}>
         {rows.length === 0 ? <Empty text={t.empty} /> : (
-          <table className="dt"><thead><tr><th>#</th><th>{t.blcd}</th><th>{t.nameEn}</th><th>{t.nameAr}</th><th>{t.governorate}</th></tr></thead>
-            <tbody>{rows.map(b => (
+          <>
+          <table className="dt"><thead><tr>
+            <th><button className="th-sort" onClick={() => toggleSort("id")} aria-label="sort"># {sortMark("id")}</button></th>
+            <th>{t.blcd}</th>
+            <th><button className="th-sort" onClick={() => toggleSort("name")}>{lang === "ar" ? t.nameAr : t.nameEn}{sortMark("name")}</button></th>
+            <th>{lang === "ar" ? t.nameEn : t.nameAr}</th>
+            <th><button className="th-sort" onClick={() => toggleSort("gov")}>{t.governorate}{sortMark("gov")}</button></th>
+          </tr></thead>
+            <tbody>{pageRows.map(b => (
               <tr key={b.id} onClick={() => setSel(b)} style={{ cursor: "pointer" }}>
-                <td>{b.id}</td><td className="money">{b.legacy_blcd ?? "—"}</td><td>{b.name_en}</td><td>{b.name_ar}</td><td>{govName(b.governorate_code)}</td>
+                <td>{b.id}</td><td className="money">{b.legacy_blcd ?? "—"}</td>
+                <td>{lang === "ar" ? b.name_ar : b.name_en}</td><td>{lang === "ar" ? b.name_en : b.name_ar}</td>
+                <td>{govName(b.governorate_code)}</td>
               </tr>))}
             </tbody></table>
+          {pageCount > 1 && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10, fontSize: 12.5, color: "var(--color-ink2)" }}>
+              <button className="btn sec sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t.prev}</button>
+              <span>{t.page} {fmtInt(page + 1, lang)} {t.of} {fmtInt(pageCount, lang)}</span>
+              <button className="btn sec sm" disabled={page >= pageCount - 1} onClick={() => setPage(p => p + 1)}>{t.next}</button>
+            </div>
+          )}
+          </>
         )}
       </Panel>
       <Drawer open={!!sel} onClose={() => setSel(null)} title={sel ? (lang === "ar" ? sel.name_ar : sel.name_en) : ""}>
@@ -130,6 +163,16 @@ export function TendersView(ctx: Ctx) {
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [title, setTitle] = useState("");
   const [sel, setSel] = useState<Tender | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  useEffect(() => {
+    if (!sel) { setHistory([]); return; }
+    (async () => {
+      try {
+        const rows = await api<any[]>("/api/audit");
+        setHistory(rows.filter(r => r.entity === "tender" && String(r.entity_id) === String(sel.id)));
+      } catch { setHistory([]); /* audit trail is admin-only; section hides for other roles */ }
+    })();
+  }, [sel?.id]);
   const load = async () => { try { const r = await api<Tender[]>("/api/tenders"); setTenders(r); if (sel) setSel(r.find(x => x.id === sel.id) ?? null); } catch (e: any) { ctx.notify(e.message, true); } };
   useEffect(() => { load(); }, []);
   const act = useAct(ctx, load);
@@ -161,6 +204,20 @@ export function TendersView(ctx: Ctx) {
           <DefList rows={[["#", String(sel.id)], [t.stage, <StatusChip s={sel.stage} t={t} />],
             [t.legacyRef, sel.legacy_no ? `PBYTENDR № ${sel.legacy_no} · type ${sel.legacy_type ?? "—"}` : "—"]]} />
           {TENDER_NEXT[sel.stage] && <div style={{ marginTop: 16 }}><button className="btn" onClick={() => advance(sel)}>{t.advance} → {(t as any)[`st_${TENDER_NEXT[sel.stage]}`] ?? TENDER_NEXT[sel.stage]}</button></div>}
+          {history.length > 0 && (
+            <div style={{ marginTop: 18 }}>
+              <h4 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.stage_history}</h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                {history.map(h => (
+                  <div key={h.id} style={{ display: "flex", gap: 10, padding: "6px 0", borderBottom: "1px solid #eef1f6", fontSize: 12.5 }}>
+                    <span style={{ fontWeight: 600 }}>{h.action}</span>
+                    <span style={{ color: "var(--color-ink2)" }}>{h.detail?.to ? ((t as any)[`st_${h.detail.to}`] ?? h.detail.to) : ""}</span>
+                    <span style={{ marginInlineStart: "auto", color: "var(--color-ink3)", whiteSpace: "nowrap" }}>{h.username ?? "—"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>}
       </Drawer>
     </div>
@@ -171,11 +228,18 @@ export function TendersView(ctx: Ctx) {
 export function CertificatesView(ctx: Ctx) {
   const { t, lang } = ctx;
   const [certs, setCerts] = useState<Certificate[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
   const [line, setLine] = useState({ qty: "100", price: "250.50", retention: "10" });
   const [payRef, setPayRef] = useState("");
   const [sel, setSel] = useState<Certificate | null>(null);
+  const [detail, setDetail] = useState<any>(null);
   const load = async () => { try { const r = await api<Certificate[]>("/api/certificates"); setCerts(r); if (sel) setSel(r.find(x => x.id === sel.id) ?? null); } catch (e: any) { ctx.notify(e.message, true); } };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); (async () => { try { setBuildings(await api("/api/buildings?limit=200")); } catch { /* optional */ } })(); }, []);
+  useEffect(() => {
+    if (!sel) { setDetail(null); return; }
+    (async () => { try { setDetail(await api(`/api/certificates/${sel.id}`)); } catch { setDetail(null); } })();
+  }, [sel?.id]);
+  const bName = (id: number | null) => { const b = buildings.find(x => String(x.id) === String(id)); return b ? (lang === "ar" ? b.name_ar : b.name_en) || `#${b.id}` : "—"; };
   const act = useAct(ctx, load);
   const advance = (c: Certificate) => act(() => api(`/api/certificates/${c.id}/transition`, { method: "POST",
     body: JSON.stringify({ to: CERT_NEXT[c.status], payment_ref: CERT_NEXT[c.status] === "paid" ? payRef : undefined }) }));
@@ -194,10 +258,10 @@ export function CertificatesView(ctx: Ctx) {
       </Panel>
       <Panel title={t.nav_certs}>
         {certs.length === 0 ? <Empty text={t.empty} /> : (
-          <table className="dt"><thead><tr><th>#</th><th>{t.kind}</th><th>{t.status}</th><th className="num">{t.gross}</th><th className="num">{t.ded}</th><th className="num">{t.net}</th><th>{t.actions}</th></tr></thead>
+          <table className="dt"><thead><tr><th>#</th><th>{t.building}</th><th>{t.kind}</th><th>{t.status}</th><th className="num">{t.gross}</th><th className="num">{t.ded}</th><th className="num">{t.net}</th><th>{t.actions}</th></tr></thead>
             <tbody>{certs.map(c => (
               <tr key={c.id} onClick={() => setSel(c)} style={{ cursor: "pointer" }}>
-                <td>{c.id}</td><td><StatusChip s={c.kind} t={t} /></td><td><StatusChip s={c.status} t={t} /></td>
+                <td>{c.id}</td><td>{bName(c.building_id)}</td><td><StatusChip s={c.kind} t={t} /></td><td><StatusChip s={c.status} t={t} /></td>
                 <td className="num money">{fmtMoney(c.gross, lang, false)}</td><td className="num money">{fmtMoney(c.deductions, lang, false)}</td><td className="num money">{fmtMoney(c.net, lang, false)}</td>
                 <td onClick={e => e.stopPropagation()}>{CERT_NEXT[c.status] && <button className="btn sm sec" onClick={() => advance(c)}>{t.advance} → {(t as any)[`st_${CERT_NEXT[c.status]}`] ?? CERT_NEXT[c.status]}</button>}</td>
               </tr>))}
@@ -208,8 +272,21 @@ export function CertificatesView(ctx: Ctx) {
         {sel && <>
           <StageStepper stages={CERT_STAGES} current={sel.status} t={t} />
           <DefList rows={[[t.kind, <StatusChip s={sel.kind} t={t} />], [t.status, <StatusChip s={sel.status} t={t} />],
+            [t.building, detail?.building_name_en ? (lang === "ar" ? detail.building_name_ar : detail.building_name_en) : bName(sel.building_id)],
             [t.gross, fmtMoney(sel.gross, lang)], [t.ded, fmtMoney(sel.deductions, lang)], [t.net, fmtMoney(sel.net, lang)],
             [t.payRef, sel.payment_ref ?? "—"]]} />
+          {detail && detail.items.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <h4 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.items}</h4>
+              <table className="dt"><thead><tr><th>{t.estTitle}</th><th>{t.unit}</th><th className="num">{t.qty}</th><th className="num">{t.price}</th><th className="num">{t.total}</th></tr></thead>
+                <tbody>{detail.items.map((i: any) => (
+                  <tr key={i.id}><td>{i.description}</td><td>{i.unit}</td>
+                    <td className="num money">{fmtInt(Number(i.qty), lang)}</td>
+                    <td className="num money">{fmtMoney(i.price, lang, false)}</td>
+                    <td className="num money">{fmtMoney(i.value, lang, false)}</td></tr>))}
+                </tbody></table>
+            </div>
+          )}
           {CERT_NEXT[sel.status] && <div style={{ marginTop: 16 }}><button className="btn" onClick={() => advance(sel)}>{t.advance} → {(t as any)[`st_${CERT_NEXT[sel.status]}`] ?? CERT_NEXT[sel.status]}</button></div>}
         </>}
       </Drawer>
@@ -224,6 +301,12 @@ export function EstimatesView(ctx: Ctx) {
   const [catalogue, setCatalogue] = useState<CatalogueItem[]>([]);
   const [catForm, setCatForm] = useState({ code: "", name_en: "", name_ar: "", unit: "m2", standard_price: "100" });
   const [estForm, setEstForm] = useState({ title: "", catalogue_item_id: "", qty: "10" });
+  const [sel, setSel] = useState<Estimate | null>(null);
+  const [detail, setDetail] = useState<any>(null);
+  useEffect(() => {
+    if (!sel) { setDetail(null); return; }
+    (async () => { try { setDetail(await api(`/api/estimates/${sel.id}`)); } catch { setDetail(null); } })();
+  }, [sel?.id]);
   const load = async () => { try { setEstimates(await api("/api/estimates")); setCatalogue(await api("/api/catalogue")); } catch (e: any) { ctx.notify(e.message, true); } };
   useEffect(() => { load(); }, []);
   const act = useAct(ctx, load);
@@ -259,16 +342,48 @@ export function EstimatesView(ctx: Ctx) {
         {estimates.length === 0 ? <Empty text={t.empty} /> : (
           <table className="dt"><thead><tr><th>#</th><th>{t.estTitle}</th><th>{t.status}</th><th>{t.revision}</th><th className="num">{t.total}</th><th>{t.actions}</th></tr></thead>
             <tbody>{estimates.map(x => (
-              <tr key={x.id}><td>{x.id}</td><td>{x.title}</td><td><StatusChip s={x.status} t={t} /></td><td>{x.revision}</td>
+              <tr key={x.id} onClick={() => setSel(x)} style={{ cursor: "pointer" }}><td>{x.id}</td><td>{x.title}</td><td><StatusChip s={x.status} t={t} /></td><td>{x.revision}</td>
                 <td className="num money">{fmtMoney(x.total, lang, false)}</td>
-                <td>{x.status === "draft" && <button className="btn sm sec" onClick={() => trans(x, "reviewed")}>{t.advance} → {t.st_reviewed}</button>}
+                <td onClick={e => e.stopPropagation()}>{x.status === "draft" && <button className="btn sm sec" onClick={() => trans(x, "reviewed")}>{t.advance} → {t.st_reviewed}</button>}
                   {x.status === "reviewed" && <span style={{ display: "inline-flex", gap: 6 }}>
                     <button className="btn sm sec" onClick={() => trans(x, "approved")}>{t.advance} → {t.st_approved}</button>
                     <button className="btn sm sec" onClick={() => trans(x, "draft")}>↩ {t.returnDraft}</button></span>}</td></tr>))}
             </tbody></table>
         )}
-        <div style={{ marginTop: 10 }}><StageStepper stages={EST_STAGES} current="draft" t={t} /></div>
       </Panel>
+      <Drawer open={!!sel} onClose={() => setSel(null)} title={sel ? `${t.nav_estimates} #${sel.id}` : ""}>
+        {sel && <>
+          <StageStepper stages={EST_STAGES} current={sel.status} t={t} />
+          <DefList rows={[[t.estTitle, sel.title], [t.status, <StatusChip s={sel.status} t={t} />],
+            [t.revision, String(sel.revision)], [t.total, fmtMoney(sel.total, lang)]]} />
+          {detail && detail.items.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <h4 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.items}</h4>
+              <table className="dt"><thead><tr><th>{t.code}</th><th>{t.name}</th><th>{t.unit}</th><th className="num">{t.qty}</th><th className="num">{t.price}</th><th className="num">{t.total}</th></tr></thead>
+                <tbody>{detail.items.map((i: any) => (
+                  <tr key={i.id}><td className="money">{i.code}</td><td>{lang === "ar" ? i.name_ar : i.name_en}</td><td>{i.unit}</td>
+                    <td className="num money">{fmtInt(Number(i.qty), lang)}</td>
+                    <td className="num money">{fmtMoney(i.price, lang, false)}</td>
+                    <td className="num money">{fmtMoney(i.value, lang, false)}</td></tr>))}
+                </tbody></table>
+            </div>
+          )}
+          {detail && detail.revisions.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <h4 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.revisions}</h4>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {detail.revisions.map((r: any) => (
+                  <div key={r.revision} style={{ display: "flex", gap: 10, padding: "6px 0", borderBottom: "1px solid #eef1f6", fontSize: 12.5 }}>
+                    <span style={{ fontWeight: 600 }}>#{fmtInt(r.revision, lang)}</span>
+                    <span style={{ color: "var(--color-ink2)" }}>{r.note}</span>
+                    <span className="money" style={{ marginInlineStart: "auto" }}>{fmtMoney(r.total, lang, false)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>}
+      </Drawer>
     </div>
   );
 }

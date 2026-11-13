@@ -4,9 +4,10 @@ import { api, type Overview, type GovBuildings } from "./api";
 import { TENDER_STAGES, type Lang, type Strs } from "./i18n";
 import { fmtInt, fmtMoney, fmtMoneyShort, fmtPct, fmtDateTime } from "./format";
 import { Chart, Kpi, Panel, StatusChip, SegBar, Empty, Skel } from "./components";
-import { govCoords, EGYPT_OUTLINE, NILE_PATH } from "./geo-data";
+import * as echarts from "echarts";
+import { EGYPT_ADM1, ADM1_BY_PCODE, pcodeForGov } from "./geo-data";
 
-export interface Ctx { t: Strs; lang: Lang; notify: (m: string, e?: boolean) => void; go: (v: string) => void }
+export interface Ctx { t: Strs; lang: Lang; notify: (m: string, e?: boolean) => void; go: (v: string) => void; goMapGov: (code: number) => void }
 
 const C_GREEN = "#1f9d63", C_AMBER = "#e8a13a", C_RED = "#d9534f", C_BLUE = "#2563eb", C_TEAL = "#0e9f8a", C_VIOLET = "#7c6bd6", C_SKY = "#5ea8ff";
 const CERT_COLORS: Record<string, string> = { draft: "#8494ad", certified: C_BLUE, billed: C_VIOLET, payment_authorized: C_AMBER, paid: C_GREEN };
@@ -124,7 +125,7 @@ export function OverviewView({ t, lang, go }: Ctx) {
           <Panel span={5} title={t.cert_summary}>
             {certTotal === 0 ? <Empty text={t.empty} /> : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1.05fr", gap: 8, alignItems: "center" }}>
-                <Chart option={donutOption} height={200} lang={lang} />
+                <Chart option={donutOption} height={200} lang={lang} onClick={() => go("certificates")} />
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
                   {ov.certificatesByStatus.map(r => (
                     <div key={r.status} style={{ display: "flex", alignItems: "center", gap: 9 }}>
@@ -160,10 +161,11 @@ export function OverviewView({ t, lang, go }: Ctx) {
           <Panel span={7} title={t.tenders_by_stage} more={<button className="btn sec sm" onClick={() => go("tenders")}>{t.view_stages} →</button>}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(86px,1fr))", gap: 8, marginTop: 4 }}>
               {stageTiles.map(x => (
-                <div key={x.s} style={{ background: "#eef3fb", borderRadius: 9, padding: "9px 11px" }}>
+                <button key={x.s} onClick={() => go("tenders")} title={t.nav_tenders}
+                  style={{ background: "#eef3fb", border: "1px solid transparent", borderRadius: 9, padding: "9px 11px", textAlign: "start", cursor: "pointer", font: "inherit" }}>
                   <div style={{ fontSize: 11, color: "var(--color-ink2)", fontWeight: 600 }}>{(t as any)[`st_${x.s}`] ?? x.s}</div>
                   <div style={{ fontSize: 19, fontWeight: 800, marginTop: 2 }}>{fmtInt(x.n, lang)}</div>
-                </div>
+                </button>
               ))}
             </div>
             {tenderTotal > 0 && (
@@ -238,11 +240,28 @@ export function OverviewView({ t, lang, go }: Ctx) {
   );
 }
 
-/* ═══════════════ GEOGRAPHIC INTELLIGENCE (Concept D dark) ═══════════════ */
-export function GeoView({ t, lang }: Ctx) {
+/* ═══════════════ GEOGRAPHIC INTELLIGENCE (Concept D dark, real boundaries) ═══════════════ */
+let mapRegistered = false;
+function ensureMap() {
+  if (mapRegistered) return;
+  const fc = {
+    type: "FeatureCollection",
+    features: EGYPT_ADM1.features.map(f => ({
+      type: "Feature",
+      properties: { name: f.properties.pcode, name_en: f.properties.name_en, name_ar: f.properties.name_ar },
+      geometry: f.geometry,
+    })),
+  };
+  echarts.registerMap("egypt-adm1", fc as any);
+  mapRegistered = true;
+}
+
+export function GeoView({ t, lang, goMapGov }: Ctx) {
   const [govs, setGovs] = useState<GovBuildings[]>([]);
   const [ov, setOv] = useState<Overview | null>(null);
   const [metrics, setMetrics] = useState<any>(null);
+  const [selected, setSelected] = useState<string | null>(null); // OCHA P-code
+  ensureMap(); // must register before the chart child initializes (effects run child-first)
   useEffect(() => {
     (async () => {
       try { setGovs(await api("/api/reports/buildings-by-governorate")); } catch { /* optional */ }
@@ -251,36 +270,46 @@ export function GeoView({ t, lang }: Ctx) {
     })();
   }, []);
 
+  const byPcode = useMemo(() => {
+    const m = new Map<string, GovBuildings>();
+    for (const g of govs) { const p = pcodeForGov(g.code); if (p) m.set(p, g); }
+    return m;
+  }, [govs]);
   const total = govs.reduce((a, g) => a + g.buildings, 0);
   const covered = govs.filter(g => g.buildings > 0).length;
+  const regionCount = EGYPT_ADM1.features.length;
   const acceptPct = metrics && metrics.recordsLoaded + metrics.recordsRejected > 0
     ? Math.round((metrics.recordsLoaded / (metrics.recordsLoaded + metrics.recordsRejected)) * 1000) / 10 : null;
 
   const mapOption = useMemo(() => {
-    const pts = govs.filter(g => g.buildings > 0).map(g => {
-      const c = govCoords(g.name_en);
-      return c ? { name: lang === "ar" ? g.name_ar : g.name_en, value: [c[0], c[1], g.buildings] as [number, number, number] } : null;
-    }).filter(Boolean) as { name: string; value: [number, number, number] }[];
-    const max = Math.max(1, ...pts.map(p => p.value[2]));
-    return {
-      grid: { left: 6, right: 6, top: 8, bottom: 6 },
-      xAxis: { type: "value" as const, min: 24.5, max: 36, show: false },
-      yAxis: { type: "value" as const, min: 21.5, max: 32.2, show: false },
-      tooltip: { backgroundColor: "#0e2138", borderColor: "#1c3658", textStyle: { color: "#eaf1fd" },
-        formatter: (p: any) => `${p.name}: ${fmtInt(p.value[2], lang)}` },
-      series: [
-        { type: "line", data: EGYPT_OUTLINE, showSymbol: false, silent: true, z: 0,
-          lineStyle: { color: "#2b4f7e", width: 1.6 }, areaStyle: { color: "rgba(23,52,89,.55)" } },
-        { type: "line", data: NILE_PATH, showSymbol: false, silent: true, z: 1,
-          lineStyle: { color: "#2b5ea8", width: 2.4, opacity: 0.75 } },
-        { type: "scatter", z: 3, data: pts,
-          symbolSize: (v: any) => Math.max(10, Math.sqrt(v[2] / max) * 44),
-          itemStyle: { color: C_TEAL, opacity: 0.88, borderColor: "#0a1626", borderWidth: 1.2 },
-          label: { show: true, color: "#a9bcdf", fontSize: 10.5, position: "right" as const,
-            formatter: (p: any) => (p.value[2] >= max * 0.25 ? p.name : "") } },
-      ],
+    const max = Math.max(1, ...govs.map(g => g.buildings));
+    const nameOf = (pcode: string) => {
+      const row = byPcode.get(pcode);
+      const f = ADM1_BY_PCODE.get(pcode);
+      return lang === "ar" ? (row?.name_ar || f?.properties.name_ar || pcode) : (row?.name_en || f?.properties.name_en || pcode);
     };
-  }, [govs, lang]);
+    return {
+      tooltip: { backgroundColor: "#0e2138", borderColor: "#1c3658", textStyle: { color: "#eaf1fd" },
+        formatter: (p: any) => `${nameOf(p.name)}<br/>${t.nav_map}: <b>${fmtInt(p.value ?? 0, lang)}</b>` },
+      visualMap: { min: 0, max, left: lang === "ar" ? undefined : 12, right: lang === "ar" ? 12 : undefined, bottom: 14,
+        calculable: true, textStyle: { color: "#a9bcdf", fontSize: 11 },
+        inRange: { color: ["#14304f", "#0e5f6e", "#0e9f8a", "#2dd4bf"] },
+        text: [fmtInt(max, lang), fmtInt(0, lang)] },
+      series: [{
+        type: "map", map: "egypt-adm1", roam: true, scaleLimit: { min: 0.9, max: 5 },
+        layoutCenter: ["50%", "52%"], layoutSize: "96%",
+        label: { show: false },
+        itemStyle: { borderColor: "#2b4f7e", borderWidth: 0.7, areaColor: "#14304f" },
+        emphasis: { label: { show: true, color: "#fff", fontSize: 11.5, fontWeight: 600,
+            formatter: (p: any) => nameOf(p.name) },
+          itemStyle: { areaColor: "#1d5f8a" } },
+        select: { itemStyle: { areaColor: "#2dd4bf" }, label: { show: true, color: "#06281f", fontWeight: 700,
+            formatter: (p: any) => nameOf(p.name) } },
+        selectedMode: "single",
+        data: EGYPT_ADM1.features.map(f => ({ name: f.properties.pcode, value: byPcode.get(f.properties.pcode)?.buildings ?? 0 })),
+      }],
+    };
+  }, [govs, byPcode, lang, t]);
 
   const rankOption = useMemo(() => {
     const top = [...govs].sort((a, b) => b.buildings - a.buildings).slice(0, 8);
@@ -301,16 +330,19 @@ export function GeoView({ t, lang }: Ctx) {
       progress: { show: true, width: 10, itemStyle: { color: "#2dd4bf" } },
       axisLine: { lineStyle: { width: 10, color: [[1, "#1c3658"]] as any } },
       axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false }, pointer: { show: false }, anchor: { show: false },
-      detail: { formatter: "{value}%", color: "#fff", fontSize: 20, fontWeight: 800, offsetCenter: [0, 4] },
+      detail: { formatter: (v: number) => fmtPct(v, 100, lang), color: "#fff", fontSize: 20, fontWeight: 800, offsetCenter: [0, 4] },
       data: [{ value: acceptPct ?? 0 }],
     }],
-  }), [acceptPct]);
+  }), [acceptPct, lang]);
 
   const attention: { sev: "hi" | "md" | "lo"; title: string; sub: string }[] = [];
   if (ov && ov.queues.certificates_draft > 0) attention.push({ sev: "md", title: `${t.q_certs}: ${fmtInt(ov.queues.certificates_draft, lang)}`, sub: t.nav_certs });
   if (metrics && metrics.recordsRejected > 0) attention.push({ sev: "hi", title: `${fmtInt(metrics.recordsRejected, lang)} ${t.quarantined}`, sub: t.nav_migration });
   if (ov && ov.queues.estimates_draft > 0) attention.push({ sev: "lo", title: `${t.q_est}: ${fmtInt(ov.queues.estimates_draft, lang)}`, sub: t.nav_estimates });
   if (ov && ov.counts.expropriation_cases > 0) attention.push({ sev: "lo", title: `${t.cases}: ${fmtInt(ov.counts.expropriation_cases, lang)}`, sub: t.nav_estate });
+
+  const selRow = selected ? byPcode.get(selected) : undefined;
+  const selFeat = selected ? ADM1_BY_PCODE.get(selected) : undefined;
 
   return (
     <div className="dark" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -319,12 +351,12 @@ export function GeoView({ t, lang }: Ctx) {
           <h2 style={{ margin: 0, fontSize: 17 }}>{t.nav_geo}</h2>
           <div className="hint" style={{ fontSize: 12.5, marginTop: 2 }}>{t.geo_sub}</div>
         </div>
-        <span style={{ marginInlineStart: "auto" }} className="chip">{t.covered}: {fmtInt(covered, lang)} / {fmtInt(govs.length || 27, lang)}</span>
+        <span style={{ marginInlineStart: "auto" }} className="chip">{t.covered}: {fmtInt(covered, lang)} / {fmtInt(regionCount, lang)}</span>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 10 }}>
-        {([[t.k_buildings, fmtInt(total, lang)], [t.covered, `${fmtInt(covered, lang)} / ${fmtInt(govs.length || 27, lang)}`],
-           [t.migrated, acceptPct === null ? "—" : `${acceptPct}%`], [t.k_tenders, ov ? fmtInt(ov.counts.tenders, lang) : "—"],
+        {([[t.k_buildings, fmtInt(total, lang)], [t.covered, `${fmtInt(covered, lang)} / ${fmtInt(regionCount, lang)}`],
+           [t.migrated, acceptPct === null ? "—" : fmtPct(acceptPct, 100, lang)], [t.k_tenders, ov ? fmtInt(ov.counts.tenders, lang) : "—"],
            [t.k_cases, ov ? fmtInt(ov.counts.expropriation_cases, lang) : "—"]] as const).map(([l, v]) => (
           <div className="gk" key={l}>
             <div style={{ fontSize: 11.5, color: "#8fa8cc" }}>{l}</div>
@@ -335,13 +367,27 @@ export function GeoView({ t, lang }: Ctx) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1.9fr 1fr", gap: 12 }} className="geo-grid">
         <div className="gpanel">
-          <h4 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.geo_map}</h4>
-          {total === 0 ? <Empty text={t.empty} /> : <Chart option={mapOption} height={430} lang={lang} />}
-          <div className="hint" style={{ fontSize: 11.5, marginTop: 6 }}>{t.schematic}</div>
+          <h3 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.geo_map}</h3>
+          <Chart option={mapOption} height={430} lang={lang} onClick={(p: any) => { if (p?.name) setSelected(p.name); }} />
+          <div className="hint" style={{ fontSize: 11.5, marginTop: 6 }}>{t.geo_attr}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {selected && selFeat && (
+            <div className="gpanel" aria-live="polite">
+              <h3 style={{ margin: "0 0 8px", fontSize: 13 }}>{lang === "ar" ? selFeat.properties.name_ar : selFeat.properties.name_en}</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, color: "#a9bcdf" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>{t.nav_map}</span><b style={{ color: "#fff", fontSize: 15 }}>{fmtInt(selRow?.buildings ?? 0, lang)}</b></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>{t.share}</span><b style={{ color: "#fff" }}>{total > 0 ? fmtPct(selRow?.buildings ?? 0, total, lang) : "—"}</b></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>{t.pcode}</span><b style={{ color: "#fff" }}>{selected}</b></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>{t.gov_code}</span><b style={{ color: "#fff" }}>{selRow ? fmtInt(selRow.code, lang) : "—"}</b></div>
+              </div>
+              {selRow && (
+                <button className="btn teal sm" style={{ marginTop: 10 }} onClick={() => goMapGov(selRow.code)}>{t.view_in_map} →</button>
+              )}
+            </div>
+          )}
           <div className="gpanel">
-            <h4 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.geo_alerts}</h4>
+            <h3 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.geo_alerts}</h3>
             {attention.length === 0 ? <div style={{ color: "#7e97bb", fontSize: 12.5 }}>{t.empty}</div> : attention.map((a, i) => (
               <div key={i} style={{ display: "flex", gap: 9, padding: "7.5px 0", borderBottom: i < attention.length - 1 ? "1px solid #16304f" : "0", fontSize: 12.5 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 700, borderRadius: 4, padding: "1.5px 6px", height: "fit-content",
@@ -352,16 +398,16 @@ export function GeoView({ t, lang }: Ctx) {
             ))}
           </div>
           <div className="gpanel">
-            <h4 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.migrated}</h4>
+            <h3 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.migrated}</h3>
             <Chart option={gaugeOption} height={150} lang={lang} />
           </div>
         </div>
         <div className="gpanel">
-          <h4 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.geo_rank}</h4>
+          <h3 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.geo_rank}</h3>
           <Chart option={rankOption} height={170} lang={lang} />
         </div>
         <div className="gpanel">
-          <h4 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.cert_summary}</h4>
+          <h3 style={{ margin: "0 0 8px", fontSize: 13 }}>{t.cert_summary}</h3>
           {ov && ov.certificatesByStatus.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 12.5 }}>
               {ov.certificatesByStatus.map(r => (

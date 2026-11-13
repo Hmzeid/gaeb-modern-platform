@@ -62,7 +62,9 @@ export default function App() {
     })();
   }, [authed, view]);
 
-  const ctx: Ctx = useMemo(() => ({ t, lang, notify, go: (v: string) => go(v) }), [t, lang, notify, go]);
+  const [mapGov, setMapGov] = useState<number | null>(null);
+  const ctx: Ctx = useMemo(() => ({ t, lang, notify, go: (v: string) => go(v),
+    goMapGov: (code: number) => { setMapGov(code); go("map"); } }), [t, lang, notify, go]);
 
   async function login(e: React.FormEvent) {
     e.preventDefault(); setErr("");
@@ -126,8 +128,8 @@ export default function App() {
 
   return (
     <ToastCtx.Provider value={notify}>
-      <div style={{ display: "grid", gridTemplateColumns: "224px 1fr", minHeight: "100vh" }}>
-        <aside style={{ background: "linear-gradient(180deg,#0a1a33,#081426)", color: "#c7d5ee", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 0, height: "100vh" }}>
+      <div className="shell" style={{ display: "grid", gridTemplateColumns: "224px 1fr", minHeight: "100vh" }}>
+        <aside className="rail" style={{ background: "linear-gradient(180deg,#0a1a33,#081426)", color: "#c7d5ee", padding: "18px 14px", display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 0, height: "100vh" }}>
           <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "0 6px 14px" }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg,#0e9f8a,#2563eb)", display: "grid", placeItems: "center", fontWeight: 800, color: "#fff", fontSize: 16 }}>G</div>
             <div>
@@ -135,7 +137,7 @@ export default function App() {
               <span style={{ fontSize: 10, color: "#7e97bb", letterSpacing: ".06em" }}>{t.authority}</span>
             </div>
           </div>
-          <nav aria-label="primary" style={{ display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
+          <nav className="rail-nav" aria-label="primary" style={{ display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
             {nav.map(g => (
               <div key={g.group}>
                 <div className="rail-h">{g.group}</div>
@@ -159,7 +161,8 @@ export default function App() {
         </aside>
 
         <div style={{ minWidth: 0 }}>
-          <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 26px", background: "#fff", borderBottom: "1px solid var(--color-line)", position: "sticky", top: 0, zIndex: 30 }}>
+          <h1 className="sr-only">GAEB — General Authority for Educational Buildings</h1>
+          <header className="topbar" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 26px", background: "#fff", borderBottom: "1px solid var(--color-line)", position: "sticky", top: 0, zIndex: 30 }}>
             <form onSubmit={e => { e.preventDefault(); setMapQuery(search); go("map"); }} style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, maxWidth: 460 }}>
               <Search size={15} color="#8494ad" />
               <input className="inp" style={{ border: 0, background: "#f4f6fa" }} placeholder={t.search} value={search} onChange={e => setSearch(e.target.value)} aria-label={t.search} />
@@ -170,12 +173,12 @@ export default function App() {
             </div>
           </header>
 
-          <main style={{ padding: "22px 26px 30px", maxWidth: 1520, margin: "0 auto" }}>
+          <main className="main" style={{ padding: "22px 26px 30px", maxWidth: 1520, margin: "0 auto" }}>
             <ErrorBoundary key={view}>
             <Suspense fallback={<Skel h={300} />}>
               {view === "overview" && <OverviewView {...ctx} />}
               {view === "geo" && <GeoView {...ctx} />}
-              {view === "map" && <SchoolMapView {...ctx} initialQuery={mapQuery} />}
+              {view === "map" && <SchoolMapView {...ctx} initialQuery={mapQuery} initialGov={mapGov} />}
               {view === "budget" && <BudgetView {...ctx} />}
               {view === "tenders" && <TendersView {...ctx} />}
               {view === "certificates" && <CertificatesView {...ctx} />}

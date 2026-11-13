@@ -91,9 +91,11 @@ export function ReportsView(ctx: Ctx) {
 export function AdminView(ctx: Ctx & { username: string; role: string }) {
   const { t, lang } = ctx;
   const [audit, setAudit] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [denied, setDenied] = useState(false);
   useEffect(() => {
     (async () => { try { setAudit(await api("/api/audit")); } catch { setDenied(true); } })();
+    (async () => { try { setUsers(await api("/api/users")); } catch { /* admin-only endpoint */ } })();
   }, []);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -104,6 +106,15 @@ export function AdminView(ctx: Ctx & { username: string; role: string }) {
           <span>{t.session}: <b>8h</b></span>
         </div>
       </Panel>
+      {users.length > 0 && (
+        <Panel title={t.users_dir}>
+          <table className="dt"><thead><tr><th>{t.username}</th><th>{t.name}</th><th>{t.role}</th><th>{t.status}</th></tr></thead>
+            <tbody>{users.map((u: any) => (
+              <tr key={u.id}><td>{u.username}</td><td>{lang === "ar" ? (u.name_ar || u.name_en) : (u.name_en || u.name_ar) || "—"}</td>
+                <td>{u.role}</td><td><StatusChip s={u.is_active ? "active" : "revoked"} t={t} /></td></tr>))}
+            </tbody></table>
+        </Panel>
+      )}
       <Panel title={t.audit}>
         {denied ? <Empty text={t.err} /> : audit.length === 0 ? <Empty text={t.empty} /> : (
           <table className="dt"><thead><tr><th>{t.decreeDate}</th><th>{t.by}</th><th>{t.actions}</th><th>{t.member}</th></tr></thead>
