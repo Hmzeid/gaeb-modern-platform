@@ -104,3 +104,19 @@ added inside the existing integration E2E test (suite size unchanged).
 - **R-UX-8** Keyboard-only completion of the governed flows was not
   formally tested (criterion 6 partial): focus styles, aria labels,
   `aria-live` regions and Esc handling are in place by construction.
+
+## Certification update (2026-11-13)
+
+The Enterprise UI Quality Certification (docs/ui-certification/)
+closed several residuals above:
+
+- R-UX-1 (no frontend tests) — CLOSED: Vitest 27/27 + browser E2E 25/25.
+- R-UX-2 (partial screenshot matrix) — CLOSED: full 88-shot matrices,
+  audit and final, both filed under docs/ui-certification/.
+- R-UX-4 (ECharts in entry path) — CLOSED: entry JS 1,306 KB → 208 KB.
+- R-UX-5 (schematic geography) — CLOSED: OCHA COD-AB choropleth.
+- R-UX-6 (Latin percent in Arabic gauge) — CLOSED: locale formatter.
+- R-UX-7 (200-row cap) — STILL OPEN: tracked as R-C-3 in the
+  certification's VISUAL_ACCEPTANCE_REPORT.md.
+- R-UX-8 (keyboard testing) — PARTIALLY CLOSED: axe scans + structure
+  fixes; residuals R-A-1…R-A-4 in ACCESSIBILITY_REPORT.md.

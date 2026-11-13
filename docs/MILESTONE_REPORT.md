@@ -359,3 +359,21 @@ declared in docs/ux-redesign/IMPLEMENTATION_NOTES.md; acceptance scoring
 in docs/ux-redesign/ACCEPTANCE_CRITERIA.md. No gate changed: CI/Docker
 still BLOCKED/NOT VERIFIED on the same owner credential action; business
 equivalence, UAT and production authorization unchanged.
+
+## Addendum 13 — Enterprise UI Quality Certification (2026-11-13)
+
+Executed against the directive of 2026-11-13 01:03 CT. Screen-by-screen
+audit (88 captures, EN/AR × 4 viewports) produced 15 findings, all
+corrected and re-verified: responsive shell, OCHA COD-AB choropleth
+(CC BY-IGO) replacing the schematic geo view, certificate/estimate
+detail drawers on two additive endpoints, admin user directory,
+approvals mode/status contract fix, WCAG AA contrast corrections
+(axe: zero critical/serious on scanned views), an exact-decimal
+display defect in the money formatter caught by the new test suite,
+and Arabic label completion enforced by dictionary-parity tests.
+Frontend testing now exists: Vitest 27/27, browser E2E 25/25, backend
+suite unchanged at 65/65. Entry JS reduced 1,306 KB → 208 KB. Full
+evidence: docs/ui-certification/ (9 documents, 176 matrix screenshots,
+verification captures). Gates 1–14 assessed in VISUAL_ACCEPTANCE_REPORT.md;
+recommendation: accept with tracked residuals. CI/Docker remain blocked
+on the owner's GitHub workflow-scope grant — unchanged.
