@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAEB — Concept C · Hybrid Enterprise</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="echarts.min.js"></script>
+<style>
+:root{--bg:#eef1f6;--panel:#fff;--line:#dde3ec;--line2:#c9d2e0;--ink:#16233c;--ink2:#4d5f7d;--ink3:#8494ad;
+--navy:#0d2242;--navy2:#123058;--teal:#0e7a6d;--teal-b:#2dd4bf;--blue:#0a5cad;--amber:#b97a0e;--red:#b3261e;--green:#177245;--radius:9px}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 "Inter","IBM Plex Sans Arabic",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+[dir="rtl"] body{font-family:"IBM Plex Sans Arabic","Inter",system-ui,sans-serif}
+button{font:inherit;cursor:pointer}
+.topbar{background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 20px;height:54px;position:sticky;top:0;z-index:6}
+.mark{width:31px;height:31px;border-radius:7px;background:linear-gradient(135deg,#0d2242,#0e7a6d);display:grid;place-items:center;font-weight:800;color:#fff}
+.topbar b{font-size:15px}
+.topbar nav{display:flex;gap:2px;margin-inline-start:14px}
+.topbar nav a{padding:7px 12px;border-radius:7px;color:var(--ink2);font-weight:500;font-size:13.5px;text-decoration:none}
+.topbar nav a.on{background:#e8f1fb;color:var(--blue);font-weight:600}
+.topbar .sp{margin-inline-start:auto;display:flex;gap:10px;align-items:center}
+.chip{border:1px solid #d9b45c;color:#8a5a00;background:#fdf6e0;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:700}
+.main{max-width:1500px;margin:0 auto;padding:18px 22px 30px}
+.view{display:none;flex-direction:column;gap:14px}.view.on{display:flex}
+/* executive band */
+.exec{background:linear-gradient(120deg,var(--navy),var(--navy2) 60%,#0d3b34);border-radius:12px;color:#e8eefb;padding:18px 20px 14px}
+.exec .eh{display:flex;align-items:baseline;gap:12px}
+.exec h2{margin:0;font-size:16px}
+.exec .eh .hint{color:#93a9cf;font-size:12.5px}
+.exec .eh .more{margin-inline-start:auto;color:var(--teal-b);font-size:12.5px;font-weight:600}
+.exec-grid{display:grid;grid-template-columns:repeat(4,1fr) 1.4fr;gap:14px;margin-top:12px}
+.ekpi{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:12px 14px}
+.ekpi .lab{font-size:11.5px;color:#a9bcdf;font-weight:600}
+.ekpi .val{font-size:23px;font-weight:800;margin-top:2px}
+.ekpi .val small{font-size:12px;color:#93a9cf;font-weight:600}
+.ekpi .d{font-size:12px;color:#a9bcdf}.up{color:#3ecf8e}.warn{color:#ffcf87}
+.echart{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:8px 10px;height:118px}
+/* workspace */
+.ws-h{display:flex;align-items:center;gap:12px;margin-top:2px}
+.ws-h h2{font-size:16.5px;margin:0}
+.ws-h .tabs{display:flex;gap:4px;margin-inline-start:8px}
+.ws-h .tabs button{border:1px solid var(--line2);background:#fff;border-radius:20px;padding:5px 13px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.ws-h .tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.ws-h .acts{margin-inline-start:auto;display:flex;gap:8px}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:7px;padding:7px 14px;font-weight:600;font-size:13px}
+.btn.sec{background:#fff;border:1px solid var(--line2);color:var(--ink)}
+.btn.teal{background:var(--teal)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px;min-width:0}
+.card h3{margin:0;font-size:13.5px}
+.card .ph{display:flex;align-items:baseline;gap:10px;margin-bottom:9px}
+.card .ph .hint{color:var(--ink3);font-size:12px}.card .ph .more{margin-inline-start:auto;color:var(--blue);font-weight:600;font-size:12.5px}
+.s4{grid-column:span 4}.s5{grid-column:span 5}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
+.chart{height:215px}.chart.sm{height:185px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:start;color:var(--ink3);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;padding:8px;border-bottom:2px solid var(--line);font-weight:600}
+td{padding:9px 8px;border-bottom:1px solid #edf1f6;vertical-align:middle}
+tr.sel td{background:#eef6ff}
+.num{text-align:end;font-variant-numeric:tabular-nums}.money{font-variant-numeric:tabular-nums;font-weight:600}
+.st{font-size:11.5px;font-weight:700;border-radius:20px;padding:2.5px 9px;white-space:nowrap}
+.st.ok{background:#e5f4ec;color:var(--green)}.st.warn{background:#fdf3dd;color:#8a5a00}.st.info{background:#e8f1fb;color:var(--blue)}.st.bad{background:#fbe9e7;color:var(--red)}
+.queue{display:flex;flex-direction:column}
+.q{display:flex;gap:11px;align-items:center;padding:9px 2px;border-bottom:1px solid #edf1f6}
+.q:last-child{border:0}.q .t{font-weight:600;font-size:13px}.q .s{color:var(--ink3);font-size:12px}
+.q .end{margin-inline-start:auto;display:flex;gap:6px}
+.kv{display:grid;grid-template-columns:118px 1fr;gap:6px 12px;font-size:13px}
+.kv dt{color:var(--ink3)}.kv dd{margin:0;font-weight:500}
+.insp-h{display:flex;align-items:baseline;gap:9px}
+.prog{height:6px;background:#e6ebf2;border-radius:4px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--teal);border-radius:4px}
+.foot-note{color:var(--ink3);font-size:12px;text-align:center}
+@media(max-width:1100px){.exec-grid{grid-template-columns:repeat(2,1fr)}.s4,.s5,.s7,.s8{grid-column:span 12}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="mark">G</div><b data-i="brand">GAEB Platform</b>
+  <nav>
+    <a href="#" class="on" data-view="dash" data-i="nHome">Home</a>
+    <a href="#" data-view="map" data-i="nMap">School Map</a>
+    <a href="#" data-i="nTenders">Tenders</a>
+    <a href="#" data-i="nCerts">Certificates</a>
+    <a href="#" data-i="nMig">Migration</a>
+    <a href="#" data-i="nReports">Reports</a>
+  </nav>
+  <div class="sp"><span class="chip" data-i="demo">DEMONSTRATION DATA</span><span style="font-size:12.5px;color:var(--ink2)">EN / ع</span><span style="font-weight:600">H. Abdelwahab</span></div>
+</header>
+
+<div class="main">
+  <!-- ══════ VIEW: HYBRID HOME ══════ -->
+  <section class="view on" id="view-dash">
+    <div class="exec">
+      <div class="eh"><h2 data-i="eTitle">Executive summary</h2><span class="hint" data-i="eHint">National portfolio · FY 2026/27 · leadership view — every figure drills down</span><span class="more" data-i="eMore">Full command center →</span></div>
+      <div class="exec-grid">
+        <div class="ekpi"><div class="lab" data-i="k1">Building portfolio</div><div class="val">24,318</div><div class="d"><span class="up">▲ 312</span> <span data-i="k1d">this year</span></div></div>
+        <div class="ekpi"><div class="lab" data-i="k2">Budget execution</div><div class="val">68.4<small>%</small></div><div class="d" data-i="k2d">EGP 3.30B of 4.82B</div></div>
+        <div class="ekpi"><div class="lab" data-i="k3">Certificates pipeline</div><div class="val">EGP 912<small>M</small></div><div class="d"><span class="warn">38</span> <span data-i="k3d">awaiting certification</span></div></div>
+        <div class="ekpi"><div class="lab" data-i="k4">Approvals & risk</div><div class="val">23</div><div class="d"><span class="warn">5</span> <span data-i="k4d">overdue · 4 open exceptions</span></div></div>
+        <div class="echart" id="ch-exec"></div>
+      </div>
+    </div>
+
+    <div class="ws-h"><h2 data-i="wTitle">Operations workspace</h2>
+      <div class="tabs"><button class="on" data-i="tab1">My queues</button><button data-i="tab2">Deadlines</button><button data-i="tab3">Migration</button></div>
+      <div class="acts"><button class="btn sec" data-i="wExp">Export</button><button class="btn" data-i="wNew">+ New record</button></div>
+    </div>
+
+    <div class="grid">
+      <div class="card s7"><div class="ph"><h3 data-i="q1">Approvals queue</h3><span class="hint" data-i="q1h">Yours first, then your directorate</span><span class="more" data-i="qOpen">Open inbox →</span></div>
+        <div class="queue">
+          <div class="q"><div><div class="t" data-i="a1">Certificate CERT-8812 — certify → bill</div><div class="s">El Nile Primary · EGP 1,187,500.00 · 11 days</div></div><div class="end"><button class="btn teal" data-i="approve">Approve</button><button class="btn sec" data-i="open">Open</button></div></div>
+          <div class="q"><div><div class="t" data-i="a2">Tender award T-1039 — EGP 8.4M</div><div class="s" data-i="a2s">Evaluation complete · committee signed</div></div><div class="end"><button class="btn sec" data-i="open2">Open</button></div></div>
+          <div class="q"><div><div class="t" data-i="a3">Mapping approval — PBYTENDR (customer data)</div><div class="s" data-i="a3s">Evidence attached · hash verified</div></div><div class="end"><button class="btn sec" data-i="open3">Open</button></div></div>
+          <div class="q"><div><div class="t" data-i="a4">Estimate EST-339 rev. 2 — review</div><div class="s" data-i="a4s">Returned once for correction</div></div><div class="end"><button class="btn sec" data-i="open4">Open</button></div></div>
+        </div></div>
+
+      <div class="card s5"><div class="ph"><h3 data-i="c1">Tender stages</h3><span class="hint">146 <span data-i="c1h">active</span></span></div><div class="chart sm" id="ch-stages"></div></div>
+
+      <div class="card s12"><div class="ph"><h3 data-i="t1">Recent activity across modules</h3><span class="hint" data-i="t1h">Audit-backed · click any row to open the record</span></div>
+        <table><thead><tr><th data-i="thT">Time</th><th data-i="thM">Module</th><th data-i="thR">Record</th><th data-i="thA">Action</th><th data-i="thU">User</th><th data-i="thS">Status</th></tr></thead><tbody>
+          <tr><td>09:41</td><td data-i="m1">Certificates</td><td class="money">CERT-8812</td><td data-i="ac1">Certified</td><td>m.adel</td><td><span class="st ok">OK</span></td></tr>
+          <tr><td>09:17</td><td data-i="m2">Tenders</td><td class="money">T-1042</td><td data-i="ac2">Advanced to evaluation</td><td>s.hassan</td><td><span class="st info" data-i="sFlow">Workflow</span></td></tr>
+          <tr><td>08:52</td><td data-i="m3">Migration</td><td class="money">mig-9f31</td><td data-i="ac3">Chunk committed · 1,000 records</td><td>system</td><td><span class="st info">ETL</span></td></tr>
+          <tr><td>08:30</td><td data-i="m4">Estimates</td><td class="money">EST-341</td><td data-i="ac4">Created from catalogue</td><td>r.samy</td><td><span class="st warn" data-i="sDraft">Draft</span></td></tr>
+        </tbody></table></div>
+    </div>
+    <div class="foot-note" data-i="foot">Concept C — Hybrid Enterprise · Synthetic demonstration data only. Leadership sees the same numbers the operators work on — one data model, two altitudes.</div>
+  </section>
+
+  <!-- ══════ VIEW: SCHOOL MAP MODULE ══════ -->
+  <section class="view" id="view-map">
+    <div class="ws-h"><h2 data-i="mTitle">School Map — building registry</h2><span style="color:var(--ink2);font-size:13px">24,318 <span data-i="mSub">buildings · the shared foundation of all six subsystems</span></span>
+      <div class="acts"><button class="btn sec" data-i="mExp">Export</button><button class="btn" data-i="mNew">+ New building</button></div></div>
+    <div class="grid">
+      <div class="card s4"><div class="ph"><h3 data-i="gTitle">Distribution by governorate</h3><span class="hint" data-i="gHint">Top regions</span></div><div class="chart" id="ch-gov"></div>
+        <div class="ph" style="margin-top:4px"><h3 data-i="gQ">Data quality</h3></div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:12.5px">
+          <div><div style="display:flex;justify-content:space-between"><span data-i="dq1">Arabic name present</span><b>98.1%</b></div><div class="prog"><i style="width:98%"></i></div></div>
+          <div><div style="display:flex;justify-content:space-between"><span data-i="dq2">Village code resolved</span><b>96.4%</b></div><div class="prog"><i style="width:96%"></i></div></div>
+          <div><div style="display:flex;justify-content:space-between"><span data-i="dq3">Migrated & reconciled</span><b>71.0%</b></div><div class="prog"><i style="width:71%;background:var(--blue)"></i></div></div>
+        </div></div>
+
+      <div class="card s8"><div class="ph"><h3 data-i="bTitle">Buildings</h3><span class="hint" data-i="bHint">Filters: governorate · stage · status · legacy code</span><span class="more" data-i="bAdv">Advanced search</span></div>
+        <table><thead><tr><th data-i="cCode">Legacy code</th><th data-i="cName">Name (AR)</th><th data-i="cGov">Governorate</th><th data-i="cStage">Stage</th><th data-i="cStatus">Migration</th><th></th></tr></thead><tbody>
+          <tr class="sel"><td class="money">1000001</td><td>مدرسة النيل الابتدائية</td><td data-i="gv1">Cairo</td><td data-i="stPri">Primary</td><td><span class="st ok" data-i="msR">Reconciled</span></td><td><button class="btn sec" data-i="insp">Inspect</button></td></tr>
+          <tr><td class="money">1000002</td><td>مدرسة النصر الابتدائية</td><td data-i="gv2">Cairo</td><td data-i="stPri2">Primary</td><td><span class="st ok" data-i="msR2">Reconciled</span></td><td><button class="btn sec" data-i="insp2">Inspect</button></td></tr>
+          <tr><td class="money">1000003</td><td>مدرسة السلام الإعدادية</td><td data-i="gv3">Giza</td><td data-i="stPrep">Preparatory</td><td><span class="st warn" data-i="msQ">Quarantined</span></td><td><button class="btn sec" data-i="insp3">Inspect</button></td></tr>
+          <tr><td class="money">1000004</td><td>مدرسة النور الثانوية</td><td data-i="gv4">Alexandria</td><td data-i="stSec">Secondary</td><td><span class="st ok" data-i="msR3">Reconciled</span></td><td><button class="btn sec" data-i="insp4">Inspect</button></td></tr>
+          <tr><td class="money">1000005</td><td>مدرسة الأمل الابتدائية</td><td data-i="gv5">Cairo</td><td data-i="stPri3">Primary</td><td><span class="st info" data-i="msS">Staged</span></td><td><button class="btn sec" data-i="insp5">Inspect</button></td></tr>
+        </tbody></table>
+
+        <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
+          <div class="insp-h"><h3 style="margin:0">1000001 · مدرسة النيل الابتدائية</h3><span class="st ok" data-i="iTag">Reconciled · batch mig-6730</span><span style="margin-inline-start:auto"><button class="btn" data-i="iOpen">Open full record</button></span></div>
+          <dl class="kv" style="margin-top:10px">
+            <dt data-i="i1">Governorate</dt><dd data-i="i1v">Cairo · village 7654321 · El Nile district</dd>
+            <dt data-i="i2">Areas</dt><dd data-i="i2v">Plot 2,400 m² · built 1,800 m²</dd>
+            <dt data-i="i3">Linked records</dt><dd data-i="i3v">3 tenders · 5 certificates · 2 estimates · 1 budget line</dd>
+            <dt data-i="i4">Lineage</dt><dd data-i="i4v">PBLBULDG offset 0 · IBM 420 Arabic preserved byte-exact</dd>
+          </dl>
+          <div class="foot-note" style="text-align:start;margin-top:6px" data-i="iNote">Inspector pattern: selecting a row opens its record in place — lineage, linked modules and governed actions without losing the list.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const AR = {
+brand:"منصة الهيئة", nHome:"الرئيسية", nMap:"الخريطة المدرسية", nTenders:"المناقصات", nCerts:"المستخلصات", nMig:"الترحيل", nReports:"التقارير", demo:"بيانات تجريبية",
+eTitle:"الملخص التنفيذي", eHint:"المحفظة الوطنية · السنة المالية 2026/27 · عرض القيادة — كل رقم قابل للتفصيل", eMore:"مركز القيادة الكامل ←",
+k1:"محفظة المباني", k1d:"هذا العام", k2:"تنفيذ الموازنة", k2d:"٣٫٣٠ مليار من ٤٫٨٢ مليار جنيه",
+k3:"خط أنابيب المستخلصات", k3d:"بانتظار الاعتماد", k4:"الاعتمادات والمخاطر", k4d:"متأخرة · ٤ استثناءات مفتوحة",
+wTitle:"مساحة العمليات", tab1:"قوائمي", tab2:"المواعيد", tab3:"الترحيل", wExp:"تصدير", wNew:"+ سجل جديد",
+q1:"قائمة الاعتمادات", q1h:"لك أولاً، ثم إدارتك", qOpen:"فتح الصندوق ←",
+a1:"مستخلص CERT-8812 — اعتماد ← فوترة", a2:"ترسية مناقصة T-1039 — ٨٫٤ مليون جنيه", a2s:"اكتمل التقييم · وقّعت اللجنة",
+a3:"اعتماد تخطيط — PBYTENDR (بيانات عميل)", a3s:"الدليل مرفق · تم التحقق من البصمة",
+a4:"مقايسة EST-339 مراجعة ٢ — مراجعة", a4s:"أُعيدت مرة للتصحيح",
+approve:"اعتماد", open:"فتح", open2:"فتح", open3:"فتح", open4:"فتح",
+c1:"مراحل المناقصات", c1h:"نشطة",
+t1:"النشاط الأخير عبر الوحدات", t1h:"مدعوم بالتدقيق · انقر أي صف لفتح السجل",
+thT:"الوقت", thM:"الوحدة", thR:"السجل", thA:"الإجراء", thU:"المستخدم", thS:"الحالة",
+m1:"المستخلصات", m2:"المناقصات", m3:"الترحيل", m4:"المقايسات", ac1:"اعتُمد", ac2:"تقدّم إلى التقييم", ac3:"ثُبّتت دفعة · ١٠٠٠ سجل", ac4:"أُنشئت من الكتالوج", sFlow:"سير عمل", sDraft:"مسودة",
+foot:"المفهوم ج — مؤسسة هجينة · بيانات تجريبية اصطناعية فقط. ترى القيادة نفس الأرقام التي يعمل عليها المشغلون — نموذج بيانات واحد، ومستويان من الارتفاع.",
+mTitle:"الخريطة المدرسية — سجل المباني", mSub:"مبنى · الأساس المشترك للأنظمة الفرعية الستة", mExp:"تصدير", mNew:"+ مبنى جديد",
+gTitle:"التوزيع حسب المحافظة", gHint:"أهم المناطق", gQ:"جودة البيانات", dq1:"الاسم العربي موجود", dq2:"كود القرية محسوم", dq3:"رُحّل وتمت مطابقته",
+bTitle:"المباني", bHint:"مرشحات: المحافظة · المرحلة · الحالة · الكود القديم", bAdv:"بحث متقدم",
+cCode:"الكود القديم", cName:"الاسم (عربي)", cGov:"المحافظة", cStage:"المرحلة", cStatus:"الترحيل",
+gv1:"القاهرة", gv2:"القاهرة", gv3:"الجيزة", gv4:"الإسكندرية", gv5:"القاهرة",
+stPri:"ابتدائية", stPri2:"ابتدائية", stPri3:"ابتدائية", stPrep:"إعدادية", stSec:"ثانوية",
+msR:"مطابق", msR2:"مطابق", msR3:"مطابق", msQ:"معزول", msS:"مُرحّل مؤقتاً",
+insp:"فحص", insp2:"فحص", insp3:"فحص", insp4:"فحص", insp5:"فحص",
+iTag:"مطابق · دفعة mig-6730", iOpen:"فتح السجل الكامل", i1:"المحافظة", i1v:"القاهرة · قرية 7654321 · حي النيل",
+i2:"المساحات", i2v:"الأرض ٢٤٠٠ م² · المبني ١٨٠٠ م²", i3:"سجلات مرتبطة", i3v:"٣ مناقصات · ٥ مستخلصات · مقايستان · بند موازنة",
+i4:"النسب", i4v:"PBLBULDG إزاحة ٠ · العربية IBM 420 محفوظة بلا تغيير", iNote:"نمط الفاحص: تحديد صف يفتح سجله في مكانه — النسب والوحدات المرتبطة والإجراءات المحكومة دون فقدان القائمة."};
+const q = new URLSearchParams(location.search);
+const lang = q.get("lang") || "en";
+if (lang === "ar") {
+  document.documentElement.lang = "ar"; document.documentElement.dir = "rtl";
+  document.querySelectorAll("[data-i]").forEach(el => { const k = el.dataset.i; if (AR[k]) el.innerHTML = AR[k]; });
+}
+if (q.get("view") === "map") {
+  document.getElementById("view-dash").classList.remove("on");
+  document.getElementById("view-map").classList.add("on");
+}
+document.querySelectorAll("[data-view]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.querySelectorAll(".topbar nav a").forEach(x => x.classList.remove("on"));
+  a.classList.add("on");
+  document.getElementById("view-" + a.dataset.view).classList.add("on");
+  window.scrollTo(0, 0);
+  setTimeout(drawCharts, 60);
+}));
+function drawCharts(){
+  if (!window.echarts) return;
+  const ex = document.getElementById("ch-exec");
+  if (ex && !ex.dataset.done) { ex.dataset.done = 1;
+    echarts.init(ex).setOption({ grid:{left:2,right:2,top:16,bottom:0,containLabel:true},
+      xAxis:{type:"category",data:["Q1","Q2","Q3","Q4"],axisLabel:{color:"#93a9cf",fontSize:10},axisLine:{lineStyle:{color:"#33507e"}}},
+      yAxis:{show:false},
+      series:[{type:"bar",data:[64,71,68,74],itemStyle:{color:"#2dd4bf",borderRadius:[3,3,0,0]},barWidth:"46%",label:{show:true,position:"top",color:"#a9bcdf",fontSize:10,formatter:"{c}%"}}],
+      tooltip:{show:false} }); }
+  const st = document.getElementById("ch-stages");
+  if (st && !st.dataset.done) { st.dataset.done = 1;
+    echarts.init(st).setOption({ grid:{left:8,right:14,top:2,bottom:0,containLabel:true},
+      xAxis:{type:"value",splitLine:{lineStyle:{color:"#e6ebf2"}},axisLabel:{color:"#8494ad"}},
+      yAxis:{type:"category",inverse:true,axisLabel:{color:"#4d5f7d"},axisLine:{show:false},
+        data: lang==="ar"?["معلنة","مستندات","عروض","تقييم","ترسية"]:["Announced","Documents","Offers","Evaluation","Award"]},
+      series:[{type:"bar",data:[41,33,29,26,17],itemStyle:{color:"#0a5cad",borderRadius:[0,4,4,0]},barWidth:"55%",label:{show:true,position: lang==="ar"?"left":"right",color:"#4d5f7d"}}], tooltip:{} }); }
+  const gv = document.getElementById("ch-gov");
+  if (gv && !gv.dataset.done) { gv.dataset.done = 1;
+    echarts.init(gv).setOption({ tooltip:{trigger:"item"},
+      series:[{type:"pie",radius:["52%","78%"],center:["50%","54%"],label:{color:"#4d5f7d",fontSize:11.5,formatter:"{b}\n{c}"},
+        itemStyle:{borderColor:"#fff",borderWidth:2},
+        data:[{value:5840,name:lang==="ar"?"القاهرة الكبرى":"Greater Cairo"},{value:6215,name:lang==="ar"?"الدلتا":"Nile Delta"},{value:5480,name:lang==="ar"?"صعيد مصر":"Upper Egypt"},{value:2970,name:lang==="ar"?"الإسكندرية":"Alexandria"},{value:3808,name:lang==="ar"?"أخرى":"Other"}],
+        color:["#0a5cad","#0e7a6d","#5ea8ff","#f5b14c","#c9d2e0"]}] }); }
+}
+drawCharts();
+</script>
+</body>
+</html>

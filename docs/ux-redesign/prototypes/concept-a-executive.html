@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAEB — Concept A · Executive Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="echarts.min.js"></script>
+<style>
+:root{
+  --bg:#0a1120; --bg2:#0d1526; --panel:#111c31; --panel2:#0f1930; --line:#1e2c47; --line2:#27395c;
+  --ink:#e8eefb; --ink2:#9fb0cf; --ink3:#64779c; --teal:#2dd4bf; --teal-d:#0d9488;
+  --amber:#f5b14c; --red:#f26d6d; --green:#3ecf8e; --blue:#5ea8ff; --violet:#9a8cff;
+  --chip:#16233c; --radius:10px;
+}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 "Inter","IBM Plex Sans Arabic",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+[dir="rtl"] body{font-family:"IBM Plex Sans Arabic","Inter",system-ui,sans-serif}
+a{color:inherit;text-decoration:none} button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.app{display:grid;grid-template-columns:216px 1fr;min-height:100vh}
+/* ── Rail ─────────────────────────── */
+.rail{background:linear-gradient(180deg,#0c1428,#0a1120);border-inline-end:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh}
+.brand{display:flex;gap:10px;align-items:center;padding:2px 8px 16px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#134e4a,#0d9488);display:grid;place-items:center;font-weight:800;color:#d9fff8;font-size:15px}
+.brand b{font-size:14.5px;letter-spacing:.2px;display:block}
+.brand span{font-size:11px;color:var(--ink3)}
+.nav-h{font-size:10.5px;letter-spacing:.14em;color:var(--ink3);text-transform:uppercase;padding:12px 10px 5px}
+.nav a{display:flex;align-items:center;gap:10px;padding:7.5px 10px;border-radius:8px;color:var(--ink2);font-weight:500;font-size:13.5px}
+.nav a svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none}
+.nav a.on{background:#152540;color:#fff;box-shadow:inset 2.5px 0 0 var(--teal)}
+[dir="rtl"] .nav a.on{box-shadow:inset -2.5px 0 0 var(--teal)}
+.nav a .bdg{margin-inline-start:auto;background:#3b2f14;color:var(--amber);font-size:11px;font-weight:700;border-radius:20px;padding:0 7px}
+.rail .foot{margin-top:auto;border-top:1px solid var(--line);padding-top:12px;color:var(--ink3);font-size:12px;padding-inline:10px}
+/* ── Main ─────────────────────────── */
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:5;background:rgba(10,17,32,.88);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:11px 22px}
+.topbar h1{font-size:16.5px;margin:0;font-weight:700}
+.topbar .sub{color:var(--ink3);font-size:12.5px}
+.search{margin-inline-start:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;color:var(--ink3);width:250px;display:flex;gap:8px;align-items:center;font-size:13px}
+.pill{border:1px solid var(--line2);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--ink2);font-weight:600}
+.pill.demo{border-color:#5c4513;color:var(--amber);background:#241b08}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#0d9488);display:grid;place-items:center;font-weight:700;font-size:12.5px;color:#fff}
+.content{padding:20px 22px 30px;display:flex;flex-direction:column;gap:16px;max-width:1560px;width:100%;margin:0 auto}
+.view{display:none;flex-direction:column;gap:16px}.view.on{display:flex}
+/* ── KPI band ─────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.kpi{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px 11px;min-width:0}
+.kpi .lab{font-size:11.5px;color:var(--ink2);font-weight:600;letter-spacing:.02em;display:flex;justify-content:space-between;gap:6px}
+.kpi .val{font-size:25px;font-weight:800;letter-spacing:-.01em;margin-top:3px}
+.kpi .val small{font-size:12.5px;color:var(--ink3);font-weight:600}
+.kpi .delta{font-size:12px;margin-top:2px;color:var(--ink3)}
+.up{color:var(--green)} .down{color:var(--red)} .warn{color:var(--amber)}
+.kpi .spark{height:26px;margin-top:6px}
+/* ── Panels ───────────────────────── */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px;min-width:0}
+.panel h3{margin:0;font-size:13.5px;font-weight:700}
+.panel .ph{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.panel .ph .hint{color:var(--ink3);font-size:12px}
+.panel .ph .more{margin-inline-start:auto;color:var(--teal);font-size:12.5px;font-weight:600}
+.chart{height:238px}.chart.sm{height:196px}
+.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
+/* lists */
+.rows{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:11px;padding:8.5px 2px;border-bottom:1px solid #16233c}
+.row:last-child{border-bottom:0}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.row .t{font-weight:600;font-size:13px}
+.row .s{color:var(--ink3);font-size:12px}
+.row .end{margin-inline-start:auto;text-align:end}
+.tag{font-size:11px;font-weight:700;border-radius:5px;padding:2px 7px;letter-spacing:.02em}
+.tag.red{background:#3a1620;color:#ff9d9d}.tag.amber{background:#3a2c10;color:#ffcf87}.tag.teal{background:#0b3532;color:#5eead4}.tag.blue{background:#152c4d;color:#9cc8ff}.tag.slate{background:#1d2a44;color:#a9bcdf}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:var(--ink3);font-weight:600;text-align:start;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;padding:7px 8px;border-bottom:1px solid var(--line2)}
+td{padding:8.5px 8px;border-bottom:1px solid #16233c;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.num{text-align:end;font-variant-numeric:tabular-nums}
+.money{font-variant-numeric:tabular-nums;font-weight:600}
+.prog{height:6px;background:#1a2947;border-radius:4px;overflow:hidden;min-width:90px}
+.prog i{display:block;height:100%;background:var(--teal);border-radius:4px}
+.btn{background:var(--teal-d);color:#eafffb;font-weight:600;border-radius:8px;padding:7px 13px;font-size:13px}
+.btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--ink2)}
+.foot-note{color:var(--ink3);font-size:12px;text-align:center;padding:4px}
+.drawer-note{background:#0c1a2e;border:1px solid var(--line2);border-radius:8px;padding:11px 14px;color:var(--ink2);font-size:12.5px}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.s4,.s5,.s6,.s7,.s8{grid-column:span 12}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ═══ RAIL ═══ -->
+  <aside class="rail">
+    <div class="brand"><div class="mark">G</div><div><b data-i="brand">GAEB Platform</b><span data-i="brandSub">Educational Buildings</span></div></div>
+    <nav class="nav">
+      <div class="nav-h" data-i="nExec">Executive</div>
+      <a href="#" class="on" data-view="dash"><svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg><span data-i="nDash">Command Center</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15v-4m4 4V8m4 7v-6"/></svg><span data-i="nReports">Reports & Analytics</span></a>
+      <div class="nav-h" data-i="nOps">Operations</div>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span data-i="nMap">School Map</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v10m3-8.5c-.6-1-1.7-1.5-3-1.5-1.8 0-3 1-3 2.4 0 3.4 6 1.8 6 4.7 0 1.4-1.3 2.4-3 2.4-1.4 0-2.6-.6-3.2-1.6"/></svg><span data-i="nBudget">Budget</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM9 12h7M9 16h7M9 8h3"/></svg><span data-i="nTenders">Tenders & Contracts</span></a>
+      <a href="#" data-view="certs"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5 2a8 8 0 11-2.3-5.6"/></svg><span data-i="nCerts">Payment Certificates</span><span class="bdg">23</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 20V9m6 11V4m6 16v-9"/></svg><span data-i="nEst">Estimates & BOQ</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M12 21s-7-5.5-7-11a7 7 0 1114 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg><span data-i="nRE">Real Estate</span></a>
+      <div class="nav-h" data-i="nGov">Governance</div>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M8 7h13M8 12h13M8 17h13M3.5 7h.01M3.5 12h.01M3.5 17h.01"/></svg><span data-i="nMig">Migration Center</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4 21c1.4-3.6 4.4-5.4 8-5.4s6.6 1.8 8 5.4"/></svg><span data-i="nAdmin">Administration</span></a>
+    </nav>
+    <div class="foot" data-i="railFoot">Ministry of Education<br>General Authority for Educational Buildings</div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <div class="main">
+    <header class="topbar">
+      <div><h1 data-i="pageTitle">Executive Command Center</h1><div class="sub" data-i="pageSub">National portfolio · Fiscal year 2026/27 · Updated 12 Nov 2026, 21:04</div></div>
+      <div class="search">⌕ <span data-i="search">Search buildings, tenders, certificates…</span></div>
+      <span class="pill demo" data-i="demo">DEMONSTRATION DATA</span>
+      <span class="pill">EN / ع</span>
+      <div class="avatar">HA</div>
+    </header>
+
+    <div class="content">
+      <!-- ══════ VIEW: DASHBOARD ══════ -->
+      <section class="view on" id="view-dash">
+        <div class="kpis">
+          <div class="kpi"><div class="lab"><span data-i="k1">Building portfolio</span></div><div class="val">24,318</div><div class="delta"><span class="up">▲ 312</span> <span data-i="k1d">added this year</span></div><div class="spark" id="sp1"></div></div>
+          <div class="kpi"><div class="lab"><span data-i="k2">Budget execution</span></div><div class="val">68.4<small>%</small></div><div class="delta"><span data-i="k2d">EGP 3.30B of 4.82B allocated</span></div><div class="spark" id="sp2"></div></div>
+          <div class="kpi"><div class="lab"><span data-i="k3">Active tenders</span></div><div class="val">146</div><div class="delta"><span class="up">▲ 12</span> <span data-i="k3d">vs last quarter · EGP 2.1B value</span></div><div class="spark" id="sp3"></div></div>
+          <div class="kpi"><div class="lab"><span data-i="k4">Certificates in pipeline</span></div><div class="val">EGP 912<small>M</small></div><div class="delta"><span class="warn">● 38</span> <span data-i="k4d">awaiting certification</span></div><div class="spark" id="sp4"></div></div>
+          <div class="kpi"><div class="lab"><span data-i="k5">Pending approvals</span></div><div class="val">23</div><div class="delta"><span class="down">● 5</span> <span data-i="k5d">overdue beyond SLA</span></div><div class="spark" id="sp5"></div></div>
+          <div class="kpi"><div class="lab"><span data-i="k6">Migration health</span></div><div class="val">96.2<small>%</small></div><div class="delta"><span data-i="k6d">reconciled · 1.8% quarantined</span></div><div class="spark" id="sp6"></div></div>
+        </div>
+
+        <div class="grid">
+          <div class="panel s8"><div class="ph"><h3 data-i="c1">Budget execution by quarter</h3><span class="hint" data-i="c1h">Allocated vs certified vs paid · EGP millions</span><span class="more" data-i="drill">Drill down →</span></div><div class="chart" id="ch-budget"></div></div>
+          <div class="panel s4"><div class="ph"><h3 data-i="c2">Portfolio by region</h3><span class="hint" data-i="c2h">Buildings</span></div><div class="chart" id="ch-region"></div></div>
+
+          <div class="panel s4"><div class="ph"><h3 data-i="c3">Certificate pipeline</h3><span class="hint" data-i="c3h">By workflow stage</span></div><div class="chart sm" id="ch-pipe"></div>
+            <div class="rows">
+              <div class="row"><span class="dot" style="background:var(--amber)"></span><div><div class="t" data-i="r1">38 certificates awaiting certification</div><div class="s" data-i="r1s">Oldest: 11 days · Technical Abstracts</div></div><div class="end"><span class="tag amber" data-i="r1t">Action</span></div></div>
+              <div class="row"><span class="dot" style="background:var(--red)"></span><div><div class="t" data-i="r2">5 payments blocked — missing reference</div><div class="s" data-i="r2s">Separation-of-duties rule enforced</div></div><div class="end"><span class="tag red" data-i="r2t">Blocked</span></div></div>
+            </div></div>
+
+          <div class="panel s4"><div class="ph"><h3 data-i="c4">Risk & exceptions</h3><span class="hint" data-i="c4h">Live rules engine</span></div>
+            <div class="rows">
+              <div class="row"><span class="dot" style="background:var(--red)"></span><div><div class="t" data-i="x1">Tender deadline breach risk</div><div class="s">T-1042 · <span data-i="x1s">5-day rule check fails in 2 days</span></div></div><div class="end"><span class="tag red">High</span></div></div>
+              <div class="row"><span class="dot" style="background:var(--amber)"></span><div><div class="t" data-i="x2">Budget line at 94% utilization</div><div class="s">Cairo · <span data-i="x2s">New construction</span></div></div><div class="end"><span class="tag amber">Med</span></div></div>
+              <div class="row"><span class="dot" style="background:var(--amber)"></span><div><div class="t" data-i="x3">214 migrated records quarantined</div><div class="s">PBLBULDG · <span data-i="x3s">duplicate legacy keys</span></div></div><div class="end"><span class="tag amber">Med</span></div></div>
+              <div class="row"><span class="dot" style="background:var(--blue)"></span><div><div class="t" data-i="x4">Expropriation case awaiting decree</div><div class="s">RE-2210 · <span data-i="x4s">ministerial decision pending 34 days</span></div></div><div class="end"><span class="tag blue">Info</span></div></div>
+              <div class="row"><span class="dot" style="background:var(--teal)"></span><div><div class="t" data-i="x5">Reconciliation passed — batch mig-9f31</div><div class="s">506,209 <span data-i="x5s">records · zero variance</span></div></div><div class="end"><span class="tag teal">OK</span></div></div>
+            </div></div>
+
+          <div class="panel s4"><div class="ph"><h3 data-i="c5">Pending approvals</h3><span class="hint">23</span><span class="more" data-i="openQueue">Open queue →</span></div>
+            <div class="rows">
+              <div class="row"><div><div class="t" data-i="a1">Certificate CERT-8812 · EGP 1.19M</div><div class="s" data-i="a1s">El Nile Primary · certify → bill</div></div><div class="end"><button class="btn" data-i="approve">Approve</button></div></div>
+              <div class="row"><div><div class="t" data-i="a2">Mapping approval — PBYTENDR</div><div class="s" data-i="a2s">Customer data · evidence attached</div></div><div class="end"><button class="btn ghost" data-i="review">Review</button></div></div>
+              <div class="row"><div><div class="t" data-i="a3">Estimate EST-339 · revision 2</div><div class="s" data-i="a3s">Returned for correction once</div></div><div class="end"><button class="btn ghost" data-i="review2">Review</button></div></div>
+              <div class="row"><div><div class="t" data-i="a4">Tender award — T-1039</div><div class="s" data-i="a4s">Evaluation complete · EGP 8.4M</div></div><div class="end"><button class="btn ghost" data-i="review3">Review</button></div></div>
+            </div></div>
+
+          <div class="panel s7"><div class="ph"><h3 data-i="c6">Recent operational activity</h3><span class="hint" data-i="c6h">Immutable audit trail</span></div>
+            <table><thead><tr><th data-i="tTime">Time</th><th data-i="tActor">Actor</th><th data-i="tAction">Action</th><th data-i="tObj">Object</th><th></th></tr></thead><tbody>
+              <tr><td>20:41</td><td>m.adel</td><td data-i="ac1">Certificate certified</td><td>CERT-8812 · El Nile Primary</td><td><span class="tag teal">OK</span></td></tr>
+              <tr><td>20:17</td><td>system</td><td data-i="ac2">Import chunk committed</td><td>mig-9f31 · 1,000 records</td><td><span class="tag slate">ETL</span></td></tr>
+              <tr><td>19:52</td><td>s.hassan</td><td data-i="ac3">Tender advanced to evaluation</td><td>T-1042 · Salam School renovation</td><td><span class="tag blue">Flow</span></td></tr>
+              <tr><td>19:20</td><td>a.fouad</td><td data-i="ac4">Mapping approval revoked</td><td>REMV01PF · superseded definition</td><td><span class="tag amber">Gov</span></td></tr>
+              <tr><td>18:47</td><td>system</td><td data-i="ac5">Nightly backup verified</td><td data-i="ac5o">pg_dump restore · 18/18 tables</td><td><span class="tag teal">OK</span></td></tr>
+            </tbody></table></div>
+
+          <div class="panel s5"><div class="ph"><h3 data-i="c7">Migration coverage</h3><span class="hint" data-i="c7h">502 legacy objects</span></div><div class="chart sm" id="ch-mig"></div>
+            <div class="drawer-note" data-i="migNote">Staging is an evidence store: every record carries its batch, byte offset and raw bytes. Transforms run only under identity-bound approvals.</div></div>
+        </div>
+        <div class="foot-note" data-i="foot">Concept A — Executive Intelligence · All figures are clearly-labeled synthetic demonstration data shaped from the platform's real data model. Final build binds every widget to live APIs.</div>
+      </section>
+
+      <!-- ══════ VIEW: CERTIFICATES MODULE ══════ -->
+      <section class="view" id="view-certs">
+        <div class="grid">
+          <div class="panel s12"><div class="ph"><h3 data-i="mTitle">Payment Certificates — workspace</h3><span class="hint" data-i="mHint">Draft → Certified → Billed → Payment authorized → Paid · certifier cannot authorize payment</span><span class="more"><button class="btn" data-i="mNew">+ New certificate</button></span></div>
+            <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+              <div class="kpi"><div class="lab"><span data-i="mk1">In pipeline</span></div><div class="val">EGP 912M</div><div class="delta">214 <span data-i="mk1d">certificates</span></div></div>
+              <div class="kpi"><div class="lab"><span data-i="mk2">Certified this month</span></div><div class="val">EGP 148M</div><div class="delta"><span class="up">▲ 9.2%</span></div></div>
+              <div class="kpi"><div class="lab"><span data-i="mk3">Avg. cycle time</span></div><div class="val">6.3 <small data-i="days">days</small></div><div class="delta"><span class="up">▼ 1.1</span> <span data-i="mk3d">vs last quarter</span></div></div>
+              <div class="kpi"><div class="lab"><span data-i="mk4">Deductions applied</span></div><div class="val">EGP 41M</div><div class="delta" data-i="mk4d">Typed deduction kinds only</div></div>
+              <div class="kpi"><div class="lab"><span data-i="mk5">Blocked</span></div><div class="val">5</div><div class="delta"><span class="down" data-i="mk5d">Missing payment reference</span></div></div>
+            </div>
+          </div>
+          <div class="panel s12"><div class="ph"><h3 data-i="mTable">Certificates</h3><span class="hint" data-i="mFilters">Filters: status · building · contractor · value range · date</span><span class="more" data-i="mExport">Export CSV</span></div>
+            <table><thead><tr><th>Certificate</th><th data-i="thB">Building</th><th data-i="thK">Kind</th><th data-i="thS">Status</th><th class="num" data-i="thG">Gross (EGP)</th><th class="num" data-i="thD">Deductions</th><th class="num" data-i="thN">Net (EGP)</th><th data-i="thA">Action</th></tr></thead><tbody>
+              <tr><td class="money">CERT-8812</td><td>مدرسة النيل الابتدائية · El Nile Primary</td><td data-i="kCons">Construction</td><td><span class="tag amber" data-i="sCert">Certified</span></td><td class="num money">1,250,000.00</td><td class="num money">62,500.00</td><td class="num money">1,187,500.00</td><td><button class="btn" data-i="adv1">Advance → billed</button></td></tr>
+              <tr><td class="money">CERT-8811</td><td>مدرسة السلام الإعدادية · El Salam Prep</td><td data-i="kMaint">Maintenance</td><td><span class="tag blue" data-i="sDraft">Draft</span></td><td class="num money">384,200.00</td><td class="num money">19,210.00</td><td class="num money">364,990.00</td><td><button class="btn ghost" data-i="certify">Certify</button></td></tr>
+              <tr><td class="money">CERT-8807</td><td>مدرسة النور الثانوية · El Nour Secondary</td><td data-i="kCons2">Construction</td><td><span class="tag teal" data-i="sPaid">Paid</span></td><td class="num money">2,940,000.00</td><td class="num money">147,000.00</td><td class="num money">2,793,000.00</td><td><span class="s" style="color:var(--ink3)">REF-2026-551</span></td></tr>
+              <tr><td class="money">CERT-8805</td><td>مدرسة الأمل الابتدائية · El Amal Primary</td><td data-i="kCons3">Construction</td><td><span class="tag red" data-i="sBlocked">Blocked</span></td><td class="num money">711,850.00</td><td class="num money">35,592.50</td><td class="num money">676,257.50</td><td><button class="btn ghost" data-i="resolve">Resolve</button></td></tr>
+              <tr><td class="money">CERT-8799</td><td>مدرسة النصر الابتدائية · El Nasr Primary</td><td data-i="kMaint2">Maintenance</td><td><span class="tag slate" data-i="sBilled">Billed</span></td><td class="num money">529,400.00</td><td class="num money">26,470.00</td><td class="num money">502,930.00</td><td><button class="btn ghost" data-i="authorize">Authorize payment</button></td></tr>
+            </tbody></table>
+            <div class="foot-note" data-i="mNote">Exact-decimal arithmetic end to end — values formatted for display, never rounded in storage. Every transition is audit-logged with actor and timestamp.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const AR = {
+brand:"منصة الهيئة", brandSub:"الأبنية التعليمية", nExec:"القيادة التنفيذية", nDash:"مركز القيادة", nReports:"التقارير والتحليلات",
+nOps:"العمليات", nMap:"الخريطة المدرسية", nBudget:"الموازنة", nTenders:"المناقصات والعقود", nCerts:"المستخلصات", nEst:"المقايسات", nRE:"الملكية العقارية",
+nGov:"الحوكمة", nMig:"مركز الترحيل", nAdmin:"الإدارة", railFoot:"وزارة التربية والتعليم<br>الهيئة العامة للأبنية التعليمية",
+pageTitle:"مركز القيادة التنفيذي", pageSub:"المحفظة الوطنية · السنة المالية 2026/27 · آخر تحديث 12 نوفمبر 2026",
+search:"ابحث في المباني والمناقصات والمستخلصات…", demo:"بيانات تجريبية",
+k1:"محفظة المباني", k1d:"أُضيفت هذا العام", k2:"تنفيذ الموازنة", k2d:"٣٫٣٠ مليار من ٤٫٨٢ مليار جنيه مخصصات",
+k3:"المناقصات النشطة", k3d:"مقابل الربع الماضي · بقيمة ٢٫١ مليار جنيه", k4:"مستخلصات قيد التنفيذ", k4d:"بانتظار الاعتماد",
+k5:"اعتمادات معلقة", k5d:"تجاوزت مدة الانتظار المسموحة", k6:"سلامة الترحيل", k6d:"تمت مطابقتها · ١٫٨٪ معزولة",
+c1:"تنفيذ الموازنة ربع السنوي", c1h:"المخصص مقابل المعتمد مقابل المدفوع · مليون جنيه", drill:"تفصيل ←",
+c2:"المحفظة حسب المنطقة", c2h:"مبنى", c3:"خط أنابيب المستخلصات", c3h:"حسب مرحلة سير العمل",
+r1:"٣٨ مستخلصاً بانتظار الاعتماد", r1s:"الأقدم: ١١ يوماً · المستخلصات الفنية", r1t:"إجراء",
+r2:"٥ مدفوعات محظورة — مرجع مفقود", r2s:"قاعدة الفصل بين المهام مطبقة", r2t:"محظور",
+c4:"المخاطر والاستثناءات", c4h:"محرك قواعد مباشر", x1:"خطر تجاوز موعد مناقصة", x1s:"يفشل فحص قاعدة الأيام الخمسة خلال يومين",
+x2:"بند موازنة عند ٩٤٪ استخدام", x2s:"إنشاءات جديدة", x3:"٢١٤ سجلاً مرحّلاً معزولاً", x3s:"مفاتيح قديمة مكررة",
+x4:"قضية نزع ملكية بانتظار القرار", x4s:"قرار وزاري معلق منذ ٣٤ يوماً", x5:"نجحت مطابقة الدفعة mig-9f31", x5s:"سجل · صفر تباين",
+c5:"الاعتمادات المعلقة", openQueue:"فتح القائمة ←", a1:"مستخلص CERT-8812 · ١٫١٩ مليون جنيه", a1s:"النيل الابتدائية · اعتماد ← فوترة",
+approve:"اعتماد", a2:"اعتماد تخطيط — PBYTENDR", a2s:"بيانات عميل · مرفق الدليل", review:"مراجعة", review2:"مراجعة", review3:"مراجعة",
+a3:"مقايسة EST-339 · مراجعة ٢", a3s:"أُعيدت للتصحيح مرة واحدة", a4:"ترسية مناقصة — T-1039", a4s:"اكتمل التقييم · ٨٫٤ مليون جنيه",
+c6:"النشاط التشغيلي الأخير", c6h:"سجل تدقيق غير قابل للتعديل", tTime:"الوقت", tActor:"الفاعل", tAction:"الإجراء", tObj:"العنصر",
+ac1:"اعتُمد مستخلص", ac2:"ثُبّتت دفعة استيراد", ac3:"تقدّمت مناقصة إلى التقييم", ac4:"أُلغي اعتماد تخطيط", ac5:"تم التحقق من النسخة الاحتياطية الليلية", ac5o:"استعادة pg_dump · ١٨/١٨ جدولاً",
+c7:"تغطية الترحيل", c7h:"٥٠٢ عنصر قديم", migNote:"المستودع المؤقت مخزن أدلة: كل سجل يحمل دفعته وإزاحته وبايتاته الخام. لا تعمل التحويلات إلا باعتمادات مرتبطة بالهوية.",
+foot:"المفهوم أ — ذكاء تنفيذي · جميع الأرقام بيانات تجريبية اصطناعية موسومة بوضوح ومبنية على نموذج بيانات المنصة الحقيقي. النسخة النهائية تربط كل عنصر بواجهات برمجة حقيقية.",
+mTitle:"المستخلصات — مساحة العمل", mHint:"مسودة ← معتمد ← مفوتر ← مدفوع مصرح ← مدفوع · لا يستطيع المعتمِد التصريح بالدفع",
+mNew:"+ مستخلص جديد", mk1:"قيد التنفيذ", mk1d:"مستخلصاً", mk2:"اعتُمد هذا الشهر", mk3:"متوسط دورة الإنجاز", days:"أيام", mk3d:"مقابل الربع الماضي",
+mk4:"مستقطعات مطبقة", mk4d:"أنواع مستقطعات محددة فقط", mk5:"محظور", mk5d:"مرجع دفع مفقود",
+mTable:"المستخلصات", mFilters:"مرشحات: الحالة · المبنى · المقاول · نطاق القيمة · التاريخ", mExport:"تصدير CSV",
+thB:"المبنى", thK:"النوع", thS:"الحالة", thG:"الإجمالي (جنيه)", thD:"المستقطعات", thN:"الصافي (جنيه)", thA:"إجراء",
+kCons:"إنشاءات", kCons2:"إنشاءات", kCons3:"إنشاءات", kMaint:"صيانة", kMaint2:"صيانة", sCert:"معتمد", sDraft:"مسودة", sPaid:"مدفوع", sBlocked:"محظور", sBilled:"مفوتر",
+adv1:"تقديم ← مفوتر", certify:"اعتماد", resolve:"معالجة", authorize:"التصريح بالدفع",
+mNote:"حساب عشري دقيق من الطرف إلى الطرف — تُنسّق القيم للعرض ولا تُقرّب في التخزين. كل انتقال مسجل في سجل التدقيق بالفاعل والوقت."};
+const q = new URLSearchParams(location.search);
+const lang = q.get("lang") || "en";
+if (lang === "ar") {
+  document.documentElement.lang = "ar"; document.documentElement.dir = "rtl";
+  document.querySelectorAll("[data-i]").forEach(el => { const k = el.dataset.i; if (AR[k]) el.innerHTML = AR[k]; });
+}
+if (q.get("view") === "certs") {
+  document.getElementById("view-dash").classList.remove("on");
+  document.getElementById("view-certs").classList.add("on");
+}
+document.querySelectorAll("[data-view]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.querySelectorAll(".nav a").forEach(x => x.classList.remove("on"));
+  a.classList.add("on");
+  document.getElementById("view-" + a.dataset.view).classList.add("on");
+  window.scrollTo(0, 0);
+}));
+const C = { teal:"#2dd4bf", blue:"#5ea8ff", amber:"#f5b14c", red:"#f26d6d", slate:"#64779c", green:"#3ecf8e", grid:"#1c2a47", txt:"#9fb0cf" };
+const base = { textStyle:{ color:C.txt, fontFamily:"inherit" }, grid:{ borderColor:C.grid }, tooltip:{ backgroundColor:"#0f1930", borderColor:"#27395c", textStyle:{ color:"#e8eefb" } } };
+function mk(id, opt){ const el = document.getElementById(id); if (!el || !window.echarts) return; const c = echarts.init(el); c.setOption(Object.assign(JSON.parse(JSON.stringify(base)), opt)); }
+function spark(id, data, color){ mk(id, { grid:{left:0,right:0,top:2,bottom:0}, xAxis:{show:false,type:"category",data:data.map((_,i)=>i)}, yAxis:{show:false}, series:[{type:"line",data,smooth:true,symbol:"none",lineStyle:{color,width:2},areaStyle:{color:color+"33"}}], tooltip:{show:false} }); }
+spark("sp1",[12,14,13,17,19,22,24], C.teal); spark("sp2",[20,32,41,52,61,68], C.blue);
+spark("sp3",[8,10,9,12,13,14], C.green); spark("sp4",[30,34,31,36,38,38], C.amber);
+spark("sp5",[9,12,15,14,18,23], C.red); spark("sp6",[88,90,92,93,95,96], C.teal);
+mk("ch-budget", { legend:{ textStyle:{color:C.txt}, top:0, right:0 }, grid:{left:8,right:8,top:30,bottom:0,containLabel:true},
+  xAxis:{type:"category",data: lang==="ar"?["الربع ١","الربع ٢","الربع ٣","الربع ٤"]:["Q1","Q2","Q3","Q4"], axisLine:{lineStyle:{color:C.grid}}, axisLabel:{color:C.txt}},
+  yAxis:{type:"value", splitLine:{lineStyle:{color:C.grid}}, axisLabel:{color:C.txt}},
+  series:[
+   {name: lang==="ar"?"مخصص":"Allocated", type:"bar", data:[1250,1180,1240,1150], itemStyle:{color:"#2b4470", borderRadius:[4,4,0,0]}, barWidth:"22%"},
+   {name: lang==="ar"?"معتمد":"Certified", type:"bar", data:[910,860,940,590], itemStyle:{color:C.blue, borderRadius:[4,4,0,0]}, barWidth:"22%"},
+   {name: lang==="ar"?"مدفوع":"Paid", type:"bar", data:[820,790,855,410], itemStyle:{color:C.teal, borderRadius:[4,4,0,0]}, barWidth:"22%"} ]});
+mk("ch-region", { grid:{left:8,right:14,top:4,bottom:0,containLabel:true},
+  xAxis:{type:"value", splitLine:{lineStyle:{color:C.grid}}, axisLabel:{color:C.txt}},
+  yAxis:{type:"category", inverse:true, data: lang==="ar"?["القاهرة الكبرى","الدلتا","صعيد مصر","الإسكندرية","القناة وسيناء","البحر الأحمر"]:["Greater Cairo","Nile Delta","Upper Egypt","Alexandria","Canal & Sinai","Red Sea"], axisLabel:{color:C.txt}, axisLine:{show:false}},
+  series:[{type:"bar", data:[5840,6215,5480,2970,2418,1395], itemStyle:{color:C.teal, borderRadius:[0,4,4,0]}, barWidth:"58%", label:{show:true, position: lang==="ar"?"left":"right", color:C.txt, formatter:"{c}"}}]});
+mk("ch-pipe", { tooltip:{trigger:"item", backgroundColor:"#0f1930", borderColor:"#27395c", textStyle:{color:"#e8eefb"}},
+  series:[{type:"funnel", left:"6%", width:"88%", sort:"descending", gap:3, label:{color:"#0a1120", fontWeight:700, fontSize:11.5},
+    itemStyle:{borderColor:"#0a1120", borderWidth:1},
+    data:[{value:214,name:lang==="ar"?"مسودة":"Draft"},{value:151,name:lang==="ar"?"معتمد":"Certified"},{value:118,name:lang==="ar"?"مفوتر":"Billed"},{value:96,name:lang==="ar"?"مصرح":"Authorized"},{value:88,name:lang==="ar"?"مدفوع":"Paid"}],
+    color:["#5ea8ff","#2dd4bf","#3ecf8e","#f5b14c","#9a8cff"]}]});
+mk("ch-mig", { series:[{type:"pie", radius:["58%","82%"], center:["50%","52%"], label:{color:C.txt, fontSize:11.5, formatter:"{b}\n{c}"},
+    itemStyle:{borderColor:"#0a1120", borderWidth:2},
+    data:[{value:30,name:lang==="ar"?"جزئي":"Partial"},{value:472,name:lang==="ar"?"قيد التنفيذ":"In delivery"}], color:[C.amber,"#2b4470"]}],
+  graphic:{elements:[{type:"text", left:"center", top:"44%", style:{text:"502", fill:"#e8eefb", font:"700 21px Inter", textAlign:"center"}}]}});
+</script>
+</body>
+</html>
