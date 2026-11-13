@@ -30,9 +30,9 @@ export type Role = "admin" | "budget" | "contracts" | "technical" | "realestate"
 // registers bids cannot award them. Enforced in workflow.ts transitions, not just the UI.
 export const PERMISSIONS: Record<Role, string[]> = {
   admin: ["*"],
-  budget: ["budget.read", "budget.write", "budget.approve", "payment.authorize", "estimates.approve", "certificates.read", "reports.finance", "migration.approve"],
+  budget: ["budget.read", "budget.write", "budget.approve", "payment.authorize", "estimates.approve", "certificates.read", "reports.finance", "migration.approve", "pilot.evidence.submit", "pilot.evidence.verify"],
   contracts: ["tenders.read", "tenders.write", "bids.register", "claims.write", "reports.procurement"],
-  technical: ["buildings.read", "buildings.write", "certificates.certify", "certificates.read", "estimates.write", "estimates.review", "reports.technical", "migration.run"],
+  technical: ["buildings.read", "buildings.write", "certificates.certify", "certificates.read", "estimates.write", "estimates.review", "reports.technical", "migration.run", "pilot.evidence.submit"],
   realestate: ["realestate.read", "realestate.write", "realestate.approve", "reports.realestate"],
   viewer: ["*.read", "reports.*"],
 };

@@ -25,7 +25,7 @@ export interface StreamOptions {
   onProgress?: (processed: number, total: number) => void;
   /** Test/ops hook invoked after each committed chunk; throwing aborts the import
    *  with all previously committed chunks intact (crash simulation / pause). */
-  afterChunk?: (chunkIndex: number) => void;
+  afterChunk?: (chunkIndex: number) => void | Promise<void>;
 }
 export interface StreamResult { batchId: string; sourceSha256: string; totalRecords: number; resumedFromRecord: number; chunksCommitted: number }
 
@@ -66,7 +66,7 @@ export async function streamImportFile(db: SqlExecutor & { query(t: string, v?: 
       totalRecords, candidates: chunk, parseRejects: chunkRejects,
       sourceTotals: Object.fromEntries(Object.entries(chunkSource).map(([k, v]) => [k, v.toString()])),
       dataClass: opts.dataClass ?? "synthetic", importedByUserId: opts.importedByUserId ?? null });
-    chunks++; opts.afterChunk?.(chunks);
+    chunks++; await opts.afterChunk?.(chunks);
     opts.onProgress?.(processed, totalRecords);
     resetChunk(); chunkStart = processed;
   };

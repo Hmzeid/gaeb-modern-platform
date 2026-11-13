@@ -492,8 +492,13 @@ app.post("/api/migration/preview", requireAuth, requirePerm("migration.run"), ex
   res.json({ preview: records.slice(0, 25).map(r => r.values), ...report });
 });
 app.post("/api/migration/import", requireAuth, requirePerm("migration.run"), express.raw({ type: "application/octet-stream", limit: "64mb" }), async (req, res) => {
-  const gate = await pilotGateError(req.query.dataClass === "customer" ? "customer" : undefined);
-  if (gate) return res.status(422).json({ error: gate });
+  if (req.query.dataClass === "customer") {
+    const { createHash } = await import("node:crypto");
+    const fileSha256 = createHash("sha256").update(req.body as Buffer).digest("hex");
+    const auth = await pilotAuthorization({ datasetKey: String(req.query.dataset ?? ""), fileSha256 });
+    await audit((req as any).session.userId, auth.ok ? "pilot.import.authorized" : "pilot.import.refused", "pilot", auth.pilot ? String(auth.pilot.id) : "none", { dataset: String(req.query.dataset ?? ""), fileSha256, reasons: auth.reasons });
+    if (!auth.ok) return res.status(422).json({ error: `customer-data import refused: ${auth.reasons.join("; ")}` });
+  }
   const entry = MIG_LAYOUTS[String(req.query.layout ?? "pblbuldg")];
   if (!entry) return res.status(400).json({ error: "unknown layout" });
   const client = await pool.connect();
@@ -794,6 +799,11 @@ app.post("/api/migration/transform", requireAuth, requirePerm("migration.run"), 
     const b = await client.query("SELECT data_class FROM mig.batches WHERE batch_id = $1", [batchId]);
     if (!b.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "batch not found" }); }
     const mode = b.rows[0].data_class === "customer" ? "customer" : "demo";
+    if (mode === "customer") {
+      const layoutRow = await client.query("SELECT layout_name FROM mig.batches WHERE batch_id = $1", [batchId]);
+      const auth = await pilotAuthorization({ datasetKey: layoutRow.rows[0]?.layout_name }, client);
+      if (!auth.ok) { await client.query("ROLLBACK"); return res.status(422).json({ error: `transform refused: pilot authorization is not current: ${auth.reasons.join("; ")}` }); }
+    }
     const inserted = await runTransform({ query: (t: string, v?: unknown[]) => client.query(t, v as any) }, spec, batchId, mode);
     await client.query("COMMIT");
     await audit((req as any).session.userId, "migration.transform", spec.name, batchId, { inserted, mode });
@@ -856,14 +866,57 @@ async function verifyAutoCondition(key: string): Promise<{ ok: boolean; detail: 
   }
   return { ok: false, detail: "not an automated condition" };
 }
-async function activePilot() {
-  const r = await pool.query("SELECT id, name FROM app.pilots WHERE status = 'active' ORDER BY id LIMIT 1");
-  return r.rows[0] ?? null;
+type Q = { query(t: string, v?: unknown[]): Promise<any> };
+// Phase 13: continuous authorization. Eligibility is recomputed from CURRENT
+// state on every customer-data operation — verified evidence (unexpired,
+// unrevoked), live automated checks, dataset scope binding — never from the
+// fact that a pilot once activated.
+async function materializeExpiry(pilotId: number, q: Q = pool): Promise<void> {
+  const exp = await q.query("UPDATE app.pilot_evidence SET status = 'EXPIRED' WHERE pilot_id = $1 AND status = 'VERIFIED' AND expires_at IS NOT NULL AND expires_at < now() RETURNING condition_key", [pilotId]);
+  for (const row of exp.rows ?? []) await syncConditionFromEvidence(pilotId, row.condition_key, q);
+}
+async function syncConditionFromEvidence(pilotId: number, key: string, q: Q = pool): Promise<void> {
+  const v = await q.query("SELECT 1 FROM app.pilot_evidence WHERE pilot_id = $1 AND condition_key = $2 AND status = 'VERIFIED' AND (expires_at IS NULL OR expires_at >= now()) LIMIT 1", [pilotId, key]);
+  await q.query("UPDATE app.pilot_conditions SET status = $1, evidence_ref = $2, satisfied_at = CASE WHEN $1 = 'satisfied' THEN now() ELSE satisfied_at END WHERE pilot_id = $3 AND condition_key = $4",
+    [v.rowCount ? "satisfied" : "pending", v.rowCount ? "verified evidence on file" : null, pilotId, key]);
+}
+async function conditionReasons(pilotId: number, q: Q = pool): Promise<string[]> {
+  const reasons: string[] = [];
+  await materializeExpiry(pilotId, q);
+  for (const c of PILOT_CONDITIONS) {
+    if (c.kind === "attestation") {
+      const v = await q.query("SELECT 1 FROM app.pilot_evidence WHERE pilot_id = $1 AND condition_key = $2 AND status = 'VERIFIED' AND (expires_at IS NULL OR expires_at >= now()) LIMIT 1", [pilotId, c.key]);
+      if (!v.rowCount) reasons.push(`condition ${c.key}: no verified evidence`);
+    } else {
+      const chk = await verifyAutoCondition(c.key);
+      if (!chk.ok) reasons.push(`condition ${c.key}: ${chk.detail}`);
+    }
+  }
+  return reasons;
+}
+async function pilotAuthorization(opts: { datasetKey?: string; fileSha256?: string }, q: Q = pool): Promise<{ ok: boolean; reasons: string[]; pilot: any }> {
+  const reasons: string[] = [];
+  const pr = await q.query("SELECT * FROM app.pilots WHERE status IN ('active', 'suspended') ORDER BY id DESC LIMIT 1");
+  const pilot = pr.rows[0] ?? null;
+  if (!pilot) return { ok: false, reasons: ["no active pilot"], pilot: null };
+  if (pilot.status !== "active") reasons.push(`pilot is ${pilot.status}`);
+  reasons.push(...await conditionReasons(pilot.id, q));
+  if (opts.datasetKey !== undefined) {
+    if (!opts.datasetKey) reasons.push("no dataset specified for a customer-data operation");
+    else {
+      const ds = await q.query("SELECT * FROM app.pilot_datasets WHERE pilot_id = $1 AND dataset_key = $2", [pilot.id, opts.datasetKey]);
+      if (!ds.rows.length) reasons.push(`dataset ${opts.datasetKey} is not registered for this pilot`);
+      else if (ds.rows[0].status !== "authorized") reasons.push(`dataset ${opts.datasetKey} is ${ds.rows[0].status}, not authorized`);
+      else if (ds.rows[0].source_sha256 && opts.fileSha256 && ds.rows[0].source_sha256 !== opts.fileSha256) reasons.push("file hash does not match the authorized extract hash (file substitution refused)");
+      else if (ds.rows[0].source_sha256 && !opts.fileSha256 && opts.datasetKey) { /* transform path: batch hash already bound at import */ }
+    }
+  }
+  return { ok: reasons.length === 0, reasons, pilot };
 }
 async function pilotGateError(dataClass: string | undefined): Promise<string | null> {
   if (dataClass !== "customer") return null;
-  const p = await activePilot();
-  return p ? null : "customer-data import refused: no active pilot. Customer data may only enter the platform under an activated pilot (all mandatory activation conditions satisfied).";
+  const a = await pilotAuthorization({});
+  return a.ok ? null : `customer-data import refused: ${a.reasons.join("; ")}`;
 }
 app.get("/api/pilots", requireAuth, requirePerm("migration.run"), async (_req, res) => {
   try {
@@ -895,16 +948,136 @@ app.get("/api/pilots/:id", requireAuth, requirePerm("migration.run"), async (req
     res.json({ ...p.rows[0], conditions: c.rows });
   } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
 });
-app.post("/api/pilots/:id/conditions/:key/attest", requireAuth, requirePerm("*"), async (req, res) => {
-  const spec = PILOT_CONDITIONS.find(c => c.key === req.params.key);
-  if (!spec) return res.status(404).json({ error: "unknown condition" });
-  if (spec.kind !== "attestation") return res.status(400).json({ error: "automated condition — use verify, which checks the live system" });
-  const evidenceRef = String((req.body ?? {}).evidenceRef ?? "").trim();
-  if (!evidenceRef) return res.status(400).json({ error: "an evidence reference (document / signature reference) is required — a bare checkbox is not authorization" });
-  const upd = await pool.query("UPDATE app.pilot_conditions SET status = 'satisfied', evidence_ref = $1, satisfied_by_user_id = $2, satisfied_at = now() WHERE pilot_id = $3 AND condition_key = $4 RETURNING condition_key", [evidenceRef, (req as any).session.userId, req.params.id, req.params.key]);
-  if (!upd.rowCount) return res.status(404).json({ error: "pilot not found" });
-  await audit((req as any).session.userId, "pilot.condition.attest", "pilot", String(req.params.id), { condition: req.params.key, evidenceRef });
-  res.json({ ok: true, condition: req.params.key, status: "satisfied" });
+app.get("/api/pilots/:id/evidence", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  try {
+    await materializeExpiry(Number(req.params.id));
+    const { rows } = await pool.query("SELECT * FROM app.pilot_evidence WHERE pilot_id = $1 ORDER BY id", [req.params.id]);
+    res.json(rows.map(r => ({ ...r, ref: `EV-${r.id}` })));
+  } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
+});
+app.post("/api/pilots/:id/evidence", requireAuth, requirePerm("pilot.evidence.submit"), async (req, res) => {
+  const spec = PILOT_CONDITIONS.find(c => c.key === (req.body ?? {}).conditionKey);
+  if (!spec || spec.kind !== "attestation") return res.status(400).json({ error: "evidence applies to attestation conditions" });
+  const b = req.body ?? {};
+  const ins = await pool.query(`INSERT INTO app.pilot_evidence (pilot_id, condition_key, document_type, signatory, effective_date, expires_at, created_by_user_id)
+    VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`, [req.params.id, spec.key, b.documentType ?? null, b.signatory ?? null, b.effectiveDate ?? null, b.expiresAt ?? null, (req as any).session.userId]);
+  const id = ins.rows[0].id;
+  await audit((req as any).session.userId, "pilot.evidence.create", "pilot", String(req.params.id), { evidenceId: id, condition: spec.key });
+  res.status(201).json({ id, ref: `EV-${id}`, status: "PENDING" });
+});
+app.post("/api/pilots/:id/evidence/:evId/submit", requireAuth, requirePerm("pilot.evidence.submit"), async (req, res) => {
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE id = $1 AND pilot_id = $2", [req.params.evId, req.params.id]);
+  if (!ev.rows.length) return res.status(404).json({ error: "evidence not found" });
+  const e = ev.rows[0];
+  if (e.status !== "PENDING") return res.status(422).json({ error: `evidence is ${e.status}; only PENDING evidence can be submitted` });
+  if (e.created_by_user_id !== (req as any).session.userId && (req as any).session.role !== "admin") return res.status(403).json({ error: "only the evidence creator may submit it" });
+  const documentRef = String((req.body ?? {}).documentRef ?? "").trim();
+  if (!documentRef) return res.status(400).json({ error: "documentRef is required" });
+  const declared = String((req.body ?? {}).docSha256 ?? "").trim();
+  await pool.query("UPDATE app.pilot_evidence SET status = 'SUBMITTED', document_ref = $1, doc_sha256 = $2, hash_status = $3, submitted_by_user_id = $4, submitted_at = now() WHERE id = $5",
+    [documentRef, declared || e.doc_sha256, declared ? "declared-unverified" : e.hash_status, (req as any).session.userId, e.id]);
+  await audit((req as any).session.userId, "pilot.evidence.submit", "pilot", String(req.params.id), { evidenceId: e.id, condition: e.condition_key, hashStatus: declared ? "declared-unverified" : e.hash_status });
+  res.json({ ok: true, status: "SUBMITTED" });
+});
+app.post("/api/pilots/:id/evidence/:evId/document", requireAuth, requirePerm("pilot.evidence.submit"), express.raw({ type: "application/octet-stream", limit: "16mb" }), async (req, res) => {
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE id = $1 AND pilot_id = $2", [req.params.evId, req.params.id]);
+  if (!ev.rows.length) return res.status(404).json({ error: "evidence not found" });
+  const e = ev.rows[0];
+  if (!["PENDING", "SUBMITTED"].includes(e.status)) return res.status(422).json({ error: `document bytes cannot change once evidence is ${e.status}` });
+  const { createHash } = await import("node:crypto");
+  const sha = createHash("sha256").update(req.body as Buffer).digest("hex");
+  await pool.query("UPDATE app.pilot_evidence SET doc_sha256 = $1, hash_status = 'verified-bytes' WHERE id = $2", [sha, e.id]);
+  await audit((req as any).session.userId, "pilot.evidence.document", "pilot", String(req.params.id), { evidenceId: e.id, sha256: sha, bytes: (req.body as Buffer).length });
+  res.json({ ok: true, sha256: sha, hashStatus: "verified-bytes" });
+});
+app.post("/api/pilots/:id/evidence/:evId/verify", requireAuth, requirePerm("pilot.evidence.verify"), async (req, res) => {
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE id = $1 AND pilot_id = $2", [req.params.evId, req.params.id]);
+  if (!ev.rows.length) return res.status(404).json({ error: "evidence not found" });
+  const e = ev.rows[0];
+  const decision = String((req.body ?? {}).decision ?? "");
+  if (!["VERIFIED", "REJECTED"].includes(decision)) return res.status(400).json({ error: "decision must be VERIFIED or REJECTED" });
+  if (e.status !== "SUBMITTED") { await audit((req as any).session.userId, "pilot.evidence.verify.denied", "pilot", String(req.params.id), { evidenceId: e.id, reason: `state ${e.status}` }); return res.status(422).json({ error: `only SUBMITTED evidence can be verified; this evidence is ${e.status}` }); }
+  if (e.submitted_by_user_id === (req as any).session.userId || e.created_by_user_id === (req as any).session.userId) { await audit((req as any).session.userId, "pilot.evidence.verify.denied", "pilot", String(req.params.id), { evidenceId: e.id, reason: "self-verification" }); return res.status(422).json({ error: "separation of duties: the submitter cannot verify their own evidence" }); }
+  if (decision === "VERIFIED") {
+    const old = await pool.query("SELECT id FROM app.pilot_evidence WHERE pilot_id = $1 AND condition_key = $2 AND status = 'VERIFIED' AND id <> $3", [req.params.id, e.condition_key, e.id]);
+    for (const o of old.rows) await pool.query("UPDATE app.pilot_evidence SET status = 'SUPERSEDED' WHERE id = $1", [o.id]);
+    await pool.query("UPDATE app.pilot_evidence SET status = 'VERIFIED', verifier_user_id = $1, verified_at = now(), verification_notes = $2, supersedes_id = $3 WHERE id = $4",
+      [(req as any).session.userId, (req.body ?? {}).notes ?? null, old.rows[0]?.id ?? null, e.id]);
+  } else {
+    await pool.query("UPDATE app.pilot_evidence SET status = 'REJECTED', verifier_user_id = $1, verified_at = now(), verification_notes = $2 WHERE id = $3",
+      [(req as any).session.userId, (req.body ?? {}).notes ?? null, e.id]);
+  }
+  await syncConditionFromEvidence(Number(req.params.id), e.condition_key);
+  await audit((req as any).session.userId, "pilot.evidence.verify", "pilot", String(req.params.id), { evidenceId: e.id, condition: e.condition_key, decision });
+  res.json({ ok: true, status: decision });
+});
+app.post("/api/pilots/:id/evidence/:evId/revoke", requireAuth, requirePerm("pilot.evidence.verify"), async (req, res) => {
+  const reason = String((req.body ?? {}).reason ?? "").trim();
+  if (!reason) return res.status(400).json({ error: "a revocation reason is required" });
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE id = $1 AND pilot_id = $2", [req.params.evId, req.params.id]);
+  if (!ev.rows.length) return res.status(404).json({ error: "evidence not found" });
+  const e = ev.rows[0];
+  if (e.status !== "VERIFIED") return res.status(422).json({ error: `only VERIFIED evidence can be revoked; this evidence is ${e.status}` });
+  await pool.query("UPDATE app.pilot_evidence SET status = 'REVOKED', revocation_reason = $1 WHERE id = $2", [reason, e.id]);
+  await syncConditionFromEvidence(Number(req.params.id), e.condition_key);
+  await audit((req as any).session.userId, "pilot.evidence.revoke", "pilot", String(req.params.id), { evidenceId: e.id, condition: e.condition_key, reason });
+  res.json({ ok: true, status: "REVOKED" });
+});
+app.get("/api/pilots/:id/datasets", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { rows } = await pool.query("SELECT * FROM app.pilot_datasets WHERE pilot_id = $1 ORDER BY id", [req.params.id]);
+  res.json(rows);
+});
+app.post("/api/pilots/:id/datasets", requireAuth, requirePerm("*"), async (req, res) => {
+  const b = req.body ?? {};
+  if (!String(b.datasetKey ?? "").trim()) return res.status(400).json({ error: "datasetKey is required" });
+  try {
+    const ins = await pool.query(`INSERT INTO app.pilot_datasets (pilot_id, dataset_key, source_system, extract_ref, source_sha256, transform_name, registered_by_user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`, [req.params.id, String(b.datasetKey).trim(), b.sourceSystem ?? "IBM i (AS/400) NEWLIBGAEB", b.extractRef ?? null, b.sourceSha256 ?? null, b.transformName ?? null, (req as any).session.userId]);
+    await audit((req as any).session.userId, "pilot.dataset.register", "pilot", String(req.params.id), { datasetId: ins.rows[0].id, datasetKey: String(b.datasetKey).trim() });
+    res.status(201).json({ id: ins.rows[0].id, status: "registered" });
+  } catch (e: any) { res.status(422).json({ error: String(e.message || e) }); }
+});
+app.post("/api/pilots/:id/datasets/:dsId/authorize", requireAuth, requirePerm("*"), async (req, res) => {
+  const v = await pool.query("SELECT 1 FROM app.pilot_evidence WHERE pilot_id = $1 AND condition_key = 'extract_authorization' AND status = 'VERIFIED' AND (expires_at IS NULL OR expires_at >= now()) LIMIT 1", [req.params.id]);
+  if (!v.rowCount) return res.status(422).json({ error: "dataset authorization requires VERIFIED extract-authorization evidence for this pilot" });
+  const upd = await pool.query("UPDATE app.pilot_datasets SET status = 'authorized', authorized_by_user_id = $1, authorized_at = now() WHERE id = $2 AND pilot_id = $3 RETURNING id", [(req as any).session.userId, req.params.dsId, req.params.id]);
+  if (!upd.rowCount) return res.status(404).json({ error: "dataset not found" });
+  await audit((req as any).session.userId, "pilot.dataset.authorize", "pilot", String(req.params.id), { datasetId: Number(req.params.dsId) });
+  res.json({ ok: true, status: "authorized" });
+});
+app.get("/api/pilots/:id/authorization", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const a = await pilotAuthorization({});
+  res.json({ eligible: a.ok, reasons: a.reasons, pilot: a.pilot ? { id: a.pilot.id, status: a.pilot.status } : null });
+});
+app.post("/api/pilots/:id/suspend", requireAuth, requirePerm("*"), async (req, res) => {
+  const reason = String((req.body ?? {}).reason ?? "").trim();
+  if (!reason) return res.status(400).json({ error: "a suspension reason is required" });
+  const upd = await pool.query("UPDATE app.pilots SET status = 'suspended', suspended_by_user_id = $1, suspended_at = now(), suspension_reason = $2 WHERE id = $3 AND status = 'active' RETURNING id", [(req as any).session.userId, reason, req.params.id]);
+  if (!upd.rowCount) return res.status(422).json({ error: "only an active pilot can be suspended" });
+  await audit((req as any).session.userId, "pilot.suspend", "pilot", String(req.params.id), { reason });
+  res.json({ ok: true, status: "suspended" });
+});
+app.post("/api/pilots/:id/reactivate", requireAuth, requirePerm("*"), async (req, res) => {
+  const p = await pool.query("SELECT status FROM app.pilots WHERE id = $1", [req.params.id]);
+  if (!p.rows.length) return res.status(404).json({ error: "pilot not found" });
+  if (p.rows[0].status !== "suspended") return res.status(422).json({ error: `pilot is ${p.rows[0].status}; only a suspended pilot can be reactivated` });
+  // Fresh full evaluation: reactivation never restores a stale authorization.
+  const reasons = await conditionReasons(Number(req.params.id));
+  if (reasons.length) return res.status(422).json({ error: "reactivation refused: mandatory conditions are not currently satisfied", missing: reasons });
+  const upd = await pool.query("UPDATE app.pilots SET status = 'active', suspended_by_user_id = NULL, suspended_at = NULL, suspension_reason = NULL WHERE id = $1 AND status = 'suspended' RETURNING id", [req.params.id]);
+  if (!upd.rowCount) return res.status(422).json({ error: "pilot state changed concurrently" });
+  await audit((req as any).session.userId, "pilot.reactivate", "pilot", String(req.params.id), {});
+  res.json({ ok: true, status: "active" });
+});
+app.get("/api/pilots/:id/audit-export", requireAuth, requirePerm("migration.approve"), async (req, res) => {
+  const p = await pool.query("SELECT * FROM app.pilots WHERE id = $1", [req.params.id]);
+  if (!p.rows.length) return res.status(404).json({ error: "pilot not found" });
+  await materializeExpiry(Number(req.params.id));
+  const conds = await pool.query("SELECT * FROM app.pilot_conditions WHERE pilot_id = $1 ORDER BY condition_key", [req.params.id]);
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE pilot_id = $1 ORDER BY id", [req.params.id]);
+  const ds = await pool.query("SELECT * FROM app.pilot_datasets WHERE pilot_id = $1 ORDER BY id", [req.params.id]);
+  const au = await pool.query("SELECT id, at, user_id, action, entity, entity_id, detail FROM app.audit_log WHERE entity = 'pilot' AND entity_id = $1 ORDER BY id", [String(req.params.id)]);
+  res.json({ generatedAt: new Date().toISOString(), pilot: p.rows[0], conditions: conds.rows, evidence: ev.rows.map(r => ({ ...r, ref: `EV-${r.id}` })), datasets: ds.rows, audit: au.rows });
 });
 app.post("/api/pilots/:id/conditions/:key/verify", requireAuth, requirePerm("*"), async (req, res) => {
   const spec = PILOT_CONDITIONS.find(c => c.key === req.params.key);
@@ -921,14 +1094,10 @@ app.post("/api/pilots/:id/activate", requireAuth, requirePerm("*"), async (req, 
   const p = await pool.query("SELECT status FROM app.pilots WHERE id = $1", [req.params.id]);
   if (!p.rows.length) return res.status(404).json({ error: "pilot not found" });
   if (p.rows[0].status !== "draft") return res.status(422).json({ error: `pilot is ${p.rows[0].status}` });
-  const conds = await pool.query("SELECT condition_key, kind, status FROM app.pilot_conditions WHERE pilot_id = $1", [req.params.id]);
-  const missing: string[] = [];
-  for (const c of conds.rows) {
-    if (c.kind === "auto") { const chk = await verifyAutoCondition(c.condition_key); if (!chk.ok) missing.push(`${c.condition_key} (${chk.detail})`); }
-    else if (c.status !== "satisfied") missing.push(c.condition_key);
-  }
-  if (missing.length) return res.status(422).json({ error: "mandatory activation conditions are not satisfied", missing });
-  await pool.query("UPDATE app.pilots SET status = 'active', activated_by_user_id = $1, activated_at = now() WHERE id = $2", [(req as any).session.userId, req.params.id]);
+  const reasons = await conditionReasons(Number(req.params.id));
+  if (reasons.length) return res.status(422).json({ error: "mandatory activation conditions are not satisfied", missing: reasons });
+  const upd = await pool.query("UPDATE app.pilots SET status = 'active', activated_by_user_id = $1, activated_at = now() WHERE id = $2 AND status = 'draft' RETURNING id", [(req as any).session.userId, req.params.id]);
+  if (!upd.rowCount) return res.status(422).json({ error: "pilot state changed concurrently — activation already applied by another request" });
   await audit((req as any).session.userId, "pilot.activate", "pilot", String(req.params.id), {});
   res.json({ ok: true, status: "active" });
 });
@@ -956,15 +1125,20 @@ app.post("/api/migration/uploads", requireAuth, requirePerm("migration.run"), as
 app.post("/api/migration/uploads/:id/import", requireAuth, requirePerm("migration.run"), async (req, res) => {
   const up = uploads.get(req.params.id);
   if (!up) return res.status(404).json({ error: "upload not found (already imported or expired)" });
-  const gate = await pilotGateError(req.query.dataClass === "customer" ? "customer" : undefined);
-  if (gate) return res.status(422).json({ error: gate });
+  const isCustomer = req.query.dataClass === "customer";
+  if (isCustomer) {
+    const auth = await pilotAuthorization({ datasetKey: String(req.query.dataset ?? ""), fileSha256: up.sha256 });
+    await audit((req as any).session.userId, auth.ok ? "pilot.import.authorized" : "pilot.import.refused", "pilot", auth.pilot ? String(auth.pilot.id) : "none", { dataset: String(req.query.dataset ?? ""), fileSha256: up.sha256, reasons: auth.reasons, path: "stream" });
+    if (!auth.ok) return res.status(422).json({ error: `customer-data import refused: ${auth.reasons.join("; ")}` });
+  }
   const entry = MIG_LAYOUTS[String(req.query.layout ?? "pblbuldg")];
   if (!entry) return res.status(400).json({ error: "unknown layout" });
   const client = await pool.connect();
   try {
     const db = { query: (t: string, v?: unknown[]) => client.query(t, v as any) };
     const r = await streamImportFile(db, up.path, entry.layout, { table: entry.table, layoutName: String(req.query.layout ?? "pblbuldg"),
-      dataClass: req.query.dataClass === "customer" ? "customer" : "synthetic", importedByUserId: (req as any).session.userId });
+      dataClass: isCustomer ? "customer" : "synthetic", importedByUserId: (req as any).session.userId,
+      afterChunk: isCustomer ? async () => { const re = await pilotAuthorization({ datasetKey: String(req.query.dataset ?? ""), fileSha256: up.sha256 }); if (!re.ok) throw new Error(`authorization lost during import — aborted at a chunk boundary; committed chunks remain staged only and cannot be transformed: ${re.reasons.join("; ")}`); } : undefined });
     await audit((req as any).session.userId, "migration.import.stream", r.batchId, "", { totalRecords: r.totalRecords, chunks: r.chunksCommitted });
     if (req.query.retain !== "1") { await unlink(up.path).catch(() => {}); uploads.delete(req.params.id); }
     res.json(r);
