@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T07:36:03.898Z",
+  "at": "2026-11-13T08:35:09.900Z",
   "web": "http://127.0.0.1:5173",
   "results": [
     {
@@ -10,57 +10,57 @@
     {
       "name": "view overview renders",
       "ok": true,
-      "detail": "1836 chars"
+      "detail": "1784 chars"
     },
     {
       "name": "view geo renders",
       "ok": true,
-      "detail": "1072 chars"
+      "detail": "1099 chars"
     },
     {
       "name": "view map renders",
       "ok": true,
-      "detail": "936 chars"
+      "detail": "948 chars"
     },
     {
       "name": "view budget renders",
       "ok": true,
-      "detail": "681 chars"
+      "detail": "689 chars"
     },
     {
       "name": "view tenders renders",
       "ok": true,
-      "detail": "1336 chars"
+      "detail": "1705 chars"
     },
     {
       "name": "view certificates renders",
       "ok": true,
-      "detail": "1004 chars"
+      "detail": "1474 chars"
     },
     {
       "name": "view estimates renders",
       "ok": true,
-      "detail": "778 chars"
+      "detail": "795 chars"
     },
     {
       "name": "view realestate renders",
       "ok": true,
-      "detail": "602 chars"
+      "detail": "615 chars"
     },
     {
       "name": "view reports renders",
       "ok": true,
-      "detail": "802 chars"
+      "detail": "824 chars"
     },
     {
       "name": "view migration renders",
       "ok": true,
-      "detail": "1612 chars"
+      "detail": "1630 chars"
     },
     {
       "name": "view admin renders",
       "ok": true,
-      "detail": "5148 chars"
+      "detail": "5399 chars"
     },
     {
       "name": "tender created via UI",
@@ -75,7 +75,7 @@
     {
       "name": "certificate created via UI",
       "ok": true,
-      "detail": "8 → 9"
+      "detail": "15 → 16"
     },
     {
       "name": "approval created for tenders transform",
@@ -103,24 +103,99 @@
       "detail": "labels render with an em-dash value; server withholds the aggregates (backend suite)"
     },
     {
+      "name": "keyboard: Tab reaches the Tenders rail link",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "keyboard: Enter navigates to Tenders",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "drawer opens for a School Map record",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "drawer closes on Escape (keyboard)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Arabic Migration Center renders localized content",
+      "ok": true,
+      "detail": "dir=rtl"
+    },
+    {
+      "name": "tablet (1024x768): Budget renders",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile (390x844): rail is a full-width top strip",
+      "ok": true,
+      "detail": "{\"railW\":390,\"mainTop\":246.75,\"vw\":390,\"sw\":390}"
+    },
+    {
+      "name": "mobile (390x844): no horizontal page overflow",
+      "ok": true,
+      "detail": "scrollWidth=390"
+    },
+    {
       "name": "axe overview: no critical/serious violations",
       "ok": true,
-      "detail": "[{\"id\":\"heading-order\",\"impact\":\"moderate\",\"nodes\":1},{\"id\":\"region\",\"impact\":\"moderate\",\"nodes\":1}]"
-    },
-    {
-      "name": "axe map: no critical/serious violations",
-      "ok": true,
-      "detail": "[{\"id\":\"heading-order\",\"impact\":\"moderate\",\"nodes\":1},{\"id\":\"region\",\"impact\":\"moderate\",\"nodes\":1}]"
-    },
-    {
-      "name": "axe migration: no critical/serious violations",
-      "ok": true,
-      "detail": "[{\"id\":\"heading-order\",\"impact\":\"moderate\",\"nodes\":1},{\"id\":\"region\",\"impact\":\"moderate\",\"nodes\":1}]"
+      "detail": "[]"
     },
     {
       "name": "axe geo: no critical/serious violations",
       "ok": true,
-      "detail": "[{\"id\":\"region\",\"impact\":\"moderate\",\"nodes\":1}]"
+      "detail": "[]"
+    },
+    {
+      "name": "axe map: no critical/serious violations",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "axe budget: no critical/serious violations",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "axe tenders: no critical/serious violations",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "axe certificates: no critical/serious violations",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "axe estimates: no critical/serious violations",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "axe realestate: no critical/serious violations",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "axe reports: no critical/serious violations",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "axe migration: no critical/serious violations",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "axe admin: no critical/serious violations",
+      "ok": true,
+      "detail": "[]"
     },
     {
       "name": "no uncaught page errors during the whole run",
@@ -129,49 +204,17 @@
     }
   ],
   "axe": {
-    "overview": [
-      {
-        "id": "heading-order",
-        "impact": "moderate",
-        "nodes": 1
-      },
-      {
-        "id": "region",
-        "impact": "moderate",
-        "nodes": 1
-      }
-    ],
-    "map": [
-      {
-        "id": "heading-order",
-        "impact": "moderate",
-        "nodes": 1
-      },
-      {
-        "id": "region",
-        "impact": "moderate",
-        "nodes": 1
-      }
-    ],
-    "migration": [
-      {
-        "id": "heading-order",
-        "impact": "moderate",
-        "nodes": 1
-      },
-      {
-        "id": "region",
-        "impact": "moderate",
-        "nodes": 1
-      }
-    ],
-    "geo": [
-      {
-        "id": "region",
-        "impact": "moderate",
-        "nodes": 1
-      }
-    ]
+    "overview": [],
+    "geo": [],
+    "map": [],
+    "budget": [],
+    "tenders": [],
+    "certificates": [],
+    "estimates": [],
+    "realestate": [],
+    "reports": [],
+    "migration": [],
+    "admin": []
   },
   "pageErrors": []
 }

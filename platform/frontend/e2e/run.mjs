@@ -154,6 +154,79 @@ await page.evaluate(() => {
 });
 await wait(1000);
 await login("admin");
+/* ── 7b. Phase 9: keyboard workflow, Arabic workflow, tablet/mobile nav ── */
+await page.setViewport({ width: 1440, height: 900 });
+await go("overview");
+// Keyboard-only: Tab from the top of the shell to the Tenders rail link, then Enter.
+await page.evaluate(() => { (document.querySelector("main"))?.focus?.(); });
+await page.evaluate(() => window.scrollTo(0, 0));
+let kbOk = false;
+for (let i = 0; i < 40 && !kbOk; i++) {
+  await page.keyboard.press("Tab");
+  kbOk = await page.evaluate(() => {
+    const a = document.activeElement;
+    return !!a && a.tagName === "A" && (a.getAttribute("href") || "").includes("tenders");
+  });
+}
+check("keyboard: Tab reaches the Tenders rail link", kbOk);
+if (kbOk) {
+  await page.keyboard.press("Enter");
+  await wait(900);
+  const onTenders = await page.evaluate(() => location.hash.includes("tenders"));
+  check("keyboard: Enter navigates to Tenders", onTenders);
+}
+// Drawer keyboard contract in the browser: open a School Map record, Esc closes.
+await go("map");
+await wait(700);
+const rowClicked = await page.evaluate(() => {
+  const tr = document.querySelector("table.dt tbody tr");
+  if (tr) { (tr).click(); return true; } return false;
+});
+await wait(600);
+const drawerOpen = await page.evaluate(() => !!document.querySelector("aside.drawer"));
+check("drawer opens for a School Map record", rowClicked && drawerOpen);
+if (drawerOpen) {
+  await page.keyboard.press("Escape");
+  await wait(400);
+  const drawerClosed = await page.evaluate(() => !document.querySelector("aside.drawer"));
+  check("drawer closes on Escape (keyboard)", drawerClosed);
+}
+// Arabic workflow: switch, open Migration Center, expect localized chrome + status labels.
+await page.evaluate(() => {
+  const b = [...document.querySelectorAll("button")].find(x => (x.textContent || "").includes("العربية") || (x.textContent || "").trim() === "العربية");
+  if (b) (b).click();
+});
+await wait(800);
+await go("migration");
+await wait(900);
+const arMig = await page.evaluate(() => ({ text: document.body.innerText, dir: document.documentElement.dir }));
+check("Arabic Migration Center renders localized content", /[\u0600-\u06FF]/.test(arMig.text) && arMig.dir === "rtl", "dir=" + arMig.dir);
+await page.evaluate(() => {
+  const b = [...document.querySelectorAll("button")].find(x => (x.textContent || "").includes("English"));
+  if (b) (b).click();
+});
+await wait(700);
+// Tablet navigation.
+await page.setViewport({ width: 1024, height: 768 });
+await go("budget");
+await wait(700);
+const tabletTxt = await page.evaluate(() => document.body.innerText);
+check("tablet (1024x768): Budget renders", tabletTxt.length > 80 && !tabletTxt.includes("This view failed to render"));
+// Mobile navigation: rail becomes a top strip; content is not clipped by it.
+await page.setViewport({ width: 390, height: 844 });
+await go("tenders");
+await wait(700);
+const mobileGeom = await page.evaluate(() => {
+  const rail = document.querySelector(".rail");
+  const main = document.querySelector("main");
+  return { railW: rail?.getBoundingClientRect().width ?? 0, mainTop: main?.getBoundingClientRect().top ?? 0, vw: window.innerWidth, sw: document.documentElement.scrollWidth };
+});
+check("mobile (390x844): rail is a full-width top strip", mobileGeom.railW >= mobileGeom.vw - 2, JSON.stringify(mobileGeom));
+check("mobile (390x844): no horizontal page overflow", mobileGeom.sw <= mobileGeom.vw + 2, `scrollWidth=${mobileGeom.sw}`);
+await page.setViewport({ width: 1440, height: 900 });
+await go("overview");
+await wait(600);
+
 let axeAvailable = true;
 try {
   const axePath = process.env.AXE_PATH || "/home/hatch/workspace/tools/shots/node_modules/axe-core/axe.min.js";
@@ -161,7 +234,7 @@ try {
 } catch { axeAvailable = false; }
 const axeReport = {};
 if (axeAvailable) {
-  for (const v of ["overview", "map", "migration", "geo"]) {
+  for (const v of VIEWS) {
     await go(v);
     const res = await page.evaluate(async () => {
       const r = await window.axe.run(document, { resultTypes: ["violations"] });
