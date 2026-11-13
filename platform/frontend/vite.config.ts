@@ -1,7 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: { proxy: { "/api": "http://localhost:8080", "/health": "http://localhost:8080" } },
   preview: { port: 5173, host: true, proxy: { "/api": process.env.API_PROXY ?? "http://localhost:8080", "/health": process.env.API_PROXY ?? "http://localhost:8080" } },
 });

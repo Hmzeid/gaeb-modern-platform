@@ -27,5 +27,17 @@ export async function apiRaw<T>(path: string, body: ArrayBuffer): Promise<T> {
   if (!res.ok) { const b = await res.json().catch(() => ({})); throw new Error(b.error || `HTTP ${res.status}`); }
   return res.json() as Promise<T>;
 }
+export interface Overview {
+  counts: { buildings: number; tenders: number; certificates: number; expropriation_cases: number; estimates: number };
+  tendersByStage: { stage: string; n: number }[];
+  certificatesByStatus: { status: string; n: number }[];
+  queues: { certificates_draft: number; estimates_draft: number; approvals_active: number };
+  money: null | {
+    budget: { allocated: string; committed: string; spent: string; available: string };
+    certificates: { gross: string; net: string; paidNet: string };
+  };
+}
+export interface GovBuildings { code: number; name_en: string; name_ar: string; buildings: number }
+
 export interface MigBatch { batch_id: string; layout_name: string; total_records: number; loaded: number; rejected: number; totals: Record<string, string> | null }
 export interface MigReject { id: number; record_offset: number; reason: string; raw_hex: string; resubmitted_batch: string | null }
