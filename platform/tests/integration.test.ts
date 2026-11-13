@@ -373,5 +373,34 @@ async function runE2E(admin: pg.Client) {
     const repText = await (await fetch(`http://127.0.0.1:18099/api/migration/batches/${batchId}/reconciliation/report?format=text`, { headers: { Authorization: `Bearer ${techToken}` } })).text();
     assert.match(repText, /RECONCILIATION REPORT/);
     assert.match(repText, /Business equivalence: PENDING/);
+
+    // --- Phase 9 (A3/E): server-side buildings pagination ---
+    const H = { Authorization: `Bearer ${adminToken}` };
+    const seedRes = await fetch("http://127.0.0.1:18099/api/buildings?limit=200", { headers: H });
+    const seedCount = (await seedRes.json()).length;
+    const pg1 = await (await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=2&sort=id&dir=asc", { headers: H })).json();
+    assert.equal(pg1.total, seedCount, "paged total matches seeded buildings");
+    assert.equal(pg1.rows.length, Math.min(2, seedCount));
+    assert.equal(pg1.pages, Math.max(1, Math.ceil(seedCount / 2)));
+    const pg2 = await (await fetch("http://127.0.0.1:18099/api/buildings?page=2&pageSize=2&sort=id&dir=asc", { headers: H })).json();
+    if (seedCount > 2) assert.ok(pg2.rows[0].id > pg1.rows[pg1.rows.length - 1].id, "pages advance without overlap");
+    const pgDesc = await (await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=2&sort=id&dir=desc", { headers: H })).json();
+    assert.ok(pgDesc.rows[0].id >= pg1.rows[pg1.rows.length - 1].id, "desc ordering reverses the set");
+    const pgGov = await (await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=100&governorate=1", { headers: H })).json();
+    assert.ok(pgGov.rows.every((r: any) => r.governorate_code === 1), "governorate filter is exact");
+    const pgQ = await (await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=100&q=%25", { headers: H })).json();
+    assert.equal(pgQ.total, 0, "wildcard characters in q are escaped, not pattern-matched");
+    const badSort = await fetch("http://127.0.0.1:18099/api/buildings?page=1&sort=id%3BDROP%20TABLE%20app.buildings", { headers: H });
+    assert.equal(badSort.status, 400, "non-whitelisted sort is rejected, never interpolated");
+    const badDir = await fetch("http://127.0.0.1:18099/api/buildings?page=1&dir=sideways", { headers: H });
+    assert.equal(badDir.status, 400);
+    const badPage = await fetch("http://127.0.0.1:18099/api/buildings?page=0", { headers: H });
+    assert.equal(badPage.status, 400);
+    const badSize = await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=5000", { headers: H });
+    assert.equal(badSize.status, 400, "pageSize is capped server-side");
+    const badGov = await fetch("http://127.0.0.1:18099/api/buildings?page=1&governorate=abc", { headers: H });
+    assert.equal(badGov.status, 400);
+    const unauthPg = await fetch("http://127.0.0.1:18099/api/buildings?page=1");
+    assert.equal(unauthPg.status, 401, "paged mode still requires authentication");
   } finally { server.kill(); }
 }

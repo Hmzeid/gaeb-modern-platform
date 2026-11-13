@@ -93,10 +93,53 @@ app.get("/api/governorates", requireAuth, async (_req, res) => {
   const { rows } = await pool.query("SELECT code, name_en, name_ar, regional_center FROM app.governorates ORDER BY code");
   res.json(rows);
 });
+const BUILDING_SORTS: Record<string, string> = {
+  id: "id", name_en: "name_en", name_ar: "name_ar",
+  governorate: "governorate_code", legacy_blcd: "legacy_blcd",
+};
 app.get("/api/buildings", requireAuth, requirePerm("buildings.read"), async (req, res) => {
-  const limit = Math.min(Number(req.query.limit || 50), 200);
-  const { rows } = await pool.query("SELECT * FROM app.buildings ORDER BY id LIMIT $1", [limit]);
-  res.json(rows.map(r => ({ ...r, plot_area: String(r.plot_area), building_area: String(r.building_area) })));
+  const paged = ["page", "pageSize", "q", "governorate", "sort", "dir"].some(k => req.query[k] !== undefined);
+  if (!paged) {
+    const limit = Math.min(Number(req.query.limit || 50), 200);
+    const { rows } = await pool.query("SELECT * FROM app.buildings ORDER BY id LIMIT $1", [limit]);
+    return res.json(rows.map(r => ({ ...r, plot_area: String(r.plot_area), building_area: String(r.building_area) })));
+  }
+  // Phase 9 (A3): server-side pagination. Sort columns and direction are
+  // whitelisted (never interpolated from raw input); all values are
+  // parameterized. Ordering always ends with the primary key so pages
+  // are stable even when many rows share the sort value.
+  const pageRaw = Number(req.query.page ?? 1);
+  const sizeRaw = Number(req.query.pageSize ?? 25);
+  if (!Number.isInteger(pageRaw) || pageRaw < 1) return res.status(400).json({ error: "page must be a positive integer" });
+  if (!Number.isInteger(sizeRaw) || sizeRaw < 1 || sizeRaw > 100) return res.status(400).json({ error: "pageSize must be an integer between 1 and 100" });
+  const sortKey = String(req.query.sort ?? "id");
+  const sortCol = BUILDING_SORTS[sortKey];
+  if (!sortCol) return res.status(400).json({ error: "unsupported sort field" });
+  const dirRaw = String(req.query.dir ?? "asc").toLowerCase();
+  if (dirRaw !== "asc" && dirRaw !== "desc") return res.status(400).json({ error: "dir must be asc or desc" });
+  const where: string[] = [];
+  const params: unknown[] = [];
+  if (req.query.governorate !== undefined && req.query.governorate !== "") {
+    const gov = Number(req.query.governorate);
+    if (!Number.isInteger(gov)) return res.status(400).json({ error: "governorate must be an integer code" });
+    params.push(gov); where.push(`governorate_code = $${params.length}`);
+  }
+  const q = String(req.query.q ?? "").trim();
+  if (q) {
+    const esc = q.replace(/[\\%_]/g, c => "\\" + c);
+    params.push(`%${esc}%`);
+    const p = `$${params.length}`;
+    where.push(`(name_en ILIKE ${p} ESCAPE '\\' OR name_ar ILIKE ${p} ESCAPE '\\' OR legacy_blcd ILIKE ${p} ESCAPE '\\')`);
+  }
+  const wsql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+  const totalRes = await pool.query(`SELECT COUNT(*)::int AS total FROM app.buildings${wsql}`, params);
+  const total = totalRes.rows[0].total as number;
+  const order = sortCol === "id" ? `id ${dirRaw}` : `${sortCol} ${dirRaw} NULLS LAST, id ASC`;
+  const rowsRes = await pool.query(
+    `SELECT * FROM app.buildings${wsql} ORDER BY ${order} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, sizeRaw, (pageRaw - 1) * sizeRaw]);
+  const rows = rowsRes.rows.map(r => ({ ...r, plot_area: String(r.plot_area), building_area: String(r.building_area) }));
+  return res.json({ rows, total, page: pageRaw, pageSize: sizeRaw, pages: Math.max(1, Math.ceil(total / sizeRaw)) });
 });
 app.post("/api/buildings", requireAuth, requirePerm("buildings.write"), async (req, res) => {
   const b = req.body ?? {};
