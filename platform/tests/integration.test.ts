@@ -52,7 +52,7 @@ async function runE2E(admin: pg.Client) {
   const db = { query: (t: string, v?: unknown[]) => admin.query(t, v as any) };
   await admin.query("DROP SCHEMA IF EXISTS app CASCADE; DROP SCHEMA IF EXISTS mig CASCADE; DROP SCHEMA IF EXISTS school_map CASCADE; DROP SCHEMA IF EXISTS purchases CASCADE; DROP SCHEMA IF EXISTS real_estate CASCADE; DROP SCHEMA IF EXISTS abstracts CASCADE");
   const migDir = new URL("../../migrations/", import.meta.url);
-  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql", "006_secure_approvals.sql"])
+  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql", "006_secure_approvals.sql", "007_intake.sql"])
     await admin.query(readFileSync(new URL(f, migDir), "utf8"));
   await admin.query(readFileSync(new URL("../../../migration/reconciled/schema_v2.sql", import.meta.url), "utf8"));
   for (const [u, role] of [["admin1", "admin"], ["tech1", "technical"], ["budget1", "budget"]] as const)
@@ -213,5 +213,56 @@ async function runE2E(admin: pg.Client) {
     assert.equal(okTr.status, 200);
     const events = await admin.query("SELECT COUNT(*)::int n FROM mig.mapping_approval_events WHERE transform_name = 'pblbuldg-to-buildings'");
     assert.ok(events.rows[0].n >= 6, "approval history must be append-only and complete (3 fields x approve/revoke/re-approve)");
+
+    // --- Phase 4: executable reconciliation for the fixture batch ---
+    const recRes = await fetch(`http://127.0.0.1:18099/api/migration/batches/${batchId}/reconciliation`, { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(recRes.status, 200);
+    const rec = await recRes.json();
+    assert.equal(rec.sourceRecords, 5);
+    assert.equal(rec.loadedRecords, 2);
+    assert.equal(rec.quarantinedRecords, 3);
+    assert.equal(rec.duplicateOccurrences, 1);
+    assert.equal(rec.countEquationHolds, true, "source = loaded + quarantined");
+    assert.equal(rec.controlTotals.VGCD, "15308643");
+    assert.equal(rec.sourceTotals.VGCD, "22962964");
+    assert.ok(rec.runs >= 1);
+
+    // --- Phase 4: controlled intake pipeline (no skipped stages, evidence required) ---
+    const reg = await fetch("http://127.0.0.1:18099/api/migration/intake", {
+      method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ member: "PBLBULDG", layoutName: "pblbuldg-native", dataClass: "synthetic" }) });
+    assert.equal(reg.status, 201);
+    const dsId = (await reg.json()).id;
+    const adv = (to: string, evidence?: string) => fetch(`http://127.0.0.1:18099/api/migration/intake/${dsId}/advance`, {
+      method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ to, evidence }) });
+    assert.equal((await adv("verified", "skip attempt")).status, 422, "stages cannot be skipped");
+    assert.equal((await adv("registered")).status, 400, "evidence is mandatory");
+    assert.equal((await adv("registered", "manifest + SHA-256 verified against delivery note")).status, 200);
+    assert.equal((await adv("verified", "layout hash matches registered layout")).status, 200);
+    const budgetIntake = await fetch("http://127.0.0.1:18099/api/migration/intake", {
+      method: "POST", headers: { Authorization: `Bearer ${budgetToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ member: "PBLBULDG" }) });
+    assert.equal(budgetIntake.status, 403, "intake registration requires migration.run");
+
+    // --- Phase 4 (Workstream E): forged identity in an approval body is ignored ---
+    const spoof = await fetch("http://127.0.0.1:18099/api/migration/approvals", {
+      method: "POST", headers: { Authorization: `Bearer ${budgetToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ transform: "tenders", mode: "demo",
+        approvedBy: "admin1", approvedByUserId: 999999, username: "admin1", role: "admin" }) });
+    assert.equal(spoof.status, 200);
+    const budgetRow = await admin.query("SELECT id FROM app.users WHERE username = 'budget1'");
+    const spoofRows = await admin.query(
+      "SELECT DISTINCT approved_by, approved_by_user_id, approved_role FROM mig.mapping_approvals WHERE legacy_member = 'PBYTENDR'");
+    assert.equal(spoofRows.rows.length, 1);
+    assert.equal(spoofRows.rows[0].approved_by, "budget1", "identity comes from the session, never the request body");
+    assert.equal(spoofRows.rows[0].approved_by_user_id, budgetRow.rows[0].id);
+    assert.equal(spoofRows.rows[0].approved_role, "budget");
+
+    // --- Phase 4: audit trail is admin-only ---
+    assert.equal((await fetch("http://127.0.0.1:18099/api/audit", { headers: { Authorization: `Bearer ${techToken}` } })).status, 403);
+    const auditRes = await fetch("http://127.0.0.1:18099/api/audit", { headers: { Authorization: `Bearer ${adminToken}` } });
+    assert.equal(auditRes.status, 200);
+    assert.ok((await auditRes.json()).length > 0);
   } finally { server.kill(); }
 }

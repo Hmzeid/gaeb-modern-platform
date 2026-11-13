@@ -278,6 +278,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 // pipeline on one connection), batches, quarantine, audited reject resubmission,
 // approval-gated transforms, approvals register, legacy inventory.
 import { importFixedWidth, validateLayout, type Layout } from "./migration/engine.js";
+import { computeReconciliation } from "./migration/reconcile.js";
 import { persistImport, loadJobState } from "./migration/load.js";
 import { TRANSFORMS, runTransform } from "./migration/transform.js";
 import { readFileSync as rf2 } from "node:fs";
@@ -317,6 +318,62 @@ app.post("/api/migration/import", requireAuth, requirePerm("migration.run"), exp
   } catch (e: any) { res.status(422).json({ error: String(e.message || e) }); }
   finally { client.release(); }
 });
+/** Executable reconciliation for one batch (Workstream D definitions). */
+app.get("/api/migration/batches/:id/reconciliation", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const rec = await computeReconciliation(pool, req.params.id);
+  if (!rec) return res.status(404).json({ error: "batch not found" });
+  res.json(rec);
+});
+
+const INTAKE_STAGES = ["received", "registered", "verified", "profiled", "mapped", "approved", "imported", "reconciled", "reviewed", "accepted"];
+/** Controlled intake pipeline (Workstream C): register a received dataset, then
+ *  advance it stage by stage. Forward moves of exactly one stage only; 'rejected'
+ *  is reachable from any stage. Every transition is evidenced and audited. */
+app.post("/api/migration/intake", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { member, layoutName, layoutHash, sourceSha256, sizeBytes, batchId, dataClass } = req.body ?? {};
+  if (!member) return res.status(400).json({ error: "member is required" });
+  const ins = await pool.query(
+    `INSERT INTO mig.intake_datasets (member, layout_name, layout_hash, source_sha256, size_bytes, batch_id, data_class, created_by_user_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+    [member, layoutName ?? null, layoutHash ?? null, sourceSha256 ?? null, sizeBytes ?? null, batchId ?? null,
+     dataClass === "synthetic" ? "synthetic" : "customer", (req as any).session.userId]);
+  await pool.query(`INSERT INTO mig.intake_events (dataset_id, from_stage, to_stage, evidence, actor_user_id) VALUES ($1, NULL, 'received', $2, $3)`,
+    [ins.rows[0].id, "dataset received and registered in the intake pipeline", (req as any).session.userId]);
+  await audit((req as any).session.userId, "migration.intake.register", "intake_dataset", String(ins.rows[0].id), { member });
+  res.status(201).json({ id: ins.rows[0].id, stage: "received" });
+});
+app.get("/api/migration/intake", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  const r = await pool.query(
+    `SELECT d.*, u.username AS created_by FROM mig.intake_datasets d JOIN app.users u ON u.id = d.created_by_user_id ORDER BY d.id DESC LIMIT 200`);
+  res.json(r.rows);
+});
+app.post("/api/migration/intake/:id/advance", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { to, evidence } = req.body ?? {};
+  if (!evidence || typeof evidence !== "string") return res.status(400).json({ error: "evidence is required for every stage transition" });
+  const ds = await pool.query(`SELECT stage FROM mig.intake_datasets WHERE id=$1`, [req.params.id]);
+  if (!ds.rows.length) return res.status(404).json({ error: "dataset not found" });
+  const from = ds.rows[0].stage;
+  const okNext = to === "rejected" || INTAKE_STAGES.indexOf(to) === INTAKE_STAGES.indexOf(from) + 1;
+  if (!okNext) return res.status(422).json({ error: `cannot move from ${from} to ${to}: stages advance one step at a time (or to 'rejected')` });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`UPDATE mig.intake_datasets SET stage=$1, updated_at=now() WHERE id=$2`, [to, req.params.id]);
+    await client.query(`INSERT INTO mig.intake_events (dataset_id, from_stage, to_stage, evidence, actor_user_id) VALUES ($1,$2,$3,$4,$5)`,
+      [req.params.id, from, to, evidence, (req as any).session.userId]);
+    await client.query("COMMIT");
+  } catch (e) { await client.query("ROLLBACK"); throw e; } finally { client.release(); }
+  await audit((req as any).session.userId, "migration.intake.advance", "intake_dataset", String(req.params.id), { from, to });
+  res.json({ id: Number(req.params.id), from, to });
+});
+
+/** Audit trail (Workstream F): admin-only, newest first. */
+app.get("/api/audit", requireAuth, requirePerm("*"), async (_req, res) => {
+  const r = await pool.query(
+    `SELECT a.id, a.action, a.entity, a.entity_id, a.detail, a.at, u.username FROM app.audit_log a LEFT JOIN app.users u ON u.id = a.user_id ORDER BY a.id DESC LIMIT 200`);
+  res.json(r.rows);
+});
+
 app.get("/api/migration/batches", requireAuth, requirePerm("migration.run"), async (_req, res) => {
   const r = await pool.query(`SELECT b.batch_id, b.source_file, b.layout_name, b.total_records, b.loaded, b.rejected, b.started_at,
     (SELECT json_object_agg(field || ':' || kind, amount) FROM mig.batch_totals t WHERE t.batch_id = b.batch_id) AS totals
@@ -366,6 +423,8 @@ app.post("/api/migration/approvals", requireAuth, requirePerm("migration.approve
   try {
     await client.query("BEGIN");
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [spec.name]);
+    const who = await client.query("SELECT username FROM app.users WHERE id = $1", [s.userId]);
+    const approverName = who.rows[0]?.username ?? String(s.userId);
     const { transformHash } = await import("./migration/transform.js");
     const hash = transformHash(spec);
     for (const f of spec.fields) {
@@ -375,7 +434,7 @@ app.post("/api/migration/approvals", requireAuth, requirePerm("migration.approve
           approved_by = EXCLUDED.approved_by, approved_by_user_id = EXCLUDED.approved_by_user_id, approved_role = EXCLUDED.approved_role,
           mode = EXCLUDED.mode, status = 'active', evidence_ref = EXCLUDED.evidence_ref, approved_at = now(),
           revoked_by_user_id = NULL, revoked_at = NULL, revoke_reason = NULL`,
-        [spec.legacyMember, f.legacy, f.target, spec.name, hash, s.username ?? String(s.userId), s.userId, s.role, mode, evidence]);
+        [spec.legacyMember, f.legacy, f.target, spec.name, hash, approverName, s.userId, s.role, mode, evidence]);
       await client.query("INSERT INTO mig.mapping_approval_events (transform_name, legacy_member, legacy_field, event, actor_user_id, actor_role, transform_hash, evidence_ref) VALUES ($1,$2,$3,'approved',$4,$5,$6,$7)",
         [spec.name, spec.legacyMember, f.legacy, s.userId, s.role, hash, evidence]);
     }
