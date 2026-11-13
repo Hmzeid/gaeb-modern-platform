@@ -340,3 +340,40 @@ started_at/finished_at) was caught by the E2E, fixed, and the handler
 hardened. Preflight validated at scale: 29MB/500k records in 0.19s. Perf
 regression: 506k @ 5,336 rec/s (P7: 5,416 — noise). Logical restore PASS
 re-executed. SBOM unchanged (no dependency changes).
+
+## Addendum 12 — Enterprise Experience Transformation (Concept D), 2026-11-13
+
+Owner approved Concept D (synthesis of his reference boards) and the
+production frontend was rebuilt on branch `ux-redesign`: navy-rail shell,
+Portfolio Overview + Geographic Intelligence dashboards bound to live
+APIs, all module workspaces redesigned, Migration Center re-skinned with
+function preserved (plus approval create/revoke and import jobs surfaced
+in the UI for the first time). One additive backend endpoint:
+GET /api/overview (counts/queues for all roles; money only with
+reports.finance), covered inside the existing integration E2E — suite
+65/65 pass, 0 skipped, with TEST_DATABASE_URL set. Two defects caught by
+live verification and fixed (overview session-object bug; approvals-table
+crash on fields the list endpoint does not return — StatusChip hardened,
+ErrorBoundary added). Design-system deviations and residuals R-UX-1…8 are
+declared in docs/ux-redesign/IMPLEMENTATION_NOTES.md; acceptance scoring
+in docs/ux-redesign/ACCEPTANCE_CRITERIA.md. No gate changed: CI/Docker
+still BLOCKED/NOT VERIFIED on the same owner credential action; business
+equivalence, UAT and production authorization unchanged.
+
+## Addendum 13 — Enterprise UI Quality Certification (2026-11-13)
+
+Executed against the directive of 2026-11-13 01:03 CT. Screen-by-screen
+audit (88 captures, EN/AR × 4 viewports) produced 15 findings, all
+corrected and re-verified: responsive shell, OCHA COD-AB choropleth
+(CC BY-IGO) replacing the schematic geo view, certificate/estimate
+detail drawers on two additive endpoints, admin user directory,
+approvals mode/status contract fix, WCAG AA contrast corrections
+(axe: zero critical/serious on scanned views), an exact-decimal
+display defect in the money formatter caught by the new test suite,
+and Arabic label completion enforced by dictionary-parity tests.
+Frontend testing now exists: Vitest 27/27, browser E2E 25/25, backend
+suite unchanged at 65/65. Entry JS reduced 1,306 KB → 208 KB. Full
+evidence: docs/ui-certification/ (9 documents, 176 matrix screenshots,
+verification captures). Gates 1–14 assessed in VISUAL_ACCEPTANCE_REPORT.md;
+recommendation: accept with tracked residuals. CI/Docker remain blocked
+on the owner's GitHub workflow-scope grant — unchanged.

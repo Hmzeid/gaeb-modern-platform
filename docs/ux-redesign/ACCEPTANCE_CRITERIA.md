@@ -31,3 +31,34 @@ evidence produced in the verification phase:
    for every screen, filed under `docs/ux-redesign/verification/`.
 10. **Honest residuals**: anything not delivered is listed in a residual
     register with the reason — no silent gaps.
+
+---
+
+## Results — Concept D implementation, 2026-11-13
+
+1. **Regression — MET.** 65/65 pass, 0 skipped, 0 fail with
+   `TEST_DATABASE_URL` set (full integration E2E executed, including new
+   `/api/overview` assertions).
+2. **Function preserved — PARTIAL.** Every pre-redesign action is
+   reachable in the new UI on the same endpoints, and those endpoints
+   are covered by the backend suite; a full click-through browser E2E
+   was not executed (R-UX-2).
+3. **No fake UI — MET.** All figures bind to live endpoints; the two
+   prototype-style header dropdowns were converted to static context
+   labels because no filtering endpoint semantics exist for them.
+4. **Data correctness — MET.** Screenshot figures spot-verified against
+   `/api/overview` responses (counts, EGP 7.27B allocated, EGP 356,445
+   paid net).
+5. **Bilingual parity — PARTIAL.** Overview verified EN + AR + tablet;
+   modules verified EN; Arabic module renders and tablet module renders
+   not captured (R-UX-3).
+6. **Accessibility — PARTIAL.** Focus outlines, aria labels, `aria-live`
+   toasts/monitor, Esc-dismissed drawer in place; keyboard-only flow
+   completion not formally tested (R-UX-8).
+7. **Frontend tests — NOT MET.** None added (R-UX-1).
+8. **Performance sanity — MET (basic).** Chart views code-split via
+   lazy chunks; dashboard fetches run in parallel. ECharts chunk ~1 MB
+   (R-UX-4).
+9. **Before/after record — MET (filed pairs).** Before: `docs/images/`
+   01–12. After: `verification/` n1–n8. Not composited side-by-side.
+10. **Honest residuals — MET.** `IMPLEMENTATION_NOTES.md` R-UX-1…R-UX-8.

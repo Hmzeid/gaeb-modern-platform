@@ -42,3 +42,21 @@ jobs:
       - name: Secret scan
         run: |
           ! grep -rInE "(gho_|ghp_|sk-[A-Za-z0-9]{16,}|BEGIN (RSA|OPENSSH) PRIVATE KEY)" --exclude-dir=node_modules --exclude-dir=.git . || (echo "possible secret found" && exit 1)
+  frontend-tests:
+    # Added by the UI certification (2026-11-13): component tests (Vitest +
+    # Testing Library) run without a browser; the puppeteer E2E suite runs
+    # against the vite preview server with the sandbox Chrome path replaced
+    # by the runner's Chromium (set CHROME_PATH accordingly in the job env
+    # when enabling; axe-core must be vendored or installed for the a11y
+    # section — until then the E2E step is informational, not gating).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Install, typecheck-build, unit tests (frontend)
+        working-directory: platform/frontend
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          npm run build
+          npm test

@@ -4,10 +4,30 @@
   "private": true,
   "type": "module",
   "description": "GAEB Modern Enterprise Platform — standalone web client for the platform API (port in progress: login, dashboard, certificates).",
-  "scripts": { "dev": "vite", "build": "tsc -b && vite build", "preview": "vite preview" },
-  "dependencies": { "react": "^18.3.1", "react-dom": "^18.3.1" },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "echarts": "^6.1.0",
+    "lucide-react": "^1.72.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
   "devDependencies": {
-    "@types/react": "^18.3.3", "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1", "typescript": "^5.6.2", "vite": "^5.4.0"
+    "@tailwindcss/vite": "^4.3.5",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "jsdom": "^26.1.0",
+    "puppeteer-core": "^25.17.0",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.0",
+    "vitest": "^3.2.7"
   }
 }
