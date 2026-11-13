@@ -1,6 +1,9 @@
 # Enterprise Experience Transformation — Concepts for Selection
 
-Status: **AWAITING OWNER SELECTION** (no production frontend code changed).
+Status: **CONCEPT D APPROVED 2026-11-13 AND IMPLEMENTED** on branch
+`ux-redesign` (production frontend rebuilt; see `IMPLEMENTATION_NOTES.md`).
+Verification screenshots: `verification/` (before: `docs/images/`).
+Acceptance scoring: `ACCEPTANCE_CRITERIA.md` results section.
 
 ## Contents
 - `AUDIT.md` — screen-by-screen audit of the current frontend
