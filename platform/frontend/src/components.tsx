@@ -119,16 +119,38 @@ export function SegBar({ parts }: { parts: { pct: number; color: string }[] }) {
 
 /* ── drawer (record inspector) ──────────────────────────────────── */
 export function Drawer({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: ReactNode; children: ReactNode }) {
+  const ref = useRef<HTMLElement | null>(null);
+  const restoreRef = useRef<Element | null>(null);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    if (open) window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (!open) return;
+    restoreRef.current = document.activeElement;
+    const root = ref.current;
+    if (root) {
+      const first = root.querySelector<HTMLElement>("button, [href], input, select, textarea, [tabIndex]:not([tabIndex='-1'])");
+      (first ?? root).focus();
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab" || !ref.current) return;
+      // Focus trap (Phase 9, R-C-1): Tab cycles inside the modal drawer.
+      const items = [...ref.current.querySelectorAll<HTMLElement>("button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabIndex]:not([tabIndex='-1'])")]
+      if (items.length === 0) { e.preventDefault(); ref.current.focus(); return; }
+      const firstEl = items[0], lastEl = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      const prev = restoreRef.current as HTMLElement | null;
+      if (prev && typeof prev.focus === "function") prev.focus();
+    };
   }, [open, onClose]);
   if (!open) return null;
   return (
     <>
       <div className="drawer-bg" onClick={onClose} />
-      <aside className="drawer" role="dialog" aria-modal="true">
+      <aside className="drawer" role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : undefined} ref={ref} tabIndex={-1}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <h3 style={{ margin: 0, fontSize: 15 }}>{title}</h3>
           <button className="btn sec sm" style={{ marginInlineStart: "auto" }} onClick={onClose} aria-label="close">✕</button>

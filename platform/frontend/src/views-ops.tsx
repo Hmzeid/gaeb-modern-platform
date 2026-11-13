@@ -22,35 +22,40 @@ function F({ label, children, w = 170 }: { label: string; children: ReactNode; w
 /* ═══════════════ SCHOOL MAP ═══════════════ */
 export function SchoolMapView(ctx: Ctx & { initialQuery?: string; initialGov?: number | null }) {
   const { t, lang } = ctx;
-  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [rows, setRows] = useState<Building[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
   const [govs, setGovs] = useState<{ code: number; name_en: string; name_ar: string }[]>([]);
   const [q, setQ] = useState(ctx.initialQuery ?? "");
+  const [dq, setDq] = useState(ctx.initialQuery ?? "");
   const [govFilter, setGovFilter] = useState("");
   const [sortKey, setSortKey] = useState<"id" | "name" | "gov">("id");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [page, setPage] = useState(0);
+  const [tick, setTick] = useState(0);
   useEffect(() => { if (ctx.initialGov != null) { setGovFilter(String(ctx.initialGov)); setPage(0); } }, [ctx.initialGov]);
-  useEffect(() => { setPage(0); }, [q, govFilter]);
+  useEffect(() => { if (ctx.initialQuery !== undefined) { setQ(ctx.initialQuery); setDq(ctx.initialQuery); } }, [ctx.initialQuery]);
+  useEffect(() => { const h = setTimeout(() => { setDq(q); setPage(0); }, 300); return () => clearTimeout(h); }, [q]);
+  useEffect(() => { setPage(0); }, [govFilter]);
   const [sel, setSel] = useState<Building | null>(null);
   const [form, setForm] = useState({ name_en: "", name_ar: "", legacy_blcd: "", governorate_code: "", village_code: "" });
-  const load = async () => {
-    try { setBuildings(await api("/api/buildings?limit=200")); } catch (e: any) { ctx.notify(e.message, true); }
-    try { setGovs(await api("/api/governorates")); } catch { /* optional */ }
-  };
-  useEffect(() => { load(); }, []);
-  useEffect(() => { if (ctx.initialQuery !== undefined) setQ(ctx.initialQuery); }, [ctx.initialQuery]);
-  const act = useAct(ctx, load);
+  useEffect(() => { (async () => { try { setGovs(await api("/api/governorates")); } catch { /* optional */ } })(); }, []);
+  // Phase 9 (A3): the registry is paged, sorted, filtered and searched by
+  // the server. The browser only ever holds one page of results.
+  useEffect(() => {
+    (async () => {
+      try {
+        const sort = sortKey === "name" ? (lang === "ar" ? "name_ar" : "name_en") : sortKey === "gov" ? "governorate" : "id";
+        const params = new URLSearchParams({ page: String(page + 1), pageSize: "25", sort, dir: sortDir === 1 ? "asc" : "desc" });
+        if (dq) params.set("q", dq);
+        if (govFilter) params.set("governorate", govFilter);
+        const res: any = await api(`/api/buildings?${params.toString()}`);
+        setRows(res.rows); setTotal(res.total); setPageCount(res.pages);
+      } catch (e: any) { ctx.notify(e.message, true); }
+    })();
+  }, [page, sortKey, sortDir, govFilter, dq, lang, tick]);
+  const act = useAct(ctx, async () => { setTick(x => x + 1); });
   const govName = (code: number | null) => { const g = govs.find(x => x.code === code); return g ? (lang === "ar" ? g.name_ar : g.name_en) : "—"; };
-  const rows = useMemo(() => {
-    const filtered = buildings.filter(b => {
-      const hit = !q || b.name_en.toLowerCase().includes(q.toLowerCase()) || b.name_ar.includes(q) || (b.legacy_blcd ?? "").includes(q);
-      return hit && (!govFilter || String(b.governorate_code ?? "") === govFilter);
-    });
-    const key = (b: Building) => sortKey === "name" ? (lang === "ar" ? b.name_ar : b.name_en) : sortKey === "gov" ? (b.governorate_code ?? 0) : Number(b.id);
-    return [...filtered].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0) * sortDir);
-  }, [buildings, q, govFilter, sortKey, sortDir, lang]);
-  const pageCount = Math.max(1, Math.ceil(rows.length / 25));
-  const pageRows = rows.slice(page * 25, page * 25 + 25);
   const toggleSort = (k: "id" | "name" | "gov") => {
     if (sortKey === k) setSortDir(d => (d === 1 ? -1 : 1)); else { setSortKey(k); setSortDir(1); }
     setPage(0);
@@ -76,7 +81,7 @@ export function SchoolMapView(ctx: Ctx & { initialQuery?: string; initialGov?: n
             village_code: form.village_code ? Number(form.village_code) : null }) }))}>{t.create}</button>
         </FormRow>
       </Panel>
-      <Panel title={`${t.buildings} — ${fmtInt(rows.length, lang)}`} more={
+      <Panel title={`${t.buildings} — ${fmtInt(total, lang)}`} more={
         <span style={{ display: "flex", gap: 8 }}>
           <input className="inp" style={{ width: 210 }} placeholder={t.search} value={q} onChange={e => setQ(e.target.value)} aria-label={t.search} />
           <select className="sel-inp" style={{ width: 160 }} value={govFilter} onChange={e => setGovFilter(e.target.value)} aria-label={t.governorate}>
@@ -93,7 +98,7 @@ export function SchoolMapView(ctx: Ctx & { initialQuery?: string; initialGov?: n
             <th>{lang === "ar" ? t.nameEn : t.nameAr}</th>
             <th><button className="th-sort" onClick={() => toggleSort("gov")}>{t.governorate}{sortMark("gov")}</button></th>
           </tr></thead>
-            <tbody>{pageRows.map(b => (
+            <tbody>{rows.map(b => (
               <tr key={b.id} onClick={() => setSel(b)} style={{ cursor: "pointer" }}>
                 <td>{b.id}</td><td className="money">{b.legacy_blcd ?? "—"}</td>
                 <td>{lang === "ar" ? b.name_ar : b.name_en}</td><td>{lang === "ar" ? b.name_en : b.name_ar}</td>

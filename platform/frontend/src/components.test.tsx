@@ -56,3 +56,52 @@ describe("SegBar", () => {
     expect(container.querySelector(".seg")).toBeInTheDocument();
   });
 });
+
+/* Phase 9 (A1/D): drawer focus management — R-C-1 */
+import { Drawer } from "./components";
+import { fireEvent, cleanup } from "@testing-library/react";
+import { vi, afterEach } from "vitest";
+
+describe("Drawer focus management", () => {
+  afterEach(() => cleanup());
+  function setup() {
+    const onClose = vi.fn();
+    const utils = render(
+      <div>
+        <button data-testid="trigger">open</button>
+        <Drawer open={true} onClose={onClose} title="Record details">
+          <button data-testid="first">A</button>
+          <input data-testid="mid" />
+          <button data-testid="last">B</button>
+        </Drawer>
+      </div>);
+    return { onClose, ...utils };
+  }
+  it("moves focus into the drawer on open", () => {
+    const { getByLabelText } = setup();
+    expect(getByLabelText("close")).toHaveFocus();
+  });
+  it("wraps Tab from the last element to the first", () => {
+    const { getByTestId, getByLabelText } = setup();
+    getByTestId("last").focus();
+    fireEvent.keyDown(window, { key: "Tab" });
+    expect(getByLabelText("close")).toHaveFocus();
+  });
+  it("wraps Shift+Tab from the first element to the last", () => {
+    const { getByTestId, getByLabelText } = setup();
+    getByLabelText("close").focus();
+    fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+    expect(getByTestId("last")).toHaveFocus();
+  });
+  it("closes on Escape", () => {
+    const { onClose } = setup();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
+  });
+  it("exposes dialog semantics and an accessible label", () => {
+    const { getByRole } = setup();
+    const dlg = getByRole("dialog");
+    expect(dlg).toHaveAttribute("aria-modal", "true");
+    expect(dlg).toHaveAttribute("aria-label", "Record details");
+  });
+});
