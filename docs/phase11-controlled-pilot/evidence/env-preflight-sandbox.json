@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-11-13T09:02:25.472Z",
+  "apiUrl": "http://127.0.0.1:18090",
+  "summary": {
+    "pass": 12,
+    "warn": 0,
+    "fail": 0,
+    "manual": 3
+  },
+  "checks": [
+    {
+      "id": "ENV-01",
+      "name": "Operating system",
+      "status": "INFO",
+      "detail": "Linux 7.0.0-44-generic x64"
+    },
+    {
+      "id": "ENV-02",
+      "name": "CPU",
+      "status": "PASS",
+      "detail": "4 vCPU (pilot minimum 4 recommended)"
+    },
+    {
+      "id": "ENV-03",
+      "name": "Memory",
+      "status": "PASS",
+      "detail": "7.7 GB total (pilot minimum 8 GB recommended)"
+    },
+    {
+      "id": "ENV-04",
+      "name": "Disk free (app volume)",
+      "status": "PASS",
+      "detail": "145.3 GB free"
+    },
+    {
+      "id": "ENV-05",
+      "name": "Node.js runtime",
+      "status": "PASS",
+      "detail": "v24.22.1 (requires >= 20)"
+    },
+    {
+      "id": "ENV-06",
+      "name": "PostgreSQL version",
+      "status": "PASS",
+      "detail": "16.4 (requires 16.x)"
+    },
+    {
+      "id": "ENV-07",
+      "name": "pg_trgm extension available",
+      "status": "PASS",
+      "detail": "available"
+    },
+    {
+      "id": "ENV-08",
+      "name": "Trigram search indexes present",
+      "status": "PASS",
+      "detail": "3 trigram indexes on app.buildings (expect 3 after migration 011)"
+    },
+    {
+      "id": "ENV-09",
+      "name": "Migration control schema",
+      "status": "PASS",
+      "detail": "mig.import_jobs present (migrations applied)"
+    },
+    {
+      "id": "ENV-10",
+      "name": "Clock synchronization (app vs DB)",
+      "status": "PASS",
+      "detail": "skew 0.00s (NTP discipline is a host responsibility)"
+    },
+    {
+      "id": "ENV-11",
+      "name": "API health",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:18090/health -> 200"
+    },
+    {
+      "id": "ENV-12",
+      "name": "API security headers",
+      "status": "PASS",
+      "detail": "3/3 present (x-content-type-options, x-frame-options, content-security-policy)"
+    },
+    {
+      "id": "ENV-13",
+      "name": "Backup directory writable",
+      "status": "PASS",
+      "detail": "/home/hatch/workspace/gaeb-backups-check"
+    },
+    {
+      "id": "ENV-14",
+      "name": "TLS certificate & reverse proxy",
+      "status": "MANUAL",
+      "detail": "attest at the proxy: valid GAEB-issued chain, TLS 1.2+, HTTP->HTTPS redirect"
+    },
+    {
+      "id": "ENV-15",
+      "name": "Network segmentation & firewall",
+      "status": "MANUAL",
+      "detail": "attest: only the proxy is public; API/DB ports internal-only"
+    },
+    {
+      "id": "ENV-16",
+      "name": "Secrets management",
+      "status": "MANUAL",
+      "detail": "attest: credentials injected by host secret mechanism; none in the repository or images"
+    }
+  ]
+}

@@ -417,3 +417,22 @@ separate: engineering VERIFIED; pilot READY conditional on GAEB
 provisioning; customer acceptance NOT STARTED; production NOT
 AUTHORIZED. CI/Docker still BLOCKED/NOT VERIFIED on the owner's
 GitHub workflow scope (re-checked 2026-11-13).
+
+## Addendum 16 — Phase 11: Controlled Pilot Execution & Acceptance Evidence (2026-11-13)
+
+Baseline reproduced exactly (65/32/40/31) on phase-10 head b370e9c.
+New tooling: platform/tools/env-preflight.mjs (16 environment checks;
+first run caught a missing trigram index in the demo DB — remediated;
+sandbox result 12 PASS / 0 FAIL / 3 MANUAL) and
+platform/tools/phase11-rehearsal.mjs (full synthetic rehearsal
+through the real APIs on a throwaway DB: 23/23 checks incl.
+self-approval, revoked-approval, duplicate-job, and format/NUL
+negatives; storage-exhaustion and DB-kill faults recorded NOT
+EXECUTED in the shared sandbox). Deliverables:
+docs/phase11-controlled-pilot/ — 17 documents + UAT execution sheet
+(20 scenarios, all NOT RUN) + defect register + evidence
+(rehearsal-results.json, env-preflight-sandbox.json). Gates: G1
+VERIFIED; G2 CONDITIONAL (charter/host/authorization/BD-07/BD-08);
+G3 NOT STARTED; G4 NOT AUTHORIZED. GitHub workflow scope still
+absent (4th check). Customer acceptance and production readiness
+are not claimed.
