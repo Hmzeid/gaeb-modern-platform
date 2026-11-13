@@ -456,3 +456,26 @@ GitHub workflow scope still absent (5th check) — recorded once as
 a single owner blocker (~2-min fix). Gates: G1 VERIFIED; G2
 CONDITIONAL, now enforceable; G3 NOT STARTED; G4 NOT AUTHORIZED.
 Engineering-controlled blockers: none.
+
+## Addendum 18 — Phase 13: Pilot Authorization Integrity & Evidence Governance (2026-11-13)
+
+Attestation replaced by governed evidence: migration 013
+(app.pilot_evidence lifecycle PENDING/SUBMITTED/VERIFIED/REJECTED/
+REVOKED/EXPIRED/SUPERSEDED, app.pilot_datasets scope binding,
+pilot 'suspended' state). Separation of duties: pilot.evidence.
+submit (technical+budget) / pilot.evidence.verify (budget);
+self-verification refused + audit-logged at any role. Continuous
+authorization: one decision function recomputes eligibility from
+current state on both import paths AND customer transforms —
+revoked/expired evidence, revoked approvals, suspension all take
+effect at the next operation; dataset + optional file-hash
+binding (substitution refused); per-chunk re-evaluation aborts
+streamed imports at chunk boundaries; concurrent activation is
+atomic (exactly one winner). Audit export per pilot. Attack
+matrix (20 cases) inside the integration suite: 65/65. Rehearsal
+extended to 34/34. Launch decision: BLOCKED PENDING EVIDENCE (no
+GAEB approvals exist — by design the platform refuses the first
+real import). Bilingual launch package delivered. GitHub workflow
+scope still absent (6th check). Gates: G1 VERIFIED; G2
+CONDITIONAL, integrity-enforced; G3 NOT STARTED; G4 NOT
+AUTHORIZED.
