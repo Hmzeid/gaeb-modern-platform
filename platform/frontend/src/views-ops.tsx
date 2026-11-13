@@ -178,9 +178,28 @@ export function TendersView(ctx: Ctx) {
       } catch { setHistory([]); /* audit trail is admin-only; section hides for other roles */ }
     })();
   }, [sel?.id]);
-  const load = async () => { try { const r = await api<Tender[]>("/api/tenders"); setTenders(r); if (sel) setSel(r.find(x => x.id === sel.id) ?? null); } catch (e: any) { ctx.notify(e.message, true); } };
-  useEffect(() => { load(); }, []);
-  const act = useAct(ctx, load);
+  const [total, setTotal] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
+  const [page, setPage] = useState(0);
+  const [stageFilter, setStageFilter] = useState("");
+  const [tq, setTq] = useState("");
+  const [dtq, setDtq] = useState("");
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const h = setTimeout(() => { setDtq(tq); setPage(0); }, 300); return () => clearTimeout(h); }, [tq]);
+  useEffect(() => { setPage(0); }, [stageFilter]);
+  // Phase 10: the tenders list is server-paged like the School Map.
+  const load = async () => {
+    try {
+      const params = new URLSearchParams({ page: String(page + 1), pageSize: "25", sort: "id", dir: "desc" });
+      if (stageFilter) params.set("stage", stageFilter);
+      if (dtq) params.set("q", dtq);
+      const res: any = await api(`/api/tenders?${params.toString()}`);
+      setTenders(res.rows); setTotal(res.total); setPageCount(res.pages);
+      if (sel) setSel(res.rows.find((x: Tender) => x.id === sel.id) ?? sel);
+    } catch (e: any) { ctx.notify(e.message, true); }
+  };
+  useEffect(() => { load(); }, [page, stageFilter, dtq, tick]);
+  const act = useAct(ctx, async () => { setTick(x => x + 1); });
   const advance = (x: Tender) => act(() => api(`/api/tenders/${x.id}/transition`, { method: "POST", body: JSON.stringify({ to: TENDER_NEXT[x.stage] }) }));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -190,8 +209,16 @@ export function TendersView(ctx: Ctx) {
           <button className="btn" onClick={() => act(() => api("/api/tenders", { method: "POST", body: JSON.stringify({ title }) }))}>{t.create}</button>
         </FormRow>
       </Panel>
-      <Panel title={t.nav_tenders}>
+      <Panel title={`${t.nav_tenders} — ${fmtInt(total, lang)}`} more={
+        <span style={{ display: "flex", gap: 8 }}>
+          <input className="inp" style={{ width: 200 }} placeholder={t.search} value={tq} onChange={e => setTq(e.target.value)} aria-label={t.search} />
+          <select className="sel-inp" style={{ width: 170 }} value={stageFilter} onChange={e => setStageFilter(e.target.value)} aria-label={t.stage}>
+            <option value="">{t.all_stages}</option>
+            {TENDER_STAGES.map(st => <option key={st} value={st}>{(t as any)[`st_${st}`] ?? st}</option>)}
+          </select>
+        </span>}>
         {tenders.length === 0 ? <Empty text={t.empty} /> : (
+          <>
           <table className="dt"><thead><tr><th>#</th><th>{t.tenderTitle}</th><th>{t.legacyRef}</th><th>{t.stage}</th><th>{t.actions}</th></tr></thead>
             <tbody>{tenders.map(x => (
               <tr key={x.id} onClick={() => setSel(x)} style={{ cursor: "pointer" }}>
@@ -201,6 +228,14 @@ export function TendersView(ctx: Ctx) {
                 <td onClick={e => e.stopPropagation()}>{TENDER_NEXT[x.stage] && <button className="btn sm sec" onClick={() => advance(x)}>{t.advance} → {(t as any)[`st_${TENDER_NEXT[x.stage]}`] ?? TENDER_NEXT[x.stage]}</button>}</td>
               </tr>))}
             </tbody></table>
+          {pageCount > 1 && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10, fontSize: 12.5, color: "var(--color-ink2)" }}>
+              <button className="btn sec sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>{t.prev}</button>
+              <span>{t.page} {fmtInt(page + 1, lang)} {t.of} {fmtInt(pageCount, lang)}</span>
+              <button className="btn sec sm" disabled={page >= pageCount - 1} onClick={() => setPage(p => p + 1)}>{t.next}</button>
+            </div>
+          )}
+          </>
         )}
       </Panel>
       <Drawer open={!!sel} onClose={() => setSel(null)} title={sel?.title ?? ""}>

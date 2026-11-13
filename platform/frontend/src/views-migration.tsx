@@ -92,7 +92,7 @@ export function MigrationView(ctx: Ctx & { goMap: () => void }) {
       </Panel>
 
       {/* live monitor + operations */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(380px,1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(380px,100%),1fr))", gap: 14 }}>
         <div className="dark" style={{ padding: "14px 16px" }}>
           <h4 style={{ margin: "0 0 10px", fontSize: 13.5 }}>{t.live_monitor}</h4>
           <div style={{ display: "flex", gap: 8 }}>

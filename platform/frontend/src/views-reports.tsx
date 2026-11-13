@@ -64,7 +64,7 @@ export function ReportsView(ctx: Ctx) {
             </tbody></table>
         )}
       </Panel>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(380px,1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(380px,100%),1fr))", gap: 14 }}>
         <Panel title={`${t.nav_certs} — ${t.cert_summary}`}>
           {certSummary.length === 0 ? <Empty text={t.empty} /> : <>
             <Chart option={certOption} height={220} lang={lang} />
