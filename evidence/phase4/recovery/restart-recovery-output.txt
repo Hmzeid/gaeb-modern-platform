@@ -1,0 +1,6 @@
+before restart: {"total_records":3,"loaded":2,"rejected":1}
+PostgreSQL restarted via pg_ctl (real restart of the PostgreSQL 16.4 instance)
+after restart: {"total_records":3,"loaded":2,"rejected":1} rejects: 1
+RESTART RECOVERY: PASS
+Tool: platform/tools/restart-recovery.mjs against database gaeb_recovery (synthetic fixture: 3 records, 1 duplicate).
+Date: 2026-11-12. Environment: sandbox, PostgreSQL 16.4 (Zonky embedded binaries).

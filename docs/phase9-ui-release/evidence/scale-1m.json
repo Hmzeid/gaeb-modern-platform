@@ -1,0 +1,151 @@
+buildings 100000/1000000buildings 200000/1000000buildings 300000/1000000buildings 400000/1000000buildings 500000/1000000buildings 600000/1000000buildings 700000/1000000buildings 800000/1000000buildings 900000/1000000buildings 1000000/1000000
+generated: buildings=1000000 tenders=20000 audit=50000 in 67795 ms
+{
+ "buildings": 1000000,
+ "tenders": 20000,
+ "generationMs": 67795,
+ "results": [
+  {
+   "label": "buildings page 1 (sort id)",
+   "samples": 30,
+   "p50": 90.6,
+   "p95": 126.3,
+   "p99": 148.4,
+   "max": 148.4,
+   "responseBytes": 7608
+  },
+  {
+   "label": "buildings last page (sort id)",
+   "samples": 30,
+   "p50": 217.3,
+   "p95": 272.9,
+   "p99": 274.3,
+   "max": 274.3,
+   "responseBytes": 8014
+  },
+  {
+   "label": "buildings page 1 sort name_en",
+   "samples": 30,
+   "p50": 99.5,
+   "p95": 162.1,
+   "p99": 172.6,
+   "max": 172.6,
+   "responseBytes": 7918
+  },
+  {
+   "label": "buildings governorate=1 page 1",
+   "samples": 30,
+   "p50": 41.9,
+   "p95": 119.4,
+   "p99": 137.7,
+   "max": 137.7,
+   "responseBytes": 7684
+  },
+  {
+   "label": "buildings search 'School No. 999'",
+   "samples": 30,
+   "p50": 276.5,
+   "p95": 410.9,
+   "p99": 588,
+   "max": 588,
+   "responseBytes": 7868
+  },
+  {
+   "label": "buildings legacy mode limit=200",
+   "samples": 30,
+   "p50": 4.1,
+   "p95": 5.1,
+   "p99": 6.4,
+   "max": 6.4,
+   "responseBytes": 61066
+  },
+  {
+   "label": "reports buildings-by-governorate",
+   "samples": 30,
+   "p50": 388.6,
+   "p95": 578.8,
+   "p99": 772.7,
+   "max": 772.7,
+   "responseBytes": 1914
+  },
+  {
+   "label": "overview",
+   "samples": 30,
+   "p50": 93.9,
+   "p95": 100,
+   "p99": 179.3,
+   "max": 179.3,
+   "responseBytes": 759
+  },
+  {
+   "label": "tenders list (all)",
+   "samples": 10,
+   "p50": 64.4,
+   "p95": 150.2,
+   "p99": 150.2,
+   "max": 150.2,
+   "responseBytes": 1927802
+  },
+  {
+   "label": "audit list (limit 200)",
+   "samples": 10,
+   "p50": 4.3,
+   "p95": 30.5,
+   "p99": 30.5,
+   "max": 30.5,
+   "responseBytes": 27400
+  }
+ ],
+ "plans": {
+  "page1_sort_id": [
+   "Limit (actual time=0.208..0.217 rows=25 loops=1)",
+   "->  Index Scan using buildings_pkey on buildings (actual time=0.205..0.211 rows=25 loops=1)",
+   "Planning Time: 51.840 ms",
+   "Execution Time: 0.246 ms"
+  ],
+  "deep_page_sort_id": [
+   "Limit (actual time=764.235..764.244 rows=25 loops=1)",
+   "->  Index Scan using buildings_pkey on buildings (actual time=0.016..707.635 rows=1000000 loops=1)",
+   "Planning Time: 0.131 ms",
+   "Execution Time: 764.275 ms"
+  ],
+  "gov_filter": [
+   "Limit (actual time=0.046..0.094 rows=25 loops=1)",
+   "->  Index Scan using buildings_pkey on buildings (actual time=0.044..0.090 rows=25 loops=1)",
+   "Filter: (governorate_code = 1)",
+   "Rows Removed by Filter: 177",
+   "Planning Time: 0.193 ms",
+   "Execution Time: 0.113 ms"
+  ],
+  "count_all": [
+   "Finalize Aggregate (actual time=159.040..163.676 rows=1 loops=1)",
+   "->  Gather (actual time=158.870..163.662 rows=3 loops=1)",
+   "Workers Planned: 2",
+   "Workers Launched: 2",
+   "->  Partial Aggregate (actual time=67.297..67.299 rows=1 loops=3)",
+   "->  Parallel Seq Scan on buildings (actual time=0.015..43.123 rows=333333 loops=3)",
+   "Planning Time: 3.583 ms",
+   "Execution Time: 163.727 ms"
+  ],
+  "count_gov": [
+   "Aggregate (actual time=553.085..553.087 rows=1 loops=1)",
+   "->  Bitmap Heap Scan on buildings (actual time=522.168..545.688 rows=117450 loops=1)",
+   "Recheck Cond: (governorate_code = 1)",
+   "Heap Blocks: exact=19532",
+   "->  Bitmap Index Scan on idx_buildings_governorate (actual time=517.312..517.313 rows=117450 loops=1)",
+   "Index Cond: (governorate_code = 1)",
+   "Planning Time: 0.141 ms",
+   "Execution Time: 553.126 ms"
+  ],
+  "search_substring": [
+   "Limit (actual time=299.961..299.969 rows=25 loops=1)",
+   "->  Sort (actual time=299.958..299.961 rows=25 loops=1)",
+   "Sort Key: id",
+   "Sort Method: top-N heapsort  Memory: 31kB",
+   "->  Bitmap Heap Scan on buildings (actual time=299.056..299.811 rows=1111 loops=1)",
+   "Recheck Cond: (name_en ~~* '%School No. 999%'::text)",
+   "Rows Removed by Index Recheck: 9",
+   "Heap Blocks: exact=34"
+  ]
+ }
+}

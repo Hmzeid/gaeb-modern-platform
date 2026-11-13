@@ -1,0 +1,13 @@
+test_id,category,requirement,steps,expected,status
+ENG-01,Arabic search,Search normalization finds Arabic names with/without diacritics,Seed Arabic records; search normalized and exact forms,Both forms return the record; stored value unchanged,PASS — covered by tests/arabic-fidelity.test.ts
+ENG-02,Historical data,Legacy identifiers preserved for pre-migration records,Import fixture; inspect staging + operational rows,legacy keys and source offsets intact,PASS — integration E2E
+ENG-03,Business-rule equivalence,Certificate valuation uses typed deductions only,Run workflow tests,Quantity x price with deduction kinds; negative net rejected,PASS — unit suite
+ENG-04,Large-file ingestion,1M-record import completes with flat memory,Run benchmark ladder,>= ~4,900 rec/s; RSS bounded,PASS — evidence/phase7/performance/
+ENG-05,Failed-import recovery,Crash mid-import resumes exactly,Crash-after-chunk scenario,Resume from checkpoint; totals exact,PASS — integration E2E
+ENG-06,User permissions,Role boundaries enforced on every route,403 drills per role in E2E + security suite,All unauthorized calls refused,PASS
+ENG-07,Audit trails,Every governed action leaves an audit/event row,Execute approval + intake + job flows,Rows present with actor identity,PASS — E2E assertions
+ENG-08,Reconciliation,Report separates technical/business/acceptance outcomes,Fetch report for a reconciled batch,Three outcomes stated independently,PASS — E2E assertions
+ENG-09,Report generation,Finance CSV exports require reports.finance,Call as technical (403) and budget (200),Role-gated correctly,PASS — integration E2E
+ENG-10,Operational recovery,Health check detects failed jobs and stalled leases,Run tools/health-check.mjs against a DB with a FAILED job,Exit 1 with the failed check named,PASS — executed Phase 7 (see observability evidence)
+ENG-11,Intake preflight,Bad transfers are caught before import,Run preflight on checksum-mismatch + truncated fixtures,REJECT / trailing-bytes findings,PASS — tests/preflight.test.ts
+ENG-12,Login throttling,Brute force is rate-limited,11 failed logins for one user,429 after budget; other users unaffected,PASS — tests/security-negative.test.ts

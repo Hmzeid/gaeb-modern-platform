@@ -1,0 +1,11 @@
+evidence_id,pilot_step,artifact,produced_by,verified_by,status,reference
+PE-01,Receive extract,Delivery manifest with SHA-256 per file,GAEB IBM i admin,Veebase operator,NOT STARTED,
+PE-02,Verify checksum,Checksum verification record,Veebase operator,Veebase approver,NOT STARTED,
+PE-03,Register lineage,Intake dataset record (stage history),Platform,Veebase operator,NOT STARTED,
+PE-04,Verify encoding,Layout registration + CCSID confirmation,GAEB IBM i admin,Veebase operator,NOT STARTED,
+PE-05,Profile,Record counts vs manifest comparison,Platform,Business reviewer,NOT STARTED,
+PE-06,Approve mapping,Customer-mode approval rows + evidence ref,GAEB approver,Platform gate,NOT STARTED,
+PE-07,Import,Batch record + run ledger,Platform,Veebase operator,NOT STARTED,
+PE-08,Reconcile,Reconciliation report (JSON + text),Platform,GAEB finance reviewer,NOT STARTED,
+PE-09,Exceptions,Quarantine list with reasons and raw lineage,Platform,Business reviewer,NOT STARTED,
+PE-10,Acceptance decision,Intake stage 'accepted' + signed UAT sign-off,GAEB signatory,Veebase delivery lead,NOT STARTED,

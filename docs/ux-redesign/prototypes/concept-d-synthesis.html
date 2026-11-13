@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAEB — Concept D · Reference Synthesis</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="echarts.min.js"></script>
+<style>
+:root{--rail:#0a1a33;--rail2:#0d2142;--bg:#f4f6fa;--panel:#fff;--line:#e2e8f2;--ink:#16233c;--ink2:#54678a;--ink3:#8494ad;
+--blue:#2563eb;--teal:#0e9f8a;--green:#1f9d63;--amber:#e8a13a;--red:#d9534f;--violet:#7c6bd6;--radius:12px}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 "Inter","IBM Plex Sans Arabic",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+[dir="rtl"] body{font-family:"IBM Plex Sans Arabic","Inter",system-ui,sans-serif}
+button{font:inherit;cursor:pointer}
+.app{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
+/* navy rail (Stratify-grade) */
+.rail{background:linear-gradient(180deg,var(--rail),#081426);color:#c7d5ee;padding:18px 14px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh}
+.brand{display:flex;gap:10px;align-items:center;padding:0 6px 16px}
+.mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#0e9f8a,#2563eb);display:grid;place-items:center;font-weight:800;color:#fff;font-size:16px}
+.brand b{color:#fff;font-size:15px;letter-spacing:.06em;display:block}
+.brand span{font-size:10.5px;color:#7e97bb;letter-spacing:.08em}
+.rail h5{margin:13px 8px 5px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:#5f7ba6}
+.rail a{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;color:#a9bcdf;font-weight:500;font-size:13.5px;text-decoration:none}
+.rail a svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;flex:none}
+.rail a.on{background:#14305a;color:#fff}
+.rail a .n{margin-inline-start:auto;background:#3a2c10;color:#ffcf87;font-size:11px;font-weight:700;border-radius:12px;padding:0 7px}
+.usercard{margin-top:auto;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center}
+.usercard .av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#0e9f8a);display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px}
+.usercard b{color:#fff;font-size:13px;display:block}.usercard span{font-size:11.5px;color:#8fa8cc}
+.main{min-width:0;padding:22px 26px 30px;max-width:1520px;width:100%;margin:0 auto}
+.view{display:none;flex-direction:column;gap:16px}.view.on{display:flex}
+.page-h{display:flex;align-items:flex-start;gap:14px}
+.page-h h1{margin:0;font-size:21px}
+.page-h .sub{color:var(--ink2);font-size:13px;margin-top:2px}
+.page-h .sel{margin-inline-start:auto;display:flex;gap:8px}
+.select{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;font-size:13px;color:var(--ink2);font-weight:500}
+.chip{border:1px solid #d9b45c;color:#8a5a00;background:#fdf6e0;border-radius:20px;padding:4px 11px;font-size:11.5px;font-weight:700;align-self:center}
+.tabs{display:flex;gap:20px;border-bottom:1px solid var(--line);padding-bottom:0}
+.tabs a{padding:8px 2px;font-size:13.5px;font-weight:500;color:var(--ink2);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a.on{color:var(--blue);border-color:var(--blue);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.kpi .top{display:flex;justify-content:space-between;align-items:flex-start}
+.kpi .lab{color:var(--ink2);font-size:12.5px;font-weight:500}
+.kpi .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:14px;flex:none}
+.kpi .val{font-size:24px;font-weight:800;margin-top:4px}
+.kpi .d{font-size:12px;color:var(--ink3);margin-top:1px}
+.up{color:var(--green);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;min-width:0}
+.card h3{margin:0;font-size:14px}
+.card .more{color:var(--blue);font-size:12.5px;font-weight:600;margin-top:10px;display:inline-block}
+.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s12{grid-column:span 12}
+.chart{height:230px}
+.legend{display:flex;flex-direction:column;gap:9px;font-size:13px}
+.legend .li{display:flex;align-items:center;gap:9px}
+.legend .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.legend .v{margin-inline-start:auto;font-weight:700}
+.legend .p{color:var(--ink3);width:34px;text-align:end}
+.hbar{display:grid;grid-template-columns:118px 1fr 52px;gap:10px;align-items:center;font-size:12.5px;padding:5.5px 0}
+.hbar .nm{color:var(--ink2);font-weight:500}
+.seg{display:flex;height:9px;border-radius:5px;overflow:hidden;background:#edf1f6}
+.seg i{display:block;height:100%}
+.hbar .ct{color:var(--ink3);text-align:end;font-variant-numeric:tabular-nums}
+.hleg{display:flex;gap:14px;font-size:12px;color:var(--ink2);margin-bottom:6px}
+.hleg i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-inline-end:5px}
+.stages{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.stage{background:#eef3fb;border-radius:9px;padding:10px 12px}
+.stage .sl{font-size:11px;color:var(--ink2);font-weight:600}
+.stage .sv{font-size:19px;font-weight:800;margin-top:2px}
+.stage.b{background:#e7f6f1}.stage.c{background:#fdf3dd}.stage.d{background:#e5f4ec}
+.scalebar{display:flex;justify-content:space-between;color:var(--ink3);font-size:11.5px;border-top:2px solid #e2e8f2;margin-top:10px;padding-top:5px}
+.ring{display:flex;gap:16px;align-items:center}
+.ring .nums{display:flex;flex-direction:column;gap:7px;font-size:13px}
+.ring .nums .r{display:flex;justify-content:space-between;gap:22px}
+.ring .nums .r span{color:var(--ink2)}.ring .nums .r b{font-variant-numeric:tabular-nums}
+.act{display:flex;flex-direction:column}
+.act .a{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eef1f6;font-size:13px}
+.act .a:last-child{border:0}
+.act .a .ic{width:26px;height:26px;border-radius:7px;background:#eef3fb;display:grid;place-items:center;flex:none;font-size:12px}
+.act .a .t{font-weight:600}.act .a .s{color:var(--ink3);font-size:12px}
+.act .a .when{margin-inline-start:auto;color:var(--ink3);font-size:12px;white-space:nowrap}
+.foot-note{color:var(--ink3);font-size:12px;text-align:center}
+/* ── GEO (dark) ── */
+.geo{background:#0a1626;border-radius:14px;padding:18px 20px;color:#dce8fa}
+.geo .gh{display:flex;align-items:baseline;gap:12px}
+.geo h2{margin:0;font-size:17px;color:#fff}
+.geo .hint{color:#7e97bb;font-size:12.5px}
+.geo .gkpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:14px 0}
+.gk{background:#0e2138;border:1px solid #1c3658;border-radius:10px;padding:11px 13px}
+.gk .lab{font-size:11.5px;color:#8fa8cc;display:flex;gap:7px;align-items:center}
+.gk .val{font-size:20px;font-weight:800;color:#fff;margin-top:2px}
+.gk .val small{font-size:11.5px;color:#8fa8cc;font-weight:600}
+.gk .d{font-size:11.5px;color:#5f7ba6}
+.geo-grid{display:grid;grid-template-columns:1.9fr 1fr;gap:12px}
+.gpanel{background:#0e2138;border:1px solid #1c3658;border-radius:10px;padding:13px 15px;min-width:0}
+.gpanel h4{margin:0 0 8px;font-size:13px;color:#fff}
+.gchart{height:430px}.gchart.sm{height:150px}
+.galert{display:flex;gap:9px;padding:7.5px 0;border-bottom:1px solid #16304f;font-size:12.5px}
+.galert:last-child{border:0}
+.galert .t{font-weight:600;color:#eaf1fd}.galert .s{color:#7e97bb;font-size:11.5px}
+.sev{font-size:10.5px;font-weight:700;border-radius:4px;padding:1.5px 6px;height:fit-content}
+.sev.hi{background:#3a1620;color:#ff9d9d}.sev.md{background:#3a2c10;color:#ffcf87}.sev.lo{background:#12312c;color:#5eead4}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.s4,.s5,.s6,.s7{grid-column:span 12}.geo-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><div class="mark">G</div><div><b>GAEB</b><span data-i="brandSub">EDUCATIONAL BUILDINGS</span></div></div>
+    <a href="#" class="on" data-view="dash"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z"/></svg><span data-i="nOver">Portfolio Overview</span></a>
+    <a href="#" data-view="geo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.7 2.6 4 5.6 4 9s-1.3 6.4-4 9c-2.7-2.6-4-5.6-4-9s1.3-6.4 4-9z"/></svg><span data-i="nGeo">Geographic Intelligence</span></a>
+    <h5 data-i="hOps">Operations</h5>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13"/></svg><span data-i="nMap">School Map</span></a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v10"/></svg><span data-i="nBudget">Budget</span></a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/></svg><span data-i="nTenders">Tenders & Contracts</span><span class="n">146</span></a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5 2a8 8 0 11-2.3-5.6"/></svg><span data-i="nCerts">Payment Certificates</span><span class="n">23</span></a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 20V9m6 11V4m6 16v-9"/></svg><span data-i="nEst">Estimates & BOQ</span></a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M12 21s-7-5.5-7-11a7 7 0 1114 0"/></svg><span data-i="nRE">Real Estate</span></a>
+    <h5 data-i="hGov">Governance</h5>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M8 7h13M8 12h13M8 17h13"/></svg><span data-i="nMig">Migration Center</span></a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16"/></svg><span data-i="nReports">Reports</span></a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4 21c1.4-3.6 4.4-5.4 8-5.4s6.6 1.8 8 5.4"/></svg><span data-i="nAdmin">Administration</span></a>
+    <div class="usercard"><div class="av">HA</div><div><b>H. Abdelwahab</b><span data-i="uRole">Authority Director</span></div></div>
+  </aside>
+
+  <div class="main">
+    <!-- ══════ DASHBOARD (light executive) ══════ -->
+    <section class="view on" id="view-dash">
+      <div class="page-h"><div><h1 data-i="t1">Portfolio Overview</h1><div class="sub" data-i="t1s">Executive snapshot of GAEB investment, delivery and risk</div></div>
+        <div class="sel"><span class="select" data-i="sel1">All Directorates ▾</span><span class="select" data-i="sel2">Fiscal Year 2026/27 ▾</span><span class="chip" data-i="demo">DEMONSTRATION DATA</span></div></div>
+      <div class="tabs">
+        <a href="#" class="on" data-i="tab1">Executive Summary</a><a href="#" data-i="tab2">Portfolio Health</a><a href="#" data-i="tab3">Financials</a><a href="#" data-i="tab4">Delivery & Stages</a><a href="#" data-i="tab5">Risks</a>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="top"><span class="lab" data-i="k1">Total buildings</span><span class="ic" style="background:var(--blue)">▦</span></div><div class="val">24,318</div><div class="d"><span class="up">↑ 1.3%</span> <span data-i="k1d">vs last year</span></div></div>
+        <div class="kpi"><div class="top"><span class="lab" data-i="k2">Total investment</span><span class="ic" style="background:var(--teal)">$</span></div><div class="val">EGP 4.82B</div><div class="d"><span class="up">↑ 18%</span> <span data-i="k2d">vs last fiscal year</span></div></div>
+        <div class="kpi"><div class="top"><span class="lab" data-i="k3">Active tenders</span><span class="ic" style="background:var(--violet)">◈</span></div><div class="val">146</div><div class="d"><span class="up">↑ 8%</span> <span data-i="k3d">vs last quarter</span></div></div>
+        <div class="kpi"><div class="top"><span class="lab" data-i="k4">Certificates paid</span><span class="ic" style="background:var(--green)">✓</span></div><div class="val">EGP 2.88B</div><div class="d"><span class="up">↑ 25%</span> <span data-i="k4d">realization on plan</span></div></div>
+        <div class="kpi"><div class="top"><span class="lab" data-i="k5">Budget execution</span><span class="ic" style="background:var(--amber)">◔</span></div><div class="val">68.4%</div><div class="d"><span class="up">↑ 0.4x</span> <span data-i="k5d">vs plan trajectory</span></div></div>
+      </div>
+      <div class="grid">
+        <div class="card s5"><h3 data-i="c1">Investment by subsystem</h3>
+          <div style="display:grid;grid-template-columns:1fr 1.05fr;gap:8px;align-items:center">
+            <div class="chart" id="ch-donut" style="height:216px"></div>
+            <div class="legend">
+              <div class="li"><span class="dot" style="background:#2563eb"></span><span data-i="l1">School Map — new builds</span><span class="v">EGP 1.45B</span><span class="p">30%</span></div>
+              <div class="li"><span class="dot" style="background:#0e9f8a"></span><span data-i="l2">Renovation & maintenance</span><span class="v">EGP 1.16B</span><span class="p">24%</span></div>
+              <div class="li"><span class="dot" style="background:#5ea8ff"></span><span data-i="l3">Expansions & annexes</span><span class="v">EGP 964M</span><span class="p">20%</span></div>
+              <div class="li"><span class="dot" style="background:#7c6bd6"></span><span data-i="l4">Furniture & equipment</span><span class="v">EGP 771M</span><span class="p">16%</span></div>
+              <div class="li"><span class="dot" style="background:#e8a13a"></span><span data-i="l5">Land & expropriation</span><span class="v">EGP 482M</span><span class="p">10%</span></div>
+            </div>
+          </div>
+          <span class="more" data-i="c1m">View all subsystems →</span></div>
+
+        <div class="card s7"><h3 data-i="c2">Module health</h3>
+          <div class="hleg"><span><i style="background:var(--green)"></i><span data-i="hOn">On track</span> 62%</span><span><i style="background:var(--amber)"></i><span data-i="hRisk">At risk</span> 24%</span><span><i style="background:var(--red)"></i><span data-i="hOver">Overdue</span> 14%</span></div>
+          <div class="hbar"><span class="nm" data-i="m1">School Map</span><div class="seg"><i style="width:72%;background:var(--green)"></i><i style="width:18%;background:var(--amber)"></i><i style="width:10%;background:var(--red)"></i></div><span class="ct">412 · 38</span></div>
+          <div class="hbar"><span class="nm" data-i="m2">Budget</span><div class="seg"><i style="width:64%;background:var(--green)"></i><i style="width:24%;background:var(--amber)"></i><i style="width:12%;background:var(--red)"></i></div><span class="ct">96 · 18</span></div>
+          <div class="hbar"><span class="nm" data-i="m3">Tenders</span><div class="seg"><i style="width:58%;background:var(--green)"></i><i style="width:26%;background:var(--amber)"></i><i style="width:16%;background:var(--red)"></i></div><span class="ct">85 · 23</span></div>
+          <div class="hbar"><span class="nm" data-i="m4">Certificates</span><div class="seg"><i style="width:66%;background:var(--green)"></i><i style="width:20%;background:var(--amber)"></i><i style="width:14%;background:var(--red)"></i></div><span class="ct">141 · 30</span></div>
+          <div class="hbar"><span class="nm" data-i="m5">Estimates</span><div class="seg"><i style="width:70%;background:var(--green)"></i><i style="width:22%;background:var(--amber)"></i><i style="width:8%;background:var(--red)"></i></div><span class="ct">62 · 7</span></div>
+          <div class="hbar"><span class="nm" data-i="m6">Migration</span><div class="seg"><i style="width:80%;background:var(--green)"></i><i style="width:14%;background:var(--amber)"></i><i style="width:6%;background:var(--red)"></i></div><span class="ct">482 · 30</span></div>
+          <span class="more" data-i="c2m">View all modules →</span></div>
+
+        <div class="card s5"><h3 data-i="c3">Tenders by stage</h3>
+          <div class="stages" style="margin-top:10px">
+            <div class="stage"><div class="sl" data-i="s1">Announced</div><div class="sv">41</div></div>
+            <div class="stage"><div class="sl" data-i="s2">Documents</div><div class="sv">33</div></div>
+            <div class="stage b"><div class="sl" data-i="s3">Offers</div><div class="sv">29</div></div>
+            <div class="stage c"><div class="sl" data-i="s4">Evaluation</div><div class="sv">26</div></div>
+            <div class="stage d"><div class="sl" data-i="s5">Award</div><div class="sv">17</div></div>
+            <div class="stage d"><div class="sl" data-i="s6">Contract</div><div class="sv">12</div></div>
+          </div>
+          <div class="scalebar"><span data-i="sc1">72% in pipeline</span><span data-i="sc2">28% in execution</span></div>
+          <span class="more" data-i="c3m">View all stages →</span></div>
+
+        <div class="card s4"><h3 data-i="c4">Budget realization</h3>
+          <div class="ring" style="margin-top:8px"><div id="ch-ring" style="width:128px;height:128px;flex:none"></div>
+            <div class="nums">
+              <div class="r"><span data-i="r1">Allocated</span><b>EGP 4.82B</b></div>
+              <div class="r"><span data-i="r2">Certified</span><b>EGP 3.30B</b></div>
+              <div class="r"><span data-i="r3">At risk</span><b style="color:var(--amber)">EGP 412M</b></div>
+              <div class="r"><span data-i="r4">Not yet started</span><b>EGP 1.11B</b></div>
+            </div></div>
+          <span class="more" data-i="c4m">Open financials →</span></div>
+
+        <div class="card s4"><h3 data-i="c5">Recent activity</h3>
+          <div class="act">
+            <div class="a"><span class="ic">▣</span><div><div class="t" data-i="a1">Certificate CERT-8812 certified</div><div class="s" data-i="a1s">El Nile Primary · EGP 1.19M</div></div><span class="when">2h ago</span></div>
+            <div class="a"><span class="ic">✓</span><div><div class="t" data-i="a2">Mapping approval granted</div><div class="s">PBYTENDR · <span data-i="a2s">customer data</span></div></div><span class="when">5h ago</span></div>
+            <div class="a"><span class="ic">◈</span><div><div class="t" data-i="a3">Tender moved to evaluation</div><div class="s">T-1042 · <span data-i="a3s">Salam School renovation</span></div></div><span class="when">1d ago</span></div>
+            <div class="a"><span class="ic">▤</span><div><div class="t" data-i="a4">Reconciliation report published</div><div class="s">mig-9f31 · 506,209 <span data-i="a4s">records</span></div></div><span class="when">2d ago</span></div>
+            <div class="a"><span class="ic">✎</span><div><div class="t" data-i="a5">New estimate submitted</div><div class="s">EST-341 · <span data-i="a5s">El Amal annex</span></div></div><span class="when">3d ago</span></div>
+          </div>
+          <span class="more" data-i="c5m">View all activity →</span></div>
+      </div>
+      <div class="foot-note" data-i="foot">Concept D — Reference Synthesis · Synthetic demonstration data only, labeled as required. In production every figure binds to the live APIs listed in the redesign plan.</div>
+    </section>
+
+    <!-- ══════ GEO (dark command) ══════ -->
+    <section class="view" id="view-geo">
+      <div class="geo">
+        <div class="gh"><div><h2>Regional Geospatial Intelligence</h2><div class="hint">School infrastructure across 27 governorates · planning, monitoring and decision support</div></div>
+          <span style="margin-inline-start:auto" class="chip">DEMONSTRATION DATA</span></div>
+        <div class="gkpis">
+          <div class="gk"><div class="lab">▦ Total buildings</div><div class="val">24,318</div><div class="d">▲ 1.3% vs prev. period</div></div>
+          <div class="gk"><div class="lab">◈ Active projects</div><div class="val">1,284</div><div class="d">▲ 12.6% vs prev. period</div></div>
+          <div class="gk"><div class="lab">⌂ Governorates covered</div><div class="val">27 <small>/ 27</small></div><div class="d">Full national coverage</div></div>
+          <div class="gk"><div class="lab">✓ Migrated & reconciled</div><div class="val">71.0%</div><div class="d">502 legacy objects tracked</div></div>
+          <div class="gk"><div class="lab">⚠ Risk level (overall)</div><div class="val" style="color:#ffcf87">Moderate</div><div class="d">4 open exceptions</div></div>
+        </div>
+        <div class="geo-grid">
+          <div class="gpanel"><h4>Buildings by governorate — bubble size = portfolio, color = delivery health</h4><div class="gchart" id="ch-geo"></div></div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="gpanel"><h4>Regional alerts</h4>
+              <div class="galert"><span class="sev hi">High</span><div><div class="t">Tender deadline risk — Giza</div><div class="s">T-1042 · 5-day rule · May 31</div></div></div>
+              <div class="galert"><span class="sev md">Med</span><div><div class="t">Budget line at 94% — Cairo</div><div class="s">New construction · May 30</div></div></div>
+              <div class="galert"><span class="sev md">Med</span><div><div class="t">214 records quarantined</div><div class="s">PBLBULDG duplicates · May 29</div></div></div>
+              <div class="galert"><span class="sev lo">Info</span><div><div class="t">Decree pending 34 days — Aswan</div><div class="s">Expropriation RE-2210 · May 28</div></div></div>
+              <span class="more" style="color:#5ea8ff;font-size:12.5px;font-weight:600">View all alerts →</span></div>
+            <div class="gpanel"><h4>Migration coverage</h4><div class="gchart sm" id="ch-gauge"></div></div>
+          </div>
+          <div class="gpanel"><h4>Top governorates by portfolio</h4><div class="gchart sm" id="ch-rank"></div></div>
+          <div class="gpanel"><h4>Portfolio risk distribution</h4><div class="gchart sm" id="ch-risk"></div></div>
+        </div>
+      </div>
+      <div class="foot-note">Concept D geo view — schematic governorate plot on real coordinates; production binds an Egypt geojson boundary set. Synthetic data.</div>
+    </section>
+  </div>
+</div>
+
+<script>
+const AR = {
+brandSub:"الأبنية التعليمية", nOver:"نظرة عامة على المحفظة", nGeo:"الذكاء الجغرافي", hOps:"العمليات", nMap:"الخريطة المدرسية", nBudget:"الموازنة",
+nTenders:"المناقصات والعقود", nCerts:"المستخلصات", nEst:"المقايسات", nRE:"الملكية العقارية", hGov:"الحوكمة", nMig:"مركز الترحيل", nReports:"التقارير", nAdmin:"الإدارة",
+uRole:"مدير الهيئة", t1:"نظرة عامة على المحفظة", t1s:"لقطة تنفيذية لاستثمارات الهيئة وتسليمها ومخاطرها",
+sel1:"كل المديريات ▾", sel2:"السنة المالية 2026/27 ▾", demo:"بيانات تجريبية",
+tab1:"الملخص التنفيذي", tab2:"سلامة المحفظة", tab3:"الماليات", tab4:"التسليم والمراحل", tab5:"المخاطر",
+k1:"إجمالي المباني", k1d:"مقابل العام الماضي", k2:"إجمالي الاستثمار", k2d:"مقابل السنة المالية الماضية",
+k3:"المناقصات النشطة", k3d:"مقابل الربع الماضي", k4:"مستخلصات مدفوعة", k4d:"التحقق وفق الخطة", k5:"تنفيذ الموازنة", k5d:"مقابل مسار الخطة",
+c1:"الاستثمار حسب النظام الفرعي", l1:"الخريطة المدرسية — إنشاءات جديدة", l2:"ترميم وصيانة", l3:"توسعات وملاحق", l4:"أثاث وتجهيزات", l5:"أراضٍ ونزع ملكية", c1m:"عرض كل الأنظمة ←",
+c2:"سلامة الوحدات", hOn:"على المسار", hRisk:"في خطر", hOver:"متأخر", m1:"الخريطة المدرسية", m2:"الموازنة", m3:"المناقصات", m4:"المستخلصات", m5:"المقايسات", m6:"الترحيل", c2m:"عرض كل الوحدات ←",
+c3:"المناقصات حسب المرحلة", s1:"معلنة", s2:"مستندات", s3:"عروض", s4:"تقييم", s5:"ترسية", s6:"عقد", sc1:"٧٢٪ قيد الإعداد", sc2:"٢٨٪ قيد التنفيذ", c3m:"عرض كل المراحل ←",
+c4:"تحقق الموازنة", r1:"مخصص", r2:"معتمد", r3:"في خطر", r4:"لم يبدأ بعد", c4m:"فتح الماليات ←",
+c5:"النشاط الأخير", a1:"اعتُمد مستخلص CERT-8812", a1s:"النيل الابتدائية · ١٫١٩ مليون جنيه", a2:"مُنح اعتماد تخطيط", a2s:"بيانات عميل",
+a3:"انتقلت مناقصة إلى التقييم", a3s:"ترميم مدرسة السلام", a4:"نُشر تقرير المطابقة", a4s:"سجل", a5:"قُدّمت مقايسة جديدة", a5s:"ملحق الأمل", c5m:"عرض كل النشاط ←",
+foot:"المفهوم د — توليف المراجع · بيانات تجريبية اصطناعية فقط، موسومة كما يجب. في الإنتاج يرتبط كل رقم بواجهات البرمجة الحقيقية المدرجة في خطة إعادة التصميم."};
+const q = new URLSearchParams(location.search);
+const lang = q.get("lang") || "en";
+if (lang === "ar") {
+  document.documentElement.lang = "ar"; document.documentElement.dir = "rtl";
+  document.querySelectorAll("[data-i]").forEach(el => { const k = el.dataset.i; if (AR[k]) el.innerHTML = AR[k]; });
+}
+if (q.get("view") === "geo") {
+  document.getElementById("view-dash").classList.remove("on");
+  document.getElementById("view-geo").classList.add("on");
+}
+document.querySelectorAll("[data-view]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.querySelectorAll(".rail a").forEach(x => x.classList.remove("on"));
+  a.classList.add("on");
+  document.getElementById("view-" + a.dataset.view).classList.add("on");
+  window.scrollTo(0, 0); setTimeout(draw, 60);
+}));
+function draw(){
+  if (!window.echarts) return;
+  const donut = document.getElementById("ch-donut");
+  if (donut && !donut.dataset.d) { donut.dataset.d = 1;
+    echarts.init(donut).setOption({ series:[{type:"pie", radius:["62%","88%"], center:["50%","50%"], label:{show:false},
+      itemStyle:{borderColor:"#fff", borderWidth:2},
+      data:[{value:30},{value:24},{value:20},{value:16},{value:10}], color:["#2563eb","#0e9f8a","#5ea8ff","#7c6bd6","#e8a13a"]}],
+      graphic:{elements:[{type:"text", left:"center", top:"42%", style:{text:"EGP 4.82B", fill:"#16233c", font:"800 16px Inter", textAlign:"center"}}]}}); }
+  const ring = document.getElementById("ch-ring");
+  if (ring && !ring.dataset.d) { ring.dataset.d = 1;
+    echarts.init(ring).setOption({ series:[{type:"gauge", startAngle:210, endAngle:-30, min:0, max:100, radius:"100%",
+      progress:{show:true, width:11, itemStyle:{color:"#1f9d63"}}, axisLine:{lineStyle:{width:11, color:[[1,"#e6ebf2"]]}},
+      axisTick:{show:false}, splitLine:{show:false}, axisLabel:{show:false}, pointer:{show:false}, anchor:{show:false},
+      detail:{valueAnimation:true, formatter:"{value}%", color:"#16233c", fontSize:19, fontWeight:800, offsetCenter:[0,0]}, data:[{value:68.4}]}] }); }
+  const geo = document.getElementById("ch-geo");
+  if (geo && !geo.dataset.d) { geo.dataset.d = 1;
+    const pts = [
+      ["Cairo",31.25,30.05,2140,"#1f9d63"],["Giza",31.05,29.95,1680,"#1f9d63"],["Alexandria",29.92,31.20,1530,"#1f9d63"],
+      ["Dakahlia",31.38,31.04,1420,"#1f9d63"],["Sharqia",31.50,30.59,1380,"#e8a13a"],["Gharbia",30.95,30.85,1210,"#1f9d63"],
+      ["Beheira",30.40,31.00,1330,"#1f9d63"],["Qalyubia",31.20,30.45,1090,"#1f9d63"],["Minya",30.73,28.11,1180,"#e8a13a"],
+      ["Assiut",31.18,27.18,1040,"#1f9d63"],["Sohag",31.70,26.56,980,"#e8a13a"],["Fayoum",30.84,29.31,860,"#1f9d63"],
+      ["Beni Suef",31.10,29.07,790,"#1f9d63"],["Qena",32.72,26.16,720,"#1f9d63"],["Kafr El Sheikh",30.94,31.11,880,"#1f9d63"],
+      ["Monufia",31.01,30.55,940,"#1f9d63"],["Damietta",31.82,31.42,520,"#1f9d63"],["Ismailia",32.27,30.60,480,"#1f9d63"],
+      ["Port Said",32.30,31.26,390,"#1f9d63"],["Suez",32.55,29.97,410,"#d9534f"],["Luxor",32.64,25.69,540,"#e8a13a"],
+      ["Aswan",32.90,24.09,610,"#e8a13a"],["Matruh",27.24,31.35,350,"#1f9d63"],["Hurghada",33.81,27.26,430,"#1f9d63"],
+      ["Arish",33.80,31.13,300,"#1f9d63"],["Sharm El Sheikh",34.33,27.86,210,"#1f9d63"],["Mansoura",31.03,31.35,0,"#1f9d63"]];
+    const nile = [[31.0,22.0],[31.6,24.0],[31.9,25.7],[31.7,26.6],[31.2,27.2],[30.8,28.1],[30.9,29.1],[31.15,30.0],[31.3,30.6],[30.9,30.9],[31.5,31.2]];
+    echarts.init(geo).setOption({
+      grid:{left:6,right:6,top:8,bottom:6},
+      xAxis:{type:"value", min:24.5, max:36, show:false},
+      yAxis:{type:"value", min:21.5, max:32.2, show:false},
+      series:[
+        {type:"line", data:[[25.0,31.6],[27.5,31.4],[29.9,31.25],[30.4,31.45],[31.8,31.42],[32.3,31.26],[33.2,31.2],[33.8,31.15],[34.27,31.28],[34.9,29.4],[34.6,28.4],[34.33,27.86],[34.0,27.7],[33.81,27.26],[34.3,26.3],[35.1,24.6],[35.6,23.9],[33.0,22.05],[29.0,22.0],[25.0,22.0],[25.0,31.6]],
+         showSymbol:false, lineStyle:{color:"#2b4f7e", width:1.6}, areaStyle:{color:"rgba(23,52,89,.55)"}, silent:true, z:0},
+        {type:"line", data:nile.map(p=>[p[0],p[1]]), showSymbol:false, lineStyle:{color:"#2b5ea8", width:2.4, opacity:.75}, silent:true, z:1},
+        {type:"scatter", z:3, label:{show:true, formatter:p=>p.data[3]>=1000||["Cairo","Alexandria","Aswan","Luxor","Port Said"].includes(p.name)?p.name:"", color:"#a9bcdf", fontSize:10.5, position:"right"},
+         data: pts.filter(p=>p[3]>0).map(p=>({name:p[0], value:[p[1],p[2],p[3]], itemStyle:{color:p[4], opacity:.88, borderColor:"#0a1626", borderWidth:1.2},
+           symbolSize: Math.max(9, Math.sqrt(p[3]) * 1.05)})),
+         tooltip:{formatter:p=>`${p.name}: ${p.value[2]} buildings`}},
+      ],
+      tooltip:{backgroundColor:"#0e2138", borderColor:"#1c3658", textStyle:{color:"#eaf1fd"}} }); }
+  const gauge = document.getElementById("ch-gauge");
+  if (gauge && !gauge.dataset.d) { gauge.dataset.d = 1;
+    echarts.init(gauge).setOption({ series:[{type:"gauge", startAngle:200, endAngle:-20, min:0, max:100, radius:"96%",
+      progress:{show:true, width:10, itemStyle:{color:"#2dd4bf"}}, axisLine:{lineStyle:{width:10, color:[[1,"#1c3658"]]}},
+      axisTick:{show:false}, splitLine:{show:false}, axisLabel:{show:false}, pointer:{show:false}, anchor:{show:false},
+      detail:{formatter:"{value}%", color:"#fff", fontSize:20, fontWeight:800, offsetCenter:[0,4]}, data:[{value:71}]}] }); }
+  const rank = document.getElementById("ch-rank");
+  if (rank && !rank.dataset.d) { rank.dataset.d = 1;
+    echarts.init(rank).setOption({ grid:{left:6,right:22,top:2,bottom:0,containLabel:true},
+      xAxis:{type:"value", show:false},
+      yAxis:{type:"category", inverse:true, data:["Cairo","Giza","Alexandria","Dakahlia","Sharqia"], axisLabel:{color:"#a9bcdf", fontSize:11.5}, axisLine:{show:false}},
+      series:[{type:"bar", data:[2140,1680,1530,1420,1380], itemStyle:{color:"#2dd4bf", borderRadius:[0,4,4,0]}, barWidth:"52%", label:{show:true, position:"right", color:"#a9bcdf", fontSize:11}}], tooltip:{show:false} }); }
+  const risk = document.getElementById("ch-risk");
+  if (risk && !risk.dataset.d) { risk.dataset.d = 1;
+    echarts.init(risk).setOption({ series:[{type:"pie", radius:["54%","80%"], center:["50%","52%"], label:{color:"#a9bcdf", fontSize:11, formatter:"{b} {d}%"},
+      itemStyle:{borderColor:"#0e2138", borderWidth:2},
+      data:[{value:62,name:"On track"},{value:24,name:"At risk"},{value:14,name:"Overdue"}], color:["#1f9d63","#e8a13a","#d9534f"]}], tooltip:{show:false} }); }
+}
+draw();
+</script>
+</body>
+</html>

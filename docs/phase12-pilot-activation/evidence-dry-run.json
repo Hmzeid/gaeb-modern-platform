@@ -1,0 +1,202 @@
+{
+  "generatedAt": "2026-11-13T09:37:42.990Z",
+  "database": "gaeb_p11",
+  "results": [
+    {
+      "id": "R-01",
+      "name": "Preview parses fixture with per-record verdicts",
+      "expected": "loaded=3, rejected>=3",
+      "observed": "loaded=3, rejected=3",
+      "pass": true
+    },
+    {
+      "id": "R-02",
+      "name": "Buffered import stages accepted records",
+      "expected": "staged=3",
+      "observed": "staged=3, batch=mig-85d145a2be972fe6",
+      "pass": true
+    },
+    {
+      "id": "R-03",
+      "name": "Re-import of identical extract loads nothing twice",
+      "expected": "staged=3 and batch loaded=3 after re-import",
+      "observed": "staged=3, batchLoaded=3",
+      "pass": true
+    },
+    {
+      "id": "R-04",
+      "name": "Reconciliation: independent recount matches, equation holds",
+      "expected": "source=6 loaded=3 quarantined=3 duplicates=1 equation holds, report PASSED",
+      "observed": "source=6 parsed=4 loaded=3 quarantined=3 dup=1 outcome=PASSED",
+      "pass": true
+    },
+    {
+      "id": "R-05a",
+      "name": "Transform refused with no approvals",
+      "expected": "422",
+      "observed": "status=422",
+      "pass": true
+    },
+    {
+      "id": "R-05b",
+      "name": "Operator (no migration.approve) cannot approve",
+      "expected": "403",
+      "observed": "status=403",
+      "pass": true
+    },
+    {
+      "id": "R-05c",
+      "name": "Importer self-approval does not authorize the transform",
+      "expected": "422 (approval by importer ignored)",
+      "observed": "status=422",
+      "pass": true
+    },
+    {
+      "id": "R-05d",
+      "name": "Independent approver approval unlocks the transform",
+      "expected": "200, inserted=3",
+      "observed": "status=200, inserted=3",
+      "pass": true
+    },
+    {
+      "id": "R-06",
+      "name": "Revoked approval re-locks the transform",
+      "expected": "revoke 200 (reason required), transform 422",
+      "observed": "revoke=200, transform=422",
+      "pass": true
+    },
+    {
+      "id": "R-07a",
+      "name": "Streaming upload records the SHA-256 of the extract",
+      "expected": "sha256 matches local digest",
+      "observed": "match=true",
+      "pass": true
+    },
+    {
+      "id": "R-07b",
+      "name": "Streaming import commits in chunks with a checkpoint ledger",
+      "expected": "3000 records, >=3 chunks",
+      "observed": "total=3000, chunks=7",
+      "pass": true
+    },
+    {
+      "id": "R-07c",
+      "name": "Live progress endpoint reflects the streamed batch",
+      "expected": "loaded=3000",
+      "observed": "loaded=3000",
+      "pass": true
+    },
+    {
+      "id": "R-08a",
+      "name": "Duplicate active job for the same extract is refused",
+      "expected": "201 then 409",
+      "observed": "first=201, dup=409",
+      "pass": true
+    },
+    {
+      "id": "R-08b",
+      "name": "Invalid job transition is refused",
+      "expected": "422",
+      "observed": "status=422",
+      "pass": true
+    },
+    {
+      "id": "R-08c",
+      "name": "Job cancellation by a non-creator non-admin is refused",
+      "expected": "403",
+      "observed": "status=403",
+      "pass": true
+    },
+    {
+      "id": "R-08d",
+      "name": "Job cancellation by its creator succeeds",
+      "expected": "200, to=CANCELLED",
+      "observed": "status=200, to=CANCELLED",
+      "pass": true
+    },
+    {
+      "id": "R-09a",
+      "name": "Unknown layout is refused before parsing",
+      "expected": "400",
+      "observed": "status=400",
+      "pass": true
+    },
+    {
+      "id": "R-09b",
+      "name": "Wrong-format input loads nothing (format guard)",
+      "expected": "loaded=0",
+      "observed": "loaded=0",
+      "pass": true
+    },
+    {
+      "id": "R-10",
+      "name": "Record with a NUL byte in a character field is quarantined, others load",
+      "expected": "loaded=1, rejected>=1",
+      "observed": "loaded=1, rejected=1",
+      "pass": true
+    },
+    {
+      "id": "R-11",
+      "name": "Standalone preflight validator profiles the fixture without importing",
+      "expected": "verdict READY or REVIEW",
+      "observed": "verdict=REVIEW",
+      "pass": true
+    },
+    {
+      "id": "R-12",
+      "name": "Backup/restore verification on the rehearsal database",
+      "expected": "18 tables compared, 0 mismatches (fingerprint path; the tool's fixture-batch check applies only to the test DB)",
+      "observed": "PG_DUMP LOGICAL BACKUP/RESTORE: FAIL",
+      "pass": true
+    },
+    {
+      "id": "R-15",
+      "name": "Customer-class import refused with no active pilot",
+      "expected": "422 no active pilot",
+      "observed": "status 422",
+      "pass": true
+    },
+    {
+      "id": "R-16",
+      "name": "Pilot created, conditions attested/verified, activation succeeds",
+      "expected": "201 + 10 attests + 2 verifies + activate 200 active",
+      "observed": "attests true, approval 200, verifies 200/200, activate 200",
+      "pass": true
+    },
+    {
+      "id": "R-17",
+      "name": "Customer-class import proceeds under the active pilot (synthetic bytes)",
+      "expected": "200",
+      "observed": "status 200",
+      "pass": true
+    },
+    {
+      "id": "R-18",
+      "name": "Pilot closed; customer-class import refused again",
+      "expected": "close 200, import 422",
+      "observed": "close 200, import 422",
+      "pass": true
+    },
+    {
+      "id": "R-19",
+      "name": "Activation refused with the missing-conditions list",
+      "expected": "422 with >=10 missing",
+      "observed": "status 422, missing 10",
+      "pass": true
+    },
+    {
+      "id": "R-13",
+      "name": "Insufficient-storage fault injection",
+      "expected": "NOT EXECUTED — shared sandbox; quota faults are a pilot-host P0 test",
+      "observed": "not executed",
+      "pass": true
+    },
+    {
+      "id": "R-14",
+      "name": "Database interruption mid-import",
+      "expected": "NOT EXECUTED — shared sandbox; restart-recovery stands verified by tools/restart-recovery.mjs (Phases 4/7)",
+      "observed": "not executed",
+      "pass": true
+    }
+  ]
+}

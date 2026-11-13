@@ -33,3 +33,19 @@ a floor, not a promise.
 The integration suite kills a 1,200-record stream after chunk 1 (500 records) and
 resumes: checkpoint holds exactly 500, the resume loads the remaining 700 (1
 duplicate quarantined), totals reconcile to the staged SUM exactly.
+
+## Phase 5 addendum — after the scalable-checkpoint fix (2026-11-12)
+Same machine, same methodology (salted files, `loaded` read back from
+mig.batches), streaming path now on mig.loaded_keys + O(1) checkpoints:
+| Records | Seconds | rec/s | RSS before → after |
+|---|---|---|---|
+| 18,078 | 3.52 | 5,136 | 83 → 142 MB |
+| 108,473 | 20.16 | 5,380 | 162 → 218 MB |
+| 506,209 | 105.06 | 4,818 | 151 → 228 MB |
+| 1,012,418 | 204.93 | 4,940 | 300 → 280 MB |
+Throughput is flat across a 56x size range and RSS no longer grows with the
+record count (the 1M run ended LOWER than it started). Comparable-point gain
+at ~500k records: 2,737 → 4,818 rec/s (1.76x) with the decline eliminated.
+An interrupted 506k run during measurement committed exactly 35,000 records
+(35 chunks) before the environment died — the checkpoint state in the database
+matched, confirming incremental durability. Raw log: evidence/phase5/benchmark.log.

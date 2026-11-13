@@ -52,7 +52,7 @@ async function runE2E(admin: pg.Client) {
   const db = { query: (t: string, v?: unknown[]) => admin.query(t, v as any) };
   await admin.query("DROP SCHEMA IF EXISTS app CASCADE; DROP SCHEMA IF EXISTS mig CASCADE; DROP SCHEMA IF EXISTS school_map CASCADE; DROP SCHEMA IF EXISTS purchases CASCADE; DROP SCHEMA IF EXISTS real_estate CASCADE; DROP SCHEMA IF EXISTS abstracts CASCADE");
   const migDir = new URL("../../migrations/", import.meta.url);
-  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql", "006_secure_approvals.sql"])
+  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql", "006_secure_approvals.sql", "007_intake.sql", "008_scalable_checkpoint.sql", "009_import_jobs.sql", "010_buildings_pagination_indexes.sql", "011_buildings_trigram_search.sql", "012_pilots.sql", "013_evidence_governance.sql"])
     await admin.query(readFileSync(new URL(f, migDir), "utf8"));
   await admin.query(readFileSync(new URL("../../../migration/reconciled/schema_v2.sql", import.meta.url), "utf8"));
   for (const [u, role] of [["admin1", "admin"], ["tech1", "technical"], ["budget1", "budget"]] as const)
@@ -187,6 +187,43 @@ async function runE2E(admin: pg.Client) {
     const buildings = await (await fetch("http://127.0.0.1:18099/api/buildings", { headers: { Authorization: `Bearer ${adminToken}` } })).json();
     assert.equal(buildings.length, 2);
     assert.equal(buildings[0].name_ar, "مدرسة النيل الابتدائية");
+    // Phase UX: overview aggregate — counts for every role, money only with reports.finance
+    const ovTech = await (await fetch("http://127.0.0.1:18099/api/overview", { headers: { Authorization: `Bearer ${techToken}` } })).json();
+    assert.ok(ovTech.counts.buildings >= 1 && ovTech.counts.tenders >= 1, "overview counts reflect seeded data");
+    assert.equal(ovTech.money, null, "technical role must not receive money aggregates");
+    const ovBudget = await (await fetch("http://127.0.0.1:18099/api/overview", { headers: { Authorization: `Bearer ${budgetToken}` } })).json();
+    assert.ok(ovBudget.money && typeof ovBudget.money.budget.allocated === "string", "budget role receives money aggregates");
+    // UI certification: detail endpoints return valued lines + revision history
+    const newCert = await (await fetch("http://127.0.0.1:18099/api/certificates", {
+      method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ building_id: buildings[0].id, kind: "construction", items: [{ description: "Concrete works", unit: "m3", qty: "10", price: "100" }], deductions: [{ kind: "retention", percent: "10" }] }),
+    })).json();
+    const certDetail = await (await fetch(`http://127.0.0.1:18099/api/certificates/${newCert.id}`, { headers: { Authorization: `Bearer ${techToken}` } })).json();
+    assert.ok(Array.isArray(certDetail.items) && certDetail.items.length === 1 && certDetail.items[0].value === "1000.0000", "certificate detail returns valued item lines");
+    assert.equal(certDetail.net, "900.0000", "certificate detail net = gross - retention, exact decimal");
+    const certList = await (await fetch("http://127.0.0.1:18099/api/certificates", { headers: { Authorization: `Bearer ${techToken}` } })).json();
+    assert.equal(certList[0].net, certDetail.net, "certificate detail net matches list");
+    let catalogue = await (await fetch("http://127.0.0.1:18099/api/catalogue", { headers: { Authorization: `Bearer ${adminToken}` } })).json();
+    if (!catalogue.length) {
+      await fetch("http://127.0.0.1:18099/api/catalogue", { method: "POST", headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ code: "CERT-001", name_en: "Certification item", name_ar: "بند اعتماد", unit: "m3", standard_price: "100" }) });
+      catalogue = await (await fetch("http://127.0.0.1:18099/api/catalogue", { headers: { Authorization: `Bearer ${adminToken}` } })).json();
+    }
+    const newEst = await (await fetch("http://127.0.0.1:18099/api/estimates", {
+      method: "POST", headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ building_id: buildings[0].id, title: "Certification estimate", items: [{ catalogue_item_id: catalogue[0].id, qty: "2" }] }),
+    })).json();
+    const estDetail = await (await fetch(`http://127.0.0.1:18099/api/estimates/${newEst.id}`, { headers: { Authorization: `Bearer ${adminToken}` } })).json();
+    assert.ok(Array.isArray(estDetail.items) && estDetail.items.length >= 1, "estimate detail returns catalogue lines");
+    assert.ok(Array.isArray(estDetail.revisions) && estDetail.revisions.length >= 1, "estimate detail returns revision history");
+    // UI certification: authorization negatives — admin directory + unauthenticated access
+    const usersTech = await fetch("http://127.0.0.1:18099/api/users", { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(usersTech.status, 403, "user directory is admin-only");
+    const usersAdmin = await (await fetch("http://127.0.0.1:18099/api/users", { headers: { Authorization: `Bearer ${adminToken}` } })).json();
+    assert.ok(usersAdmin.length >= 3 && !("password_hash" in usersAdmin[0]), "user directory never exposes password material");
+    const ovAnon = await fetch("http://127.0.0.1:18099/api/overview");
+    assert.equal(ovAnon.status, 401, "overview requires authentication");
+    const certAnon = await fetch("http://127.0.0.1:18099/api/certificates/1");
+    assert.equal(certAnon.status, 401, "certificate detail requires authentication");
     const csvTech = await fetch("http://127.0.0.1:18099/api/reports/budget-utilization.csv", { headers: { Authorization: `Bearer ${techToken}` } });
     assert.equal(csvTech.status, 403); // technical role holds no finance-report grant
     const csvBudget = await fetch("http://127.0.0.1:18099/api/reports/budget-utilization.csv", { headers: { Authorization: `Bearer ${budgetToken}` } });
@@ -213,5 +250,352 @@ async function runE2E(admin: pg.Client) {
     assert.equal(okTr.status, 200);
     const events = await admin.query("SELECT COUNT(*)::int n FROM mig.mapping_approval_events WHERE transform_name = 'pblbuldg-to-buildings'");
     assert.ok(events.rows[0].n >= 6, "approval history must be append-only and complete (3 fields x approve/revoke/re-approve)");
+
+    // --- Phase 4: executable reconciliation for the fixture batch ---
+    const recRes = await fetch(`http://127.0.0.1:18099/api/migration/batches/${batchId}/reconciliation`, { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(recRes.status, 200);
+    const rec = await recRes.json();
+    assert.equal(rec.sourceRecords, 5);
+    assert.equal(rec.loadedRecords, 2);
+    assert.equal(rec.quarantinedRecords, 3);
+    assert.equal(rec.duplicateOccurrences, 1);
+    assert.equal(rec.countEquationHolds, true, "source = loaded + quarantined");
+    assert.equal(rec.controlTotals.VGCD, "15308643");
+    assert.equal(rec.sourceTotals.VGCD, "22962964");
+    assert.ok(rec.runs >= 1);
+
+    // --- Phase 4: controlled intake pipeline (no skipped stages, evidence required) ---
+    const reg = await fetch("http://127.0.0.1:18099/api/migration/intake", {
+      method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ member: "PBLBULDG", layoutName: "pblbuldg-native", dataClass: "synthetic" }) });
+    assert.equal(reg.status, 201);
+    const dsId = (await reg.json()).id;
+    const adv = (to: string, evidence?: string) => fetch(`http://127.0.0.1:18099/api/migration/intake/${dsId}/advance`, {
+      method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ to, evidence }) });
+    assert.equal((await adv("verified", "skip attempt")).status, 422, "stages cannot be skipped");
+    assert.equal((await adv("registered")).status, 400, "evidence is mandatory");
+    assert.equal((await adv("registered", "manifest + SHA-256 verified against delivery note")).status, 200);
+    assert.equal((await adv("verified", "layout hash matches registered layout")).status, 200);
+    const budgetIntake = await fetch("http://127.0.0.1:18099/api/migration/intake", {
+      method: "POST", headers: { Authorization: `Bearer ${budgetToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ member: "PBLBULDG" }) });
+    assert.equal(budgetIntake.status, 403, "intake registration requires migration.run");
+
+    // --- Phase 4 (Workstream E): forged identity in an approval body is ignored ---
+    const spoof = await fetch("http://127.0.0.1:18099/api/migration/approvals", {
+      method: "POST", headers: { Authorization: `Bearer ${budgetToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ transform: "tenders", mode: "demo",
+        approvedBy: "admin1", approvedByUserId: 999999, username: "admin1", role: "admin" }) });
+    assert.equal(spoof.status, 200);
+    const budgetRow = await admin.query("SELECT id FROM app.users WHERE username = 'budget1'");
+    const spoofRows = await admin.query(
+      "SELECT DISTINCT approved_by, approved_by_user_id, approved_role FROM mig.mapping_approvals WHERE legacy_member = 'PBYTENDR'");
+    assert.equal(spoofRows.rows.length, 1);
+    assert.equal(spoofRows.rows[0].approved_by, "budget1", "identity comes from the session, never the request body");
+    assert.equal(spoofRows.rows[0].approved_by_user_id, budgetRow.rows[0].id);
+    assert.equal(spoofRows.rows[0].approved_role, "budget");
+
+    // --- Phase 4: audit trail is admin-only ---
+    assert.equal((await fetch("http://127.0.0.1:18099/api/audit", { headers: { Authorization: `Bearer ${techToken}` } })).status, 403);
+    const auditRes = await fetch("http://127.0.0.1:18099/api/audit", { headers: { Authorization: `Bearer ${adminToken}` } });
+    assert.equal(auditRes.status, 200);
+    assert.ok((await auditRes.json()).length > 0);
+
+    // --- Phase 5 (Workstream B): cross-chunk duplicates caught by the keys table; O(1) checkpoint ---
+    const { streamImportFile: stream2 } = await import("../src/migration/stream.js");
+    const { writeFileSync: wf5, mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const dir5 = mkdtempSync(`${tmpdir()}/gaeb-p5-`);
+    const recs5: Buffer[] = [];
+    const mkRec5 = (blcd: string, vg: number) => {
+      const z = (s: string) => Buffer.from(s.split("").map(c => String.fromCharCode(0xf0 + Number(c))).join(""), "binary");
+      return Buffer.concat([Buffer.from("01", "utf8"), Buffer.from("02", "utf8"),
+        Buffer.from(blcd.padEnd(7, " "), "utf8"), Buffer.alloc(40, 0x40), z(String(vg).padStart(7, "0"))]);
+    };
+    // numeric keys (staging BLCD is INTEGER) across 3 chunks of 2; record 5 duplicates record 1's key (cross-chunk)
+    for (const [k, v] of [["1000001", 10], ["1000002", 20], ["1000003", 30], ["1000004", 40], ["1000001", 99]] as const) recs5.push(mkRec5(k, v));
+    const path5 = `${dir5}/cross-chunk.dat`; wf5(path5, Buffer.concat(recs5));
+    const r5 = await stream2(db, path5, streamLayout, { table: "school_map.pblbuldg", layoutName: "pbl-stream", chunkRecords: 2 });
+    const b5 = await admin.query("SELECT loaded, rejected FROM mig.batches WHERE batch_id = $1", [r5.batchId]);
+    assert.equal(b5.rows[0].loaded, 4, "cross-chunk duplicate must not load");
+    assert.equal(b5.rows[0].rejected, 1);
+    const js5 = await admin.query("SELECT next_offset, key_count, loaded_keys FROM mig.job_state WHERE batch_id = $1", [r5.batchId]);
+    assert.equal(js5.rows[0].next_offset, 5);
+    assert.equal(Number(js5.rows[0].key_count), 4, "checkpoint tracks the key count, not the set");
+    assert.deepEqual(js5.rows[0].loaded_keys, [], "the O(n^2) JSONB key set is no longer written on the streaming path");
+    const lk5 = await admin.query("SELECT COUNT(*)::int n FROM mig.loaded_keys WHERE batch_id = $1", [r5.batchId]);
+    assert.equal(lk5.rows[0].n, 4);
+    const sum5 = await admin.query("SELECT SUM(vgcd)::text s FROM school_map.pblbuldg WHERE _batch_id = $1", [r5.batchId]);
+    assert.equal(sum5.rows[0].s, "100", "control value excludes the duplicate's 99 (10+20+30+40)");
+
+    // --- Phase 5 (Workstream C): import job lifecycle ---
+    const jobPost = (token: string, body: object) => fetch("http://127.0.0.1:18099/api/migration/jobs", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const job1 = await jobPost(techToken, { member: "PBLBULDG", layoutName: "pblbuldg-v1", sourceSha256: "p5-sha-1" });
+    assert.equal(job1.status, 201); const jobId = (await job1.json()).id;
+    assert.equal((await jobPost(techToken, { member: "PBLBULDG", layoutName: "pblbuldg-v1", sourceSha256: "p5-sha-1" })).status, 409,
+      "duplicate active job for the same extract is refused");
+    const claim = (worker: string) => fetch(`http://127.0.0.1:18099/api/migration/jobs/${jobId}/claim`, {
+      method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ worker }) });
+    assert.equal((await claim("worker-a")).status, 200);
+    assert.equal((await claim("worker-b")).status, 409, "a live lease cannot be claimed by a second worker");
+    const trans = (token: string, to: string) => fetch(`http://127.0.0.1:18099/api/migration/jobs/${jobId}/transition`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ to }) });
+    assert.equal((await trans(techToken, "COMPLETED")).status, 422, "QUEUED cannot jump to COMPLETED");
+    assert.equal((await trans(budgetToken, "CANCELLED")).status, 403, "budget lacks migration.run entirely");
+    // a second operator (not the creator) cannot cancel
+    await admin.query("INSERT INTO app.users (username, password_hash, role) VALUES ('tech2', $1, 'technical') ON CONFLICT (username) DO NOTHING", [hashPassword("password-123")]);
+    const tech2Token = await login("tech2");
+    assert.equal((await trans(tech2Token, "CANCELLED")).status, 403, "non-creator operator cannot cancel");
+    assert.equal((await trans(techToken, "CANCELLED")).status, 200, "creator can cancel");
+    const metrics = await (await fetch("http://127.0.0.1:18099/api/migration/metrics", { headers: { Authorization: `Bearer ${techToken}` } })).json();
+    assert.ok(metrics.batches >= 3 && metrics.indexedKeys >= 4, "metrics reflect live state");
+
+    // --- Phase 8 (Workstream 10): live progress endpoint for the streamed batch ---
+    const progRes = await fetch(`http://127.0.0.1:18099/api/migration/batches/${r5.batchId}/progress`, { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(progRes.status, 200);
+    const prog = await progRes.json();
+    assert.ok(prog.processed >= 5 && prog.checkpointRecord >= 5, "progress reflects the streamed import");
+    assert.ok(prog.keysIndexed >= 4 && prog.etaIsEstimate === true, "progress carries keys + estimate flag");
+    assert.ok(["complete", "recorded"].includes(prog.status), "finished batch is not reported as in-progress");
+    const progMissing = await fetch("http://127.0.0.1:18099/api/migration/batches/mig-nope/progress", { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(progMissing.status, 404);
+
+    // --- Phase 5 (Workstream D): reconciliation report — provenance + three separate outcomes ---
+    const repRes = await fetch(`http://127.0.0.1:18099/api/migration/batches/${batchId}/reconciliation/report`, { headers: { Authorization: `Bearer ${techToken}` } });
+    assert.equal(repRes.status, 200);
+    const rep = await repRes.json();
+    assert.equal(rep.technicalOutcome, "PASSED");
+    assert.match(rep.businessEquivalence, /PENDING/);
+    assert.match(rep.customerAcceptance, /PENDING/);
+    assert.ok(rep.sourceSha256 && rep.sourceSha256.length === 64, "report carries the source checksum");
+    const repText = await (await fetch(`http://127.0.0.1:18099/api/migration/batches/${batchId}/reconciliation/report?format=text`, { headers: { Authorization: `Bearer ${techToken}` } })).text();
+    assert.match(repText, /RECONCILIATION REPORT/);
+    assert.match(repText, /Business equivalence: PENDING/);
+
+    // --- Phase 9 (A3/E): server-side buildings pagination ---
+    const H = { Authorization: `Bearer ${adminToken}` };
+    const seedRes = await fetch("http://127.0.0.1:18099/api/buildings?limit=200", { headers: H });
+    const seedCount = (await seedRes.json()).length;
+    const pg1 = await (await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=2&sort=id&dir=asc", { headers: H })).json();
+    assert.equal(pg1.total, seedCount, "paged total matches seeded buildings");
+    assert.equal(pg1.rows.length, Math.min(2, seedCount));
+    assert.equal(pg1.pages, Math.max(1, Math.ceil(seedCount / 2)));
+    const pg2 = await (await fetch("http://127.0.0.1:18099/api/buildings?page=2&pageSize=2&sort=id&dir=asc", { headers: H })).json();
+    if (seedCount > 2) assert.ok(pg2.rows[0].id > pg1.rows[pg1.rows.length - 1].id, "pages advance without overlap");
+    const pgDesc = await (await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=2&sort=id&dir=desc", { headers: H })).json();
+    assert.ok(pgDesc.rows[0].id >= pg1.rows[pg1.rows.length - 1].id, "desc ordering reverses the set");
+    const pgGov = await (await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=100&governorate=1", { headers: H })).json();
+    assert.ok(pgGov.rows.every((r: any) => r.governorate_code === 1), "governorate filter is exact");
+    const pgQ = await (await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=100&q=%25", { headers: H })).json();
+    assert.equal(pgQ.total, 0, "wildcard characters in q are escaped, not pattern-matched");
+    const badSort = await fetch("http://127.0.0.1:18099/api/buildings?page=1&sort=id%3BDROP%20TABLE%20app.buildings", { headers: H });
+    assert.equal(badSort.status, 400, "non-whitelisted sort is rejected, never interpolated");
+    const badDir = await fetch("http://127.0.0.1:18099/api/buildings?page=1&dir=sideways", { headers: H });
+    assert.equal(badDir.status, 400);
+    const badPage = await fetch("http://127.0.0.1:18099/api/buildings?page=0", { headers: H });
+    assert.equal(badPage.status, 400);
+    const badSize = await fetch("http://127.0.0.1:18099/api/buildings?page=1&pageSize=5000", { headers: H });
+    assert.equal(badSize.status, 400, "pageSize is capped server-side");
+    const badGov = await fetch("http://127.0.0.1:18099/api/buildings?page=1&governorate=abc", { headers: H });
+    assert.equal(badGov.status, 400);
+    const unauthPg = await fetch("http://127.0.0.1:18099/api/buildings?page=1");
+    assert.equal(unauthPg.status, 401, "paged mode still requires authentication");
+
+    // --- Phase 10: tenders server-side pagination ---
+    const tAll = await (await fetch("http://127.0.0.1:18099/api/tenders", { headers: H })).json();
+    const tPg = await (await fetch("http://127.0.0.1:18099/api/tenders?page=1&pageSize=2", { headers: H })).json();
+    assert.equal(tPg.total, tAll.length, "tenders paged total matches the full list");
+    assert.equal(tPg.rows.length, Math.min(2, tAll.length));
+    assert.equal(tPg.rows[0].id, tAll[0].id, "default order remains id DESC");
+    const tStage = await (await fetch("http://127.0.0.1:18099/api/tenders?page=1&pageSize=100&stage=draft", { headers: H })).json();
+    assert.ok(tStage.rows.every((r: any) => r.stage === "draft"), "stage filter is exact");
+    const tBadStage = await fetch("http://127.0.0.1:18099/api/tenders?page=1&stage=banana", { headers: H });
+    assert.equal(tBadStage.status, 400, "unknown stage rejected");
+    const tBadSort = await fetch("http://127.0.0.1:18099/api/tenders?page=1&sort=title%3BDROP", { headers: H });
+    assert.equal(tBadSort.status, 400, "tenders sort whitelist enforced");
+
+    // --- Phases 12+13: governed pilot activation + authorization integrity ---
+    const { createHash } = await import("node:crypto");
+    const fx = readFileSync(new URL("./fixture_extract.bin", import.meta.url));
+    const fxSha = createHash("sha256").update(fx).digest("hex");
+    const rawImport = (tok: string, cls: string, ds = "pblbuldg") => fetch(`http://127.0.0.1:18099/api/migration/import?layout=pblbuldg&dataClass=${cls}&dataset=${ds}`, { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/octet-stream" }, body: fx });
+    const evFlow = async (pilotId: number, key: string, opts: { expiresAt?: string } = {}) => {
+      const c = await post(`/api/pilots/${pilotId}/evidence`, techToken, { conditionKey: key, ...(opts.expiresAt ? { expiresAt: opts.expiresAt } : {}) });
+      const evId = (await c.json()).id;
+      const sub = await post(`/api/pilots/${pilotId}/evidence/${evId}/submit`, techToken, { documentRef: `test-doc-${key}` });
+      const ver = await post(`/api/pilots/${pilotId}/evidence/${evId}/verify`, budgetToken, { decision: "VERIFIED" });
+      return { evId, c: c.status, sub: sub.status, ver: ver.status };
+    };
+    const refused1 = await rawImport(techToken, "customer");
+    assert.equal(refused1.status, 422, "customer-data import refused with no active pilot");
+    const pilotByTech = await post("/api/pilots", techToken, { name: "Phase 13 gate test" });
+    assert.equal(pilotByTech.status, 403, "pilot creation is admin-only");
+    const pilotRes = await post("/api/pilots", adminToken, { name: "Phase 13 gate test", environment: "test" });
+    assert.equal(pilotRes.status, 201, "admin creates a pilot");
+    const pilotId = (await pilotRes.json()).id;
+    const pilotDetail = await (await fetch(`http://127.0.0.1:18099/api/pilots/${pilotId}`, { headers: H })).json();
+    assert.equal(pilotDetail.conditions.length, 12, "pilot carries the 12 mandatory conditions");
+    assert.ok(pilotDetail.conditions.every((c: any) => c.status === "pending"), "all conditions start pending");
+    const earlyActivate = await post(`/api/pilots/${pilotId}/activate`, adminToken, {});
+    assert.equal(earlyActivate.status, 422, "activation refused while conditions are missing");
+    const earlyBody = await earlyActivate.json();
+    assert.ok(Array.isArray(earlyBody.missing) && earlyBody.missing.length >= 10, "refusal lists the missing conditions");
+
+    // Evidence lifecycle negatives
+    const evCharterC = await post(`/api/pilots/${pilotId}/evidence`, techToken, { conditionKey: "charter_approved" });
+    const evCharter = (await evCharterC.json()).id;
+    const subNoRef = await post(`/api/pilots/${pilotId}/evidence/${evCharter}/submit`, techToken, {});
+    assert.equal(subNoRef.status, 400, "submission without a document reference is refused");
+    const subCharter = await post(`/api/pilots/${pilotId}/evidence/${evCharter}/submit`, techToken, { documentRef: "charter-signed.pdf" });
+    assert.equal(subCharter.status, 200, "evidence submits");
+    const verifyByTech = await post(`/api/pilots/${pilotId}/evidence/${evCharter}/verify`, techToken, { decision: "VERIFIED" });
+    assert.equal(verifyByTech.status, 403, "verification requires the verifier permission");
+    const verifyMissing = await post(`/api/pilots/${pilotId}/evidence/999999/verify`, budgetToken, { decision: "VERIFIED" });
+    assert.equal(verifyMissing.status, 404, "verification of missing evidence is refused");
+    const evScopeC = await post(`/api/pilots/${pilotId}/evidence`, adminToken, { conditionKey: "scope_approved" });
+    const evScope = (await evScopeC.json()).id;
+    await post(`/api/pilots/${pilotId}/evidence/${evScope}/submit`, adminToken, { documentRef: "scope-signed.pdf" });
+    const selfVerify = await post(`/api/pilots/${pilotId}/evidence/${evScope}/verify`, adminToken, { decision: "VERIFIED" });
+    assert.equal(selfVerify.status, 422, "self-verification is refused (separation of duties)");
+    const verifyPending = await post(`/api/pilots/${pilotId}/evidence/${(await (await post(`/api/pilots/${pilotId}/evidence`, techToken, { conditionKey: "bd_decisions" })).json()).id}/verify`, budgetToken, { decision: "VERIFIED" });
+    assert.equal(verifyPending.status, 422, "PENDING (unsubmitted) evidence cannot be verified");
+    const verCharter = await post(`/api/pilots/${pilotId}/evidence/${evCharter}/verify`, budgetToken, { decision: "VERIFIED" });
+    assert.equal(verCharter.status, 200, "independent verifier verifies the charter evidence");
+    const verScope = await post(`/api/pilots/${pilotId}/evidence/${evScope}/verify`, budgetToken, { decision: "VERIFIED" });
+    assert.equal(verScope.status, 200, "budget verifies the admin-submitted scope evidence");
+
+    // Satisfy the remaining attestation conditions
+    for (const key of ["bd_decisions", "extract_authorization", "environment_approved", "backup_restore_verified", "monitoring_alerts_verified", "transfer_mechanism_approved", "participants_assigned", "security_prerequisites"]) {
+      const f = await evFlow(pilotId, key);
+      assert.equal(f.ver, 200, `evidence flow for ${key}`);
+    }
+    // Hash labeling: declared vs server-computed
+    const evHashC = await post(`/api/pilots/${pilotId}/evidence`, techToken, { conditionKey: "charter_approved" });
+    const evHash = (await evHashC.json()).id;
+    await post(`/api/pilots/${pilotId}/evidence/${evHash}/submit`, techToken, { documentRef: "charter-v2.pdf", docSha256: "deadbeef".repeat(8) });
+    let evList = await (await fetch(`http://127.0.0.1:18099/api/pilots/${pilotId}/evidence`, { headers: H })).json();
+    assert.equal(evList.find((e: any) => e.id === evHash).hash_status, "declared-unverified", "a typed-in hash is labeled declared-unverified, never presented as verified");
+    const docUp = await fetch(`http://127.0.0.1:18099/api/pilots/${pilotId}/evidence/${evHash}/document`, { method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/octet-stream" }, body: fx });
+    assert.equal(docUp.status, 200, "evidence document bytes accepted for hashing");
+    evList = await (await fetch(`http://127.0.0.1:18099/api/pilots/${pilotId}/evidence`, { headers: H })).json();
+    const evHashRow = evList.find((e: any) => e.id === evHash);
+    assert.equal(evHashRow.hash_status, "verified-bytes", "server-computed hash is labeled verified-bytes");
+    assert.equal(evHashRow.doc_sha256, fxSha, "server-computed hash matches the actual bytes");
+    const verHash = await post(`/api/pilots/${pilotId}/evidence/${evHash}/verify`, budgetToken, { decision: "VERIFIED" });
+    assert.equal(verHash.status, 200, "charter v2 verifies");
+    evList = await (await fetch(`http://127.0.0.1:18099/api/pilots/${pilotId}/evidence`, { headers: H })).json();
+    assert.equal(evList.find((e: any) => e.id === evCharter).status, "SUPERSEDED", "verifying a successor supersedes the previous evidence");
+    const verifySuperseded = await post(`/api/pilots/${pilotId}/evidence/${evCharter}/verify`, budgetToken, { decision: "VERIFIED" });
+    assert.equal(verifySuperseded.status, 422, "superseded evidence cannot be verified");
+
+    // Automated conditions
+    const verifyTooEarly = await post(`/api/pilots/${pilotId}/conditions/transform_approvals/verify`, adminToken, {});
+    assert.equal(verifyTooEarly.status, 422, "transform_approvals auto-check fails before customer-mode approvals exist");
+    const custApproval = await post("/api/migration/approvals", budgetToken, { transform: "buildings", mode: "customer", evidenceRef: "integration-test signed mapping review" });
+    assert.equal(custApproval.status, 200, "customer-mode approval with evidence reference");
+    const verifyT = await post(`/api/pilots/${pilotId}/conditions/transform_approvals/verify`, adminToken, {});
+    assert.equal(verifyT.status, 200, "transform_approvals verifies against live approvals");
+    const verifyEnv = await post(`/api/pilots/${pilotId}/conditions/env_preflight/verify`, adminToken, {});
+    assert.equal(verifyEnv.status, 200, "env_preflight verifies against the live database");
+
+    // Dataset scope binding
+    const dsReg = await post(`/api/pilots/${pilotId}/datasets`, adminToken, { datasetKey: "pblbuldg", extractRef: "EXT-AUTH-001", sourceSha256: fxSha, transformName: "buildings" });
+    assert.equal(dsReg.status, 201, "dataset registered");
+    const pilotDsId = (await dsReg.json()).id;
+    const dsAuth = await post(`/api/pilots/${pilotId}/datasets/${pilotDsId}/authorize`, adminToken, {});
+    assert.equal(dsAuth.status, 200, "dataset authorized against verified extract evidence");
+    const dsWrong = await post(`/api/pilots/${pilotId}/datasets`, adminToken, { datasetKey: "pbptndr", sourceSha256: "0".repeat(64) });
+    const dsWrongId = (await dsWrong.json()).id;
+    await post(`/api/pilots/${pilotId}/datasets/${dsWrongId}/authorize`, adminToken, {});
+
+    const activate = await post(`/api/pilots/${pilotId}/activate`, adminToken, {});
+    assert.equal(activate.status, 200, "activation succeeds on verified evidence + live automated checks");
+    const allowed = await rawImport(techToken, "customer");
+    assert.equal(allowed.status, 200, "customer-data import proceeds under the active pilot for the bound dataset");
+    const wrongHash = await rawImport(techToken, "customer", "pbptndr");
+    assert.equal(wrongHash.status, 422, "file hash mismatch against the authorized extract is refused (no silent substitution)");
+    const wrongDataset = await rawImport(techToken, "customer", "pbpendp");
+    assert.equal(wrongDataset.status, 422, "unregistered dataset is refused");
+
+    // Suspension / reactivation
+    const suspend = await post(`/api/pilots/${pilotId}/suspend`, adminToken, { reason: "integration-test suspension" });
+    assert.equal(suspend.status, 200, "pilot suspends");
+    const refusedSusp = await rawImport(techToken, "customer");
+    assert.equal(refusedSusp.status, 422, "import refused while the pilot is suspended");
+    const reactivate = await post(`/api/pilots/${pilotId}/reactivate`, adminToken, {});
+    assert.equal(reactivate.status, 200, "reactivation re-verifies all conditions and restores the pilot");
+    const allowed2 = await rawImport(techToken, "customer");
+    assert.equal(allowed2.status, 200, "import proceeds after reactivation");
+
+    // Revoked transformation approval invalidates continuously
+    const revokeAppr = await post("/api/migration/approvals/revoke", budgetToken, { transform: "buildings", reason: "integration-test revocation" });
+    assert.equal(revokeAppr.status, 200, "transformation approvals revoked");
+    const refusedRevokedAppr = await rawImport(techToken, "customer");
+    assert.equal(refusedRevokedAppr.status, 422, "import refused after transformation approval revocation — activation does not grandfather");
+    await post("/api/migration/approvals", budgetToken, { transform: "buildings", mode: "customer", evidenceRef: "integration-test re-approval" });
+
+    // Revoked evidence invalidates; requalification restores
+    const revokeEv = await post(`/api/pilots/${pilotId}/evidence/${evHash}/revoke`, budgetToken, { reason: "integration-test revocation" });
+    assert.equal(revokeEv.status, 200, "verified evidence revoked");
+    const refusedRevokedEv = await rawImport(techToken, "customer");
+    assert.equal(refusedRevokedEv.status, 422, "import refused after evidence revocation");
+    const requal = await evFlow(pilotId, "charter_approved");
+    assert.equal(requal.ver, 200, "replacement charter evidence verified (requalification)");
+
+    // Expired evidence invalidates and materializes
+    const expFlow = await evFlow(pilotId, "scope_approved", { expiresAt: "2020-01-01T00:00:00Z" });
+    assert.equal(expFlow.ver, 200, "already-expired evidence can be recorded and verified as a document");
+    const refusedExpired = await rawImport(techToken, "customer");
+    assert.equal(refusedExpired.status, 422, "import refused: the current scope evidence is expired");
+    evList = await (await fetch(`http://127.0.0.1:18099/api/pilots/${pilotId}/evidence`, { headers: H })).json();
+    assert.equal(evList.find((e: any) => e.id === expFlow.evId).status, "EXPIRED", "expiry materializes on evaluation");
+    const scopeV3 = await evFlow(pilotId, "scope_approved");
+    assert.equal(scopeV3.ver, 200, "fresh scope evidence verified");
+    const allowed3 = await rawImport(techToken, "customer");
+    assert.equal(allowed3.status, 200, "import proceeds after expiry requalification");
+
+    // Transform gate: revocation between import and transform blocks operational data
+    const impForTransform = await rawImport(techToken, "customer");
+    assert.equal(impForTransform.status, 200, "batch imported while authorization is current");
+    const impBody = await impForTransform.json();
+    const revokeForTransform = await post(`/api/pilots/${pilotId}/evidence/${scopeV3.evId}/revoke`, budgetToken, { reason: "integration-test transform gate" });
+    assert.equal(revokeForTransform.status, 200);
+    const transformRefused = await post("/api/migration/transform", techToken, { name: "buildings", batchId: impBody.batchId });
+    assert.equal(transformRefused.status, 422, "transform refused after revocation — staged records never reach operational tables unauthorized");
+    const scopeV4 = await evFlow(pilotId, "scope_approved");
+    assert.equal(scopeV4.ver, 200);
+    const transformOk = await post("/api/migration/transform", techToken, { name: "buildings", batchId: impBody.batchId });
+    assert.equal(transformOk.status, 200, "transform proceeds once authorization is current again");
+
+    // Cross-pilot isolation + concurrent activation
+    const pilot2Res = await post("/api/pilots", adminToken, { name: "Phase 13 second pilot", environment: "test" });
+    const pilot2Id = (await pilot2Res.json()).id;
+    const crossActivate = await post(`/api/pilots/${pilot2Id}/activate`, adminToken, {});
+    assert.equal(crossActivate.status, 422, "pilot 1's evidence does not satisfy pilot 2 (cross-pilot reuse refused)");
+    for (const key of ["charter_approved", "scope_approved", "bd_decisions", "extract_authorization", "environment_approved", "backup_restore_verified", "monitoring_alerts_verified", "transfer_mechanism_approved", "participants_assigned", "security_prerequisites"]) {
+      const f = await evFlow(pilot2Id, key);
+      assert.equal(f.ver, 200, `pilot 2 evidence ${key}`);
+    }
+    const race = await Promise.all([post(`/api/pilots/${pilot2Id}/activate`, adminToken, {}), post(`/api/pilots/${pilot2Id}/activate`, adminToken, {})]);
+    const raceStatuses = race.map(r => r.status).sort();
+    assert.deepEqual(raceStatuses, [200, 422], "concurrent activation: exactly one request wins");
+    const unauthActivate = await post(`/api/pilots/${pilot2Id}/activate`, techToken, {});
+    assert.equal(unauthActivate.status, 403, "activation is admin-only");
+
+    // Closure re-locks; streamed path enforces the same rules; audit export
+    const closeRes = await post(`/api/pilots/${pilotId}/close`, adminToken, {});
+    assert.equal(closeRes.status, 200, "first pilot closes");
+    const upRes = await fetch("http://127.0.0.1:18099/api/migration/uploads", { method: "POST", headers: { Authorization: `Bearer ${techToken}`, "Content-Type": "application/octet-stream" }, body: fx });
+    const upId = (await upRes.json()).uploadId;
+    const streamRefused = await post(`/api/migration/uploads/${upId}/import?layout=pblbuldg&dataClass=customer&dataset=pblbuldg`, techToken, {});
+    assert.equal(streamRefused.status, 422, "streamed customer import refused: dataset is bound to the closed pilot, not the active one");
+    const refused2 = await rawImport(techToken, "customer");
+    assert.equal(refused2.status, 422, "buffered customer import refused for the closed pilot's dataset");
+    const exportRes = await fetch(`http://127.0.0.1:18099/api/pilots/${pilotId}/audit-export`, { headers: { Authorization: `Bearer ${budgetToken}` } });
+    assert.equal(exportRes.status, 200, "audit export available to the auditor role");
+    const exportBody = await exportRes.json();
+    assert.ok(exportBody.evidence.length >= 10 && exportBody.audit.some((a: any) => a.action === "pilot.import.refused") && exportBody.audit.some((a: any) => a.action === "pilot.evidence.verify"), "audit export carries evidence history and import decisions");
   } finally { server.kill(); }
 }

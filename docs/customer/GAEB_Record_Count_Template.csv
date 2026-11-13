@@ -1,0 +1,126 @@
+module,file_name,live_record_count,extract_record_count,money_field,live_control_total,extract_control_total,counted_by,counted_at,notes
+Budget,CBABDALW,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Budget,CBABDGLW,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Budget,CBABGALW,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Budget,CBARECPF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Budget,CBAXX1PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Budget,CBAXX2PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Budget,CBAXX9PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Budget,CBGRECPF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Budget,CBGREXPF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYCMT,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYMBER,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYNOTES,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYOF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYOFFRS,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYPBLSH,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYPRTGR,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYSHW,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYSUT#,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,#BYSUTN,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,PBYCLAIM,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,PBYMANT,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,PBYPARTT,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,PBYSUPL1,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,PBYSUPL2,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Purchases & Contracts,PBYTENDR,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,GRN001PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,GRN002PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,PBLLND01,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,PBLLND02,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,PBLLND03,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,PBLLND04,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,PBLLND05,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,PBLLND15,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,PBLLND16,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,PBLLND50,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,PRC002PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV01PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV02PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV03PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV04PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV05PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV06PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV07PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV08PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV09PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV10PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,REMV12PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RENT02PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RENT03PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RENT05PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RNT001PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RNT002PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RNT003PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RNT004PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RNT006PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RNT007PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RNT008PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RNT009PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Real Estate,RNT011PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,BULDCD1F,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,BULDCOD1,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,BULDCODF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,CLOS00PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,DELB01PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,FARM01PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,FARM02PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLADDIT,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLAREAS,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLBULDG,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLDMG17,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLEFECT,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLELSUP,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLFLOOR,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLGASES,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLGATES,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLINSPL,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLINTRV,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLLEVEL,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLROOMS,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLSPPLS,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLSROM,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLSROMN,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLSROOM,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLSWLOK,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PBLWALL,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PELCOURS,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PLN01PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PLN02PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PLN105PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PLN501PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PLNDMDPF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,PROJSRPF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SCH05SPF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SCHDBF07,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SCHDBF77,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SCHDBFPD,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SCHDES1F,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SCHMHMPF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SCHPF5,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SCHPLNPF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SCHSUM,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,SEM001PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,TES001PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+School Map,TES002PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INM001PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INM002PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INM003PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INM004PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INM005PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INM006PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INM007PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INM009PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INM010PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV001PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV002PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV003PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV004PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV005PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV006PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV007PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV008PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV009PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INV010PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,INVO01PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.
+Technical Abstracts,MXM001PF,,,,,,,,Counts and totals to be produced on the live system at extract time (DSPFD + SUM); Veebase reconciles against these figures.

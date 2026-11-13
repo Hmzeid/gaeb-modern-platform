@@ -1,0 +1,9 @@
+rule_id,module,rule,source_evidence,status,notes
+BR-01,Abstracts,"Line value = quantity x price (QSTKVL = AQTY1 x ITPR)","Delivered source analysis (INV001PF programs)",IMPLEMENTED,"Exact decimal arithmetic; tested"
+BR-02,Abstracts,"Deductions are typed by CUTKND, never free text","Delivered source analysis",PARTIAL,"Enumeration + formulas unconfirmed (B-08); certificates load with deductions 0 and are flagged"
+BR-03,Purchases,"CHK5DAYS deadline check","Program name only",UNVERIFIED,"Implemented as 5 working days Fri/Sat weekend; calendar source unconfirmed (B-04)"
+BR-04,All,"CHKDIG check digit","Program name only",NOT IMPLEMENTED,"Algorithm not delivered (B-03)"
+BR-05,Real Estate,"Case moves REMV01 -> REMV02 only after ministerial decree","Delivered source analysis",IMPLEMENTED,"Stage gate in workflow + transform assigns pre_decree to REMV01PF rows"
+BR-06,Estimates,"Estimate items must exist in the item catalogue (PMPITMAR restriction)","Delivered source analysis",IMPLEMENTED,"Structural FK enforcement; draft->reviewed->approved with distinct actors"
+BR-07,Abstracts,"Certifier cannot authorize own certificate's payment","Platform SoD design (mirrors approval separation)",IMPLEMENTED,"Workflow + RBAC enforced; customer confirmation requested (Questionnaire)"
+BR-08,Budget,"Fiscal-year encoding in LWYEAR (9 digits)","Field geometry only",UNVERIFIED,"Questionnaire Q6"

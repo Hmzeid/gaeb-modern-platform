@@ -1,0 +1,18 @@
+== repo ==
+{"archived":false,"default_branch":"main","visibility":"public"}
+== rulesets ==
+[]== environments ==
+0
+== secrets (names only) ==
+0
+== self-hosted runners ==
+0
+== workflow runs ==
+0
+== workflows dir on any branch ==
+main: {"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}none
+production-upgrade: {"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}none
+phase-4-readiness: {"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}none
+phase-5-certification: {"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}none
+phase-6-customer-acceptance: {"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}none
+phase-7-pilot-activation: {"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}none

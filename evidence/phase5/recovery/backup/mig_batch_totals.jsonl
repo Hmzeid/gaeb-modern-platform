@@ -1,0 +1,4 @@
+{"batch_id":"mig-restart-recovery","field":"BLCD","kind":"control","amount":"3.000000"}
+{"batch_id":"mig-restart-recovery","field":"BLCD","kind":"source","amount":"5.000000"}
+{"batch_id":"mig-restart-recovery","field":"VGCD","kind":"control","amount":"333.000000"}
+{"batch_id":"mig-restart-recovery","field":"VGCD","kind":"source","amount":"555.000000"}

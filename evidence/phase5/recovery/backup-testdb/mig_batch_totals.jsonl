@@ -1,0 +1,6 @@
+{"batch_id":"mig-5cbfe0debb151a8a","field":"VGCD","kind":"control","amount":"3597718700.000000"}
+{"batch_id":"mig-5cbfe0debb151a8a","field":"VGCD","kind":"source","amount":"3600719400.000000"}
+{"batch_id":"mig-978d8617cbbef36e","field":"VGCD","kind":"control","amount":"100.000000"}
+{"batch_id":"mig-978d8617cbbef36e","field":"VGCD","kind":"source","amount":"199.000000"}
+{"batch_id":"mig-integration-fixture","field":"VGCD","kind":"control","amount":"15308643.000000"}
+{"batch_id":"mig-integration-fixture","field":"VGCD","kind":"source","amount":"22962964.000000"}

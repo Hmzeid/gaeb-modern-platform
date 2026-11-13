@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAEB Modern Platform — Executive Visual Review (Phase 9)</title>
+<style>
+  :root { --ink:#0f1f38; --ink2:#42506a; --line:#dbe2ee; --bg:#f2f5f9; --card:#fff; --brand:#2563eb; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", Inter, Arial, sans-serif; background:var(--bg); color:var(--ink); }
+  header { background: linear-gradient(180deg,#0a1a33,#081426); color:#eaf1fd; padding:34px 40px 28px; }
+  header h1 { margin:0 0 6px; font-size:26px; letter-spacing:-.01em; }
+  header p { margin:0; color:#a9bcdf; font-size:14px; max-width:900px; line-height:1.55; }
+  main { max-width:1560px; margin:0 auto; padding:26px 30px 60px; }
+  h2 { font-size:19px; margin:34px 0 6px; }
+  h2:first-of-type { margin-top:6px; }
+  .sub { color:var(--ink2); font-size:13.5px; margin:0 0 16px; max-width:1000px; line-height:1.55; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(430px,1fr)); gap:16px; }
+  .grid.two { grid-template-columns:repeat(auto-fill,minmax(620px,1fr)); }
+  figure { margin:0; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  figure img { width:100%; display:block; cursor:zoom-in; }
+  figcaption { padding:11px 14px 12px; }
+  figcaption b { display:block; font-size:13.5px; margin-bottom:3px; }
+  figcaption span { font-size:12.5px; color:var(--ink2); line-height:1.5; display:block; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:900px){ .pair{grid-template-columns:1fr;} .grid,.grid.two{grid-template-columns:1fr;} }
+  .note { background:#fff8e6; border:1px solid #ecd9a0; border-radius:10px; padding:13px 16px; font-size:13px; line-height:1.6; color:#5c4a12; margin-top:14px; }
+  #lightbox { position:fixed; inset:0; background:rgba(5,12,24,.92); display:none; align-items:center; justify-content:center; z-index:50; }
+  #lightbox img { max-width:97vw; max-height:96vh; }
+  #lightbox.on { display:flex; }
+</style>
+</head>
+<body>
+<header>
+  <h1>GAEB Modern Platform — Executive Visual Review</h1>
+  <p>Phase 9 UI Release Hardening. Every image below is a full-resolution capture of the actual running application
+  (production build, real APIs, PostgreSQL) populated with clearly synthetic demonstration data — no customer data,
+  no mockups, no cropped defects. Click any image to view it full-size.</p>
+</header>
+<main>
+
+<h2>Executive dashboards</h2>
+<p class="sub">The two leadership entry points. Every figure traces to a platform endpoint; financial aggregates are
+withheld at the API level from roles without finance permission.</p>
+<div class="grid two">
+  <figure><img src="exec-overview.png" alt="Portfolio Overview"><figcaption><b>Portfolio Overview</b><span>Institutional KPIs, certificate portfolio, module health, tender pipeline by stage, budget realization, action queues, recent activity.</span></figcaption></figure>
+  <figure><img src="exec-geo.png" alt="Geographic Intelligence"><figcaption><b>Geographic Intelligence</b><span>Egypt choropleth on OCHA COD-AB boundaries (CC BY-IGO, attribution in-product). Governorate coverage 4 of 27 in the demo reference data; selection, ranked portfolio, regional alerts.</span></figcaption></figure>
+</div>
+
+<h2>Operational modules</h2>
+<p class="sub">One design system across the working modules. The School Map is now served by server-side pagination,
+sorting, filtering and search — validated at 1,000,000 synthetic records.</p>
+<div class="grid">
+  <figure><img src="exec-map.png" alt="School Map"><figcaption><b>School Map</b><span>National building registry — server-paged grid, governorate filter, bilingual names preserved verbatim.</span></figcaption></figure>
+  <figure><img src="exec-budget.png" alt="Budget"><figcaption><b>Budget</b><span>Allocations, commitments and utilization with exact-decimal money.</span></figcaption></figure>
+  <figure><img src="exec-tenders.png" alt="Tenders"><figcaption><b>Tenders &amp; Contracts</b><span>The full 12-stage Egyptian tender lifecycle, enforced by the API state machine.</span></figcaption></figure>
+  <figure><img src="exec-certificates.png" alt="Payment Certificates"><figcaption><b>Payment Certificates</b><span>Certificate chain with building context, deductions and separation of duties.</span></figcaption></figure>
+  <figure><img src="exec-estimates.png" alt="Estimates"><figcaption><b>Estimates &amp; BOQ</b><span>Catalogue-driven estimates with revision history.</span></figcaption></figure>
+  <figure><img src="exec-realestate.png" alt="Real Estate"><figcaption><b>Real Estate</b><span>Land, leases and decree-gated expropriation cases.</span></figcaption></figure>
+  <figure><img src="exec-reports.png" alt="Reports"><figcaption><b>Reports &amp; Analytics</b><span>Finance-gated reporting workspace with authorized exports.</span></figcaption></figure>
+  <figure><img src="exec-admin.png" alt="Administration"><figcaption><b>Administration</b><span>User directory (no credential material), roles and the audit trail.</span></figcaption></figure>
+</div>
+
+<h2>Migration Command Center</h2>
+<p class="sub">The AS/400 migration control surface: inventory, import, live progress, quarantine, reconciliation,
+governed mapping approvals and import jobs — all pre-existing capabilities retained.</p>
+<div class="grid two">
+  <figure><img src="exec-migration.png" alt="Migration Center"><figcaption><b>Migration Center</b><span>Approvals now show mode and status — revoked approvals read as revoked, and Revoke only appears on active rows.</span></figcaption></figure>
+  <figure><img src="drawer-certificate.png" alt="Certificate detail drawer"><figcaption><b>Record detail — Payment Certificate</b><span>Drawer with building context and valued item lines; focus is trapped while open and returns to the record on close.</span></figcaption></figure>
+</div>
+<div class="grid">
+  <figure><img src="drawer-building.png" alt="Building detail drawer"><figcaption><b>Record detail — Building</b><span>Registry record with legacy code lineage.</span></figcaption></figure>
+  <figure><img src="drawer-tender.png" alt="Tender detail drawer"><figcaption><b>Record detail — Tender</b><span>Lifecycle stepper with the record's own stage history.</span></figcaption></figure>
+  <figure><img src="drawer-estimate.png" alt="Estimate detail drawer"><figcaption><b>Record detail — Estimate</b><span>Item lines and revision history for the selected record only.</span></figcaption></figure>
+</div>
+
+<h2>Arabic (RTL) — a first-class interface</h2>
+<p class="sub">Arabic is a layout, not a translation: full mirroring, Arabic labels for every workflow status,
+locale digits for values, Latin preserved for identifiers. Dictionary parity between English and Arabic is enforced
+by an automated test (249 keys each).</p>
+<div class="pair">
+  <figure><img src="exec-overview-ar.png" alt="Portfolio Overview in Arabic"><figcaption><b>Portfolio Overview — Arabic</b><span>Compare with the English dashboard above.</span></figcaption></figure>
+  <figure><img src="exec-geo-ar.png" alt="Geographic Intelligence in Arabic"><figcaption><b>Geographic Intelligence — Arabic</b><span>Arabic governorate names from the boundary dataset; P-codes stay Latin by design.</span></figcaption></figure>
+</div>
+<div class="grid">
+  <figure><img src="exec-migration-ar.png" alt="Migration Center in Arabic"><figcaption><b>Migration Center — Arabic</b><span>Intake stages, job states and inventory statuses fully localized.</span></figcaption></figure>
+  <figure><img src="exec-map-ar.png" alt="School Map in Arabic"><figcaption><b>School Map — Arabic</b><span>Server-paged registry in RTL.</span></figcaption></figure>
+  <figure><img src="exec-certificates-ar.png" alt="Certificates in Arabic"><figcaption><b>Payment Certificates — Arabic</b><span>Exact-decimal money with Arabic-Indic digits.</span></figcaption></figure>
+</div>
+
+<h2>Tablet and mobile</h2>
+<p class="sub">At tablet width the rail and grids adapt; at phone width the rail becomes a top strip and the page
+never scrolls horizontally (verified programmatically on every major view).</p>
+<div class="grid">
+  <figure><img src="exec-overview-tablet.png" alt="Overview on tablet"><figcaption><b>Portfolio Overview — tablet (1024×768)</b><span></span></figcaption></figure>
+  <figure><img src="exec-migration-tablet.png" alt="Migration on tablet"><figcaption><b>Migration Center — tablet (1024×768)</b><span></span></figcaption></figure>
+  <figure><img src="exec-overview-mobile.png" alt="Overview on mobile"><figcaption><b>Portfolio Overview — mobile (390×844)</b><span></span></figcaption></figure>
+  <figure><img src="exec-map-mobile.png" alt="School Map on mobile"><figcaption><b>School Map — mobile (390×844)</b><span></span></figcaption></figure>
+</div>
+
+<div class="note"><b>Known limitations, stated plainly:</b> data shown is the synthetic demonstration dataset
+(7 buildings, 4 governorates) — the same screens were verified against a generated 1,000,000-record registry in the
+scale report. Screenshots render with system fonts in the build sandbox; on a normal network the product loads
+Inter / IBM Plex Sans Arabic. Screen-reader validation with NVDA/VoiceOver remains an external gate. CI execution
+and Docker certification remain blocked on a GitHub permission held by the repository owner.</div>
+
+</main>
+<div id="lightbox"><img alt="Full-size screenshot"></div>
+<script>
+  const lb = document.getElementById('lightbox'), li = lb.querySelector('img');
+  document.querySelectorAll('figure img').forEach(im => im.addEventListener('click', () => { li.src = im.src; lb.classList.add('on'); }));
+  lb.addEventListener('click', () => lb.classList.remove('on'));
+</script>
+</body>
+</html>

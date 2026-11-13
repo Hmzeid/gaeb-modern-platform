@@ -233,3 +233,293 @@ not claim otherwise. Full suite: 47/47 passing with integration enabled.
 - Security approved: NO — controls implemented and tested; no customer security review
 - Customer UAT approved: NO — not started (B-12)
 - Production deployment authorized: NO
+
+## Addendum 7 — Phase 4 (2026-11-12, branch phase-4-readiness)
+Baseline a756241 reproduced exactly (47/47) before any change. Delivered:
+customer pack x7 in docs/customer/ (inventory template generated from the
+reconciled register: 1,095 field rows, unknowns marked REQUIRES CUSTOMER
+CONFIRMATION; count template for all 125 PFs); controlled intake pipeline
+(mig.intake_datasets/events, stage machine, evidence-mandatory transitions,
+API + Migration Center panel); executable reconciliation endpoint implementing
+the Workstream D metric definitions (count equation + totals asserted in E2E);
+6 adversarial importer tests (empty extract, packed precision extremes,
+conflicting duplicates preserved as evidence, IBM425 quarantine, delimited
+null-never-zero, impossible dates); identity-forgery approval test (caught and
+fixed a real defect: approver display name now resolved from the user record);
+security pack (STRIDE threat model, self-assessment, RBAC matrix generated
+from auth.ts, remediation register); validation pack (equivalence matrix,
+reconciliation methodology, business-rule + exception registers); UAT package
+(24 cases); performance report; deployment/rollback/operations runbooks;
+PostgreSQL restart-recovery executed for real (PASS, evidence/phase4/recovery).
+Suite: 53/53, 0 skipped, real PostgreSQL 16.4. Docker gate stays NOT VERIFIED
+(no Docker in sandbox) — deployment-verification workflow written for a
+Docker-capable runner. Gates unchanged otherwise: real data BLOCKED on GAEB,
+equivalence/UAT/security-approval/production NOT STARTED.
+
+## Addendum 8 — Phase 5 (2026-11-12, branch phase-5-certification)
+Baseline 53/53 reproduced on phase-4-readiness (969fcd9) before changes; PR #2
+depends on PR #1 (stacked). Headline: the O(n^2) checkpoint bottleneck is
+ELIMINATED — root cause was mig.job_state.loaded_keys re-serialized per chunk;
+fix = mig.loaded_keys incremental table + O(1) checkpoint (offset + key count)
++ advisory-locked persistChunk with in-transaction cross-chunk duplicate
+quarantine and accepted-only exact totals. Benchmarks (same methodology):
+18k@5,136 / 108k@5,380 / 506k@4,818 / 1,012,418@4,940 rec/s, RSS flat (vs
+2,737 rec/s and growing RSS at ~450k before). An environment kill mid-benchmark
+left exactly 35 committed chunks — durability confirmed by the accident.
+Also: import job orchestration (009: lifecycle, lease claims, duplicate-active
+unique index, creator/admin-only cancel — all E2E-tested); reconciliation
+REPORT (JSON + text, provenance, transform hash + approval refs, three outcomes
+kept separate); Arabic fidelity suite (5 tests) + report; metrics endpoint +
+Operations dashboard strip; logical backup/restore of the 17-table evidence
+chain executed PASS against two databases (fingerprints match); synthetic
+pilot rehearsal PASS (all runbook steps via the real API); UAT cases 24 -> 30;
+Docker certification + CI activation remain blocked on the same facts (no
+Docker locally; token scopes gist/read:org/repo, no workflow) and are
+documented as such in docs/release/PHASE5_*. Suite: 58/58, 0 skipped.
+Gate changes: Scalability improvement VERIFIED; Backup/restore VERIFIED at the
+logical+restart level (physical pg_dump cycle NOT verified — no pg_dump binary
+in the sandbox distribution; all other gates unchanged.
+
+## Addendum 9 — Phase 6 (2026-11-12, branch phase-6-customer-acceptance)
+Baseline 58/58 reproduced on phase-5-certification (6c16204). Headline: the
+backup gap is CLOSED at both levels — PostgreSQL 16.15 client tools installed
+from Ubuntu 24.04 repos; pg_dump custom-format backup restored into a clean DB
+with all 18 evidence tables fingerprint-matching AND application-level
+reconciliation re-verified on the restored DB; pg_basebackup physical backup
+(828 MB, 3m50s) booted as a standalone cluster with all 18 tables / 2,480 rows
+fingerprint-matching. PITR and multi-host DR remain NOT VERIFIED (declared).
+CI: activation patch generated (evidence/phase6/ci-activation.patch); API
+checks show Actions enabled but main NOT branch-protected; token scope still
+blocks the push. Docker still unavailable locally — gate unchanged, honestly.
+Performance regression check: 506,209 records @ 5,261 rec/s (Phase 5: 4,818)
+— no regression. npm audit unreachable from the sandbox (registry policy 403)
+— recorded, not spun. Delivered: pilot environment package (requirements,
+deployment runbook, checklist), real-data pilot report (BLOCKED, accurate),
+business equivalence results with the 7 decisions owed, Phase 6 security
+assessment + evidence index + residual risk register (RR-01..06), UAT
+execution pack + 30-case results sheet + sign-off, operations acceptance pack,
+6-document customer acceptance dossier (acceptance form UNSIGNED), production
+readiness review. Suite at close: 58/58, 0 skipped.
+
+## Addendum 10 — Phase 7 (2026-11-12, branch phase-7-pilot-activation)
+Baseline 58/58 reproduced on b7f0686; close 65/65 (added preflight 3 +
+security-negative 4). NEW VERIFIED GATE: point-in-time recovery — dedicated
+drill cluster with WAL archiving, base backup, target-time restore:
+transaction A present, transaction B absent, promoted in 27.4s
+(tools/pitr-drill.mjs). Also: login throttling implemented (P7-F1 remediated,
+429 after 10 failures/10min per ip+user) + correlation IDs; streaming
+preflight intake validator (checksum REJECT, truncation/duplicate/Arabic
+findings); SBOM 98 components, all permissive licenses, lockfile hashed;
+benchmark ladder re-run incl. first 2M point: 108k@5,604 / 506k@5,416 /
+1.01M@4,996 / 2.02M@4,533 rec/s, RSS bounded — no regression; health-check
+tool verified in both directions (exit 0 clean / exit 1 naming FAILED jobs);
+logical + physical backup re-executed PASS (one physical comparison was
+invalidated by concurrent suite mutation, documented and re-run clean);
+business decision register corrected to 8 decisions BD-01..08 (the "seven"
+bundled CHKDIG+CHK5DAYS); RTM with 22 requirements; 16-item pilot package;
+UX review recorded one known gap (no live import progress in UI — Phase 8).
+Unchanged externals: CI BLOCKED (token scope), Docker NOT VERIFIED (no host),
+npm audit registry-blocked, real data BLOCKED, UAT/security approval external.
+Environment note: the VM replacement wiped the apt-installed PG client tools;
+reinstalled from the local apt cache via dpkg.
+
+## Addendum 11 — Phase 8 (2026-11-12, branch phase-8-pilot-execution)
+65/65 baseline reproduced and held at close. CI/CD AUDIT executed with fresh
+API evidence and the activation attempted three ways: HTTPS push REJECTED
+with GitHub's explicit workflow-scope message for the OAuth (gho_) token;
+Contents API 404 (masked refusal); SSH transports reset by the sandbox egress
+proxy. No alternate credential exists. Owner resolution = 3 documented routes
+(~2 min). Docker therefore still NOT VERIFIED — the blocker is the same
+credential, runners were never the issue (public repo, Actions enabled, 0
+runs ever). Delivered: security headers on all responses (verified live);
+live migration monitoring — GET /batches/:id/progress (counts, checkpoint,
+keys, run-ledger throughput, ETA labeled estimate, percent only when the
+source total is knowable) + Migration Center live panel (2s polling, EN/AR,
+aria-live); an endpoint crash during development (batch_runs has ran_at, not
+started_at/finished_at) was caught by the E2E, fixed, and the handler
+hardened. Preflight validated at scale: 29MB/500k records in 0.19s. Perf
+regression: 506k @ 5,336 rec/s (P7: 5,416 — noise). Logical restore PASS
+re-executed. SBOM unchanged (no dependency changes).
+
+## Addendum 12 — Enterprise Experience Transformation (Concept D), 2026-11-13
+
+Owner approved Concept D (synthesis of his reference boards) and the
+production frontend was rebuilt on branch `ux-redesign`: navy-rail shell,
+Portfolio Overview + Geographic Intelligence dashboards bound to live
+APIs, all module workspaces redesigned, Migration Center re-skinned with
+function preserved (plus approval create/revoke and import jobs surfaced
+in the UI for the first time). One additive backend endpoint:
+GET /api/overview (counts/queues for all roles; money only with
+reports.finance), covered inside the existing integration E2E — suite
+65/65 pass, 0 skipped, with TEST_DATABASE_URL set. Two defects caught by
+live verification and fixed (overview session-object bug; approvals-table
+crash on fields the list endpoint does not return — StatusChip hardened,
+ErrorBoundary added). Design-system deviations and residuals R-UX-1…8 are
+declared in docs/ux-redesign/IMPLEMENTATION_NOTES.md; acceptance scoring
+in docs/ux-redesign/ACCEPTANCE_CRITERIA.md. No gate changed: CI/Docker
+still BLOCKED/NOT VERIFIED on the same owner credential action; business
+equivalence, UAT and production authorization unchanged.
+
+## Addendum 13 — Enterprise UI Quality Certification (2026-11-13)
+
+Executed against the directive of 2026-11-13 01:03 CT. Screen-by-screen
+audit (88 captures, EN/AR × 4 viewports) produced 15 findings, all
+corrected and re-verified: responsive shell, OCHA COD-AB choropleth
+(CC BY-IGO) replacing the schematic geo view, certificate/estimate
+detail drawers on two additive endpoints, admin user directory,
+approvals mode/status contract fix, WCAG AA contrast corrections
+(axe: zero critical/serious on scanned views), an exact-decimal
+display defect in the money formatter caught by the new test suite,
+and Arabic label completion enforced by dictionary-parity tests.
+Frontend testing now exists: Vitest 27/27, browser E2E 25/25, backend
+suite unchanged at 65/65. Entry JS reduced 1,306 KB → 208 KB. Full
+evidence: docs/ui-certification/ (9 documents, 176 matrix screenshots,
+verification captures). Gates 1–14 assessed in VISUAL_ACCEPTANCE_REPORT.md;
+recommendation: accept with tracked residuals. CI/Docker remain blocked
+on the owner's GitHub workflow-scope grant — unchanged.
+
+## Addendum 14 — Phase 9: UI Release Hardening & Scale Validation (2026-11-13)
+
+Baseline verified before changes (HEAD 0c6c8a1; 65/27/25 reproduced
+exactly). All six certification residuals closed: drawer focus
+management with keyboard tests; automated visual regression
+(puppeteer + pixelmatch, 31 baselines, 0.00% repeat diff);
+server-side School Map pagination/sort/filter/search with migrations
+010 (btree) + 011 (guarded pg_trgm), validated at 10k/100k/1M
+synthetic records (search at 1M: 1,299 ms -> 277 ms p50); Arabic
+localization completed (249-key parity); heading hierarchy and
+landmarks corrected — axe zero violations of any severity on all 11
+views. Disclosure: the certification's F-01 mobile fix was incomplete
+(rail nav inflated the shell grid to ~1,807 px at phone widths);
+fixed and guarded by a permanent E2E no-overflow assertion. Suites on
+the final build: backend 65/65, frontend 32/32, browser E2E 40/40,
+visual 31/31. Evidence: docs/phase9-ui-release/ (13 documents,
+executive gallery, scale evidence). CI/Docker still BLOCKED on the
+owner's GitHub workflow scope; screen-reader validation NOT VERIFIED
+(external gate). Recommendation: accept the UI release with those
+two external conditions. Production readiness is not claimed.
+
+## Addendum 15 — Phase 10: Pilot Readiness & Production Qualification (2026-11-13)
+
+Phase 9 conditionally accepted (UI engineering milestone; not visual
+sign-off, customer acceptance, or production authorization). Phase 10
+engineering: tenders list converted to server-side pagination
+(stage filter, search, whitelist sorts; integration assertions);
+the residual 2px mobile overflow root-caused (grid minmax(380px)
+floor) and fixed in Migration and Reports; backup/restore
+re-verified on the current build (logical: 18/18 tables, restored-DB
+reconciliation holds). Suites hold: backend 65/65, frontend 32/32,
+E2E 40/40, visual 31/31 (3 baselines updated under review for the
+intentional tenders controls + the overflow correction). Deliverable:
+docs/phase10-pilot-package/ — 12 documents + accessibility external
+validation pack + evidence + current executive gallery. Gates kept
+separate: engineering VERIFIED; pilot READY conditional on GAEB
+provisioning; customer acceptance NOT STARTED; production NOT
+AUTHORIZED. CI/Docker still BLOCKED/NOT VERIFIED on the owner's
+GitHub workflow scope (re-checked 2026-11-13).
+
+## Addendum 16 — Phase 11: Controlled Pilot Execution & Acceptance Evidence (2026-11-13)
+
+Baseline reproduced exactly (65/32/40/31) on phase-10 head b370e9c.
+New tooling: platform/tools/env-preflight.mjs (16 environment checks;
+first run caught a missing trigram index in the demo DB — remediated;
+sandbox result 12 PASS / 0 FAIL / 3 MANUAL) and
+platform/tools/phase11-rehearsal.mjs (full synthetic rehearsal
+through the real APIs on a throwaway DB: 23/23 checks incl.
+self-approval, revoked-approval, duplicate-job, and format/NUL
+negatives; storage-exhaustion and DB-kill faults recorded NOT
+EXECUTED in the shared sandbox). Deliverables:
+docs/phase11-controlled-pilot/ — 17 documents + UAT execution sheet
+(20 scenarios, all NOT RUN) + defect register + evidence
+(rehearsal-results.json, env-preflight-sandbox.json). Gates: G1
+VERIFIED; G2 CONDITIONAL (charter/host/authorization/BD-07/BD-08);
+G3 NOT STARTED; G4 NOT AUTHORIZED. GitHub workflow scope still
+absent (4th check). Customer acceptance and production readiness
+are not claimed.
+
+## Addendum 17 — Phase 12: Pilot Activation & Release Qualification (2026-11-13)
+
+The pilot activation checklist became server-enforced code:
+migration 012 (app.pilots, app.pilot_conditions) + pilot registry
+API — 12 mandatory conditions, two verified live by the server
+(env preflight; customer-mode mapping approvals), ten attestations
+requiring evidence references (bare checkbox refused, 400);
+activation re-verifies automated conditions; customer-class
+imports refused (422) on both import paths unless a pilot is
+active. Admin UI Pilot activation panel (EN/AR, +50 dictionary
+keys). Integration suite covers the full gate incl. security
+negatives (65/65); synthetic dry run extended to 28/28 (R-15..R-19
+pilot sequence). Test setup now applies migrations 001-012 (was
+001-009). Customer activation package, BD workshop kit, UAT kit,
+executive presentation delivered in docs/phase12-pilot-activation/.
+GitHub workflow scope still absent (5th check) — recorded once as
+a single owner blocker (~2-min fix). Gates: G1 VERIFIED; G2
+CONDITIONAL, now enforceable; G3 NOT STARTED; G4 NOT AUTHORIZED.
+Engineering-controlled blockers: none.
+
+## Addendum 18 — Phase 13: Pilot Authorization Integrity & Evidence Governance (2026-11-13)
+
+Attestation replaced by governed evidence: migration 013
+(app.pilot_evidence lifecycle PENDING/SUBMITTED/VERIFIED/REJECTED/
+REVOKED/EXPIRED/SUPERSEDED, app.pilot_datasets scope binding,
+pilot 'suspended' state). Separation of duties: pilot.evidence.
+submit (technical+budget) / pilot.evidence.verify (budget);
+self-verification refused + audit-logged at any role. Continuous
+authorization: one decision function recomputes eligibility from
+current state on both import paths AND customer transforms —
+revoked/expired evidence, revoked approvals, suspension all take
+effect at the next operation; dataset + optional file-hash
+binding (substitution refused); per-chunk re-evaluation aborts
+streamed imports at chunk boundaries; concurrent activation is
+atomic (exactly one winner). Audit export per pilot. Attack
+matrix (20 cases) inside the integration suite: 65/65. Rehearsal
+extended to 34/34. Launch decision: BLOCKED PENDING EVIDENCE (no
+GAEB approvals exist — by design the platform refuses the first
+real import). Bilingual launch package delivered. GitHub workflow
+scope still absent (6th check). Gates: G1 VERIFIED; G2
+CONDITIONAL, integrity-enforced; G3 NOT STARTED; G4 NOT
+AUTHORIZED.
+
+## Addendum 19 — Phase 14: Customer Pilot Launch & Executive Engagement (2026-11-13)
+
+No application code changed; baseline spot-verified on the branch
+point (backend 65/65, rehearsal 34/34; frontend/E2E/visual as
+verified at the identical Phase 13 code state). Deliverables in
+docs/phase14-customer-pilot-launch/: executive briefs AR (primary)
++ EN covering all 17 mandated sections; REAL presentation files —
+EXECUTIVE_PRESENTATION_AR.pptx / _EN.pptx, 21 slides each, built
+with python-pptx in the platform's navy executive identity with
+embedded current-build screenshots (synthetic data labeled) and
+rendered PDFs for distribution; decision workshop package
+(one-day agenda, BD-07/BD-08 first, signable register);
+PILOT_CHARTER_FINAL (names blank by design); first-extract
+authorization for PBLBULDG/PBPTNDR (GAEB confirmations itemized);
+infrastructure mobilization (minimum pilot topology explicitly
+NOT production HA; production architecture specified separately);
+three-week execution plan; customer UAT package (execution sheet
+unchanged, all scenarios NOT RUN); executive + technical demo
+scripts mapped to implemented behavior; responsibility matrix;
+customer action register (13 actions, every row OPEN);
+release/security status (workflow scope NOT re-investigated per
+directive; one precise owner action restated); pilot GO/NO-GO:
+NO-GO pending GAEB actions, checklist identical to the platform's
+enforced entry conditions. No approvals fabricated; no customer
+data processed; no deployment. Gates: G1 VERIFIED; G2 CONDITIONAL;
+G3 NOT STARTED (package complete); G4 NOT AUTHORIZED.
+
+## Submission Note — Final Customer Submission Package (2026-11-13)
+
+Phase 14 accepted; final artifact inspection performed on the
+actual files (all 42 presentation slides rendered and visually
+inspected; one defect found and fixed — EN deck slide 13 orphan
+wrap; PPTX+PDF rebuilt and re-verified). Consolidated customer
+distribution built at docs/gaeb-customer-submission/ (01-05
+folders, copies of authoritative customer artifacts + 12
+submission documents: bilingual cover letters, executive meeting
+agenda + Q&A, final workshop kit, approval checklist mapped to
+server-enforced conditions, 14-step launch runbook, quality
+report, manifest, customer actions, final go/no-go). Consolidated
+outputs: docs/GAEB_Executive_Package.pdf (42 pages, verified) and
+docs/gaeb-customer-submission.zip (verified listing). No code
+changed; no approvals fabricated; pilot remains NO-GO pending
+GAEB's verified conditions.

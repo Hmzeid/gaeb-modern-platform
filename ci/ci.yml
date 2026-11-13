@@ -1,0 +1,62 @@
+name: CI
+on:
+  push:
+    branches: [main, production-upgrade, phase-4-readiness]
+  pull_request:
+jobs:
+  platform-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gaeb
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: gaeb_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U gaeb" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Install, build, test (platform backend + real-PostgreSQL integration)
+        working-directory: platform
+        env:
+          # Integration tests MUST run in CI: they skip only when this variable
+          # is unset, and CI always sets it. The grep below fails the job if
+          # the E2E test did not actually execute.
+          TEST_DATABASE_URL: postgres://gaeb:ci-password@127.0.0.1:5432/gaeb_test
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          npm test 2>&1 | tee test-output.txt
+          grep -q "E2E: extract" test-output.txt || (echo "integration E2E did not run" && exit 1)
+      - name: Regenerate reconciled schema and check determinism
+        run: |
+          python3 migration/gen_ddl_v2.py
+          git diff --exit-code migration/reconciled/ || (echo "reconciled artifacts drifted from generator" && exit 1)
+      - name: Dependency audit (reported, not yet gating)
+        working-directory: platform
+        run: npm audit --audit-level=high || true
+      - name: Secret scan
+        run: |
+          ! grep -rInE "(gho_|ghp_|sk-[A-Za-z0-9]{16,}|BEGIN (RSA|OPENSSH) PRIVATE KEY)" --exclude-dir=node_modules --exclude-dir=.git . || (echo "possible secret found" && exit 1)
+  frontend-tests:
+    # Added by the UI certification (2026-11-13): component tests (Vitest +
+    # Testing Library) run without a browser; the puppeteer E2E suite runs
+    # against the vite preview server with the sandbox Chrome path replaced
+    # by the runner's Chromium (set CHROME_PATH accordingly in the job env
+    # when enabling; axe-core must be vendored or installed for the a11y
+    # section — until then the E2E step is informational, not gating).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Install, typecheck-build, unit tests (frontend)
+        working-directory: platform/frontend
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          npm run build
+          npm test

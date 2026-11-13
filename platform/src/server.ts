@@ -8,6 +8,45 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 const PORT = Number(process.env.PORT || 8080);
 
+// Security headers (Phase 8, Workstream 6): applied to every response. The
+// API serves JSON only; the policy denies framing and sniffing and keeps
+// referrers on-origin. TLS itself terminates at the deployment proxy.
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
+// Correlation IDs (Phase 7, Workstream I): every request carries an id,
+// echoed to the caller and attached to error logs, so an operator can trace
+// one request across the API, the audit trail, and support reports.
+app.use((req, res, next) => {
+  const id = String(req.headers["x-request-id"] ?? "").slice(0, 64) || `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  (req as any).requestId = id;
+  res.setHeader("x-request-id", id);
+  next();
+});
+
+// Login throttling (Phase 7, Workstream C): failed attempts are counted per
+// (ip, username) in a sliding 10-minute window; the 10th failure locks the
+// pair out until the window slides. A successful login clears the counter.
+// In-memory by design for the single-node deployment; the control is the
+// attempt budget, not the storage.
+const loginFailures = new Map<string, number[]>();
+const LOGIN_WINDOW_MS = 10 * 60 * 1000, LOGIN_MAX_FAILURES = 10;
+function loginLocked(key: string): boolean {
+  const now = Date.now();
+  const list = (loginFailures.get(key) ?? []).filter(t => now - t < LOGIN_WINDOW_MS);
+  loginFailures.set(key, list);
+  return list.length >= LOGIN_MAX_FAILURES;
+}
+function loginFailed(key: string): void {
+  const list = loginFailures.get(key) ?? []; list.push(Date.now()); loginFailures.set(key, list);
+}
+
 async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "missing session token" });
@@ -31,9 +70,14 @@ app.get("/health", (_req, res) => res.json({ ok: true, service: "gaeb-platform" 
 
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body ?? {};
+  const lockKey = `${req.ip ?? "?"}|${String(username ?? "")}`;
+  if (loginLocked(lockKey)) return res.status(429).json({ error: "too many failed login attempts; try again later" });
   const { rows } = await pool.query("SELECT id, password_hash, role FROM app.users WHERE username = $1 AND is_active", [username]);
-  if (!rows.length || !verifyPassword(String(password ?? ""), rows[0].password_hash))
+  if (!rows.length || !verifyPassword(String(password ?? ""), rows[0].password_hash)) {
+    loginFailed(lockKey);
     return res.status(401).json({ error: "invalid credentials" });
+  }
+  loginFailures.delete(lockKey);
   const token = newSessionToken();
   const expires = new Date(Date.now() + SESSION_TTL_MS);
   await pool.query("INSERT INTO app.sessions (token_key, user_id, expires_at) VALUES ($1,$2,$3)", [sessionKey(token), rows[0].id, expires]);
@@ -49,10 +93,53 @@ app.get("/api/governorates", requireAuth, async (_req, res) => {
   const { rows } = await pool.query("SELECT code, name_en, name_ar, regional_center FROM app.governorates ORDER BY code");
   res.json(rows);
 });
+const BUILDING_SORTS: Record<string, string> = {
+  id: "id", name_en: "name_en", name_ar: "name_ar",
+  governorate: "governorate_code", legacy_blcd: "legacy_blcd",
+};
 app.get("/api/buildings", requireAuth, requirePerm("buildings.read"), async (req, res) => {
-  const limit = Math.min(Number(req.query.limit || 50), 200);
-  const { rows } = await pool.query("SELECT * FROM app.buildings ORDER BY id LIMIT $1", [limit]);
-  res.json(rows.map(r => ({ ...r, plot_area: String(r.plot_area), building_area: String(r.building_area) })));
+  const paged = ["page", "pageSize", "q", "governorate", "sort", "dir"].some(k => req.query[k] !== undefined);
+  if (!paged) {
+    const limit = Math.min(Number(req.query.limit || 50), 200);
+    const { rows } = await pool.query("SELECT * FROM app.buildings ORDER BY id LIMIT $1", [limit]);
+    return res.json(rows.map(r => ({ ...r, plot_area: String(r.plot_area), building_area: String(r.building_area) })));
+  }
+  // Phase 9 (A3): server-side pagination. Sort columns and direction are
+  // whitelisted (never interpolated from raw input); all values are
+  // parameterized. Ordering always ends with the primary key so pages
+  // are stable even when many rows share the sort value.
+  const pageRaw = Number(req.query.page ?? 1);
+  const sizeRaw = Number(req.query.pageSize ?? 25);
+  if (!Number.isInteger(pageRaw) || pageRaw < 1) return res.status(400).json({ error: "page must be a positive integer" });
+  if (!Number.isInteger(sizeRaw) || sizeRaw < 1 || sizeRaw > 100) return res.status(400).json({ error: "pageSize must be an integer between 1 and 100" });
+  const sortKey = String(req.query.sort ?? "id");
+  const sortCol = BUILDING_SORTS[sortKey];
+  if (!sortCol) return res.status(400).json({ error: "unsupported sort field" });
+  const dirRaw = String(req.query.dir ?? "asc").toLowerCase();
+  if (dirRaw !== "asc" && dirRaw !== "desc") return res.status(400).json({ error: "dir must be asc or desc" });
+  const where: string[] = [];
+  const params: unknown[] = [];
+  if (req.query.governorate !== undefined && req.query.governorate !== "") {
+    const gov = Number(req.query.governorate);
+    if (!Number.isInteger(gov)) return res.status(400).json({ error: "governorate must be an integer code" });
+    params.push(gov); where.push(`governorate_code = $${params.length}`);
+  }
+  const q = String(req.query.q ?? "").trim();
+  if (q) {
+    const esc = q.replace(/[\\%_]/g, c => "\\" + c);
+    params.push(`%${esc}%`);
+    const p = `$${params.length}`;
+    where.push(`(name_en ILIKE ${p} ESCAPE '\\' OR name_ar ILIKE ${p} ESCAPE '\\' OR legacy_blcd ILIKE ${p} ESCAPE '\\')`);
+  }
+  const wsql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+  const totalRes = await pool.query(`SELECT COUNT(*)::int AS total FROM app.buildings${wsql}`, params);
+  const total = totalRes.rows[0].total as number;
+  const order = sortCol === "id" ? `id ${dirRaw}` : `${sortCol} ${dirRaw} NULLS LAST, id ASC`;
+  const rowsRes = await pool.query(
+    `SELECT * FROM app.buildings${wsql} ORDER BY ${order} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, sizeRaw, (pageRaw - 1) * sizeRaw]);
+  const rows = rowsRes.rows.map(r => ({ ...r, plot_area: String(r.plot_area), building_area: String(r.building_area) }));
+  return res.json({ rows, total, page: pageRaw, pageSize: sizeRaw, pages: Math.max(1, Math.ceil(total / sizeRaw)) });
 });
 app.post("/api/buildings", requireAuth, requirePerm("buildings.write"), async (req, res) => {
   const b = req.body ?? {};
@@ -110,6 +197,20 @@ app.get("/api/certificates", requireAuth, requirePerm("certificates.read"), asyn
   const { rows } = await pool.query("SELECT id, building_id, kind, status, gross, deductions, net, payment_ref FROM app.certificates ORDER BY id DESC LIMIT $1", [limit]);
   res.json(rows.map(r => ({ ...r, gross: String(r.gross), deductions: String(r.deductions), net: String(r.net) })));
 });
+// Certificate detail: header + building context + valued item lines.
+app.get("/api/certificates/:id", requireAuth, requirePerm("certificates.read"), async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT c.id, c.building_id, c.kind, c.status, c.gross, c.deductions, c.net, c.payment_ref,
+            b.name_en AS building_name_en, b.name_ar AS building_name_ar, b.legacy_blcd
+       FROM app.certificates c LEFT JOIN app.buildings b ON b.id = c.building_id WHERE c.id = $1`, [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: "certificate not found" });
+  const items = await pool.query("SELECT id, description, unit, qty, price, value FROM app.certificate_items WHERE certificate_id = $1 ORDER BY id", [req.params.id]);
+  const c = rows[0];
+  res.json({
+    ...c, gross: String(c.gross), deductions: String(c.deductions), net: String(c.net),
+    items: items.rows.map(i => ({ ...i, qty: String(i.qty), price: String(i.price), value: String(i.value) })),
+  });
+});
 // Item catalogue (PMPITMAR): estimates may only draw lines from here.
 app.get("/api/catalogue", requireAuth, async (_req, res) => {
   const { rows } = await pool.query("SELECT id, code, name_en, name_ar, unit, standard_price FROM app.item_catalogue WHERE is_active ORDER BY code");
@@ -156,6 +257,27 @@ app.get("/api/estimates", requireAuth, async (req, res) => {
   const { rows } = await pool.query("SELECT id, building_id, title, status, revision, total FROM app.estimates ORDER BY id DESC LIMIT $1", [limit]);
   res.json(rows.map(r => ({ ...r, total: String(r.total) })));
 });
+// Estimate detail: header + catalogue-backed item lines + revision history.
+app.get("/api/estimates/:id", requireAuth, async (req, res) => {
+  const { rows } = await pool.query("SELECT id, building_id, title, status, revision, total FROM app.estimates WHERE id = $1", [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: "estimate not found" });
+  const items = await pool.query(
+    `SELECT i.id, i.catalogue_item_id, cat.code, cat.name_en, cat.name_ar, cat.unit, i.qty, i.price, i.value
+       FROM app.estimate_items i JOIN app.item_catalogue cat ON cat.id = i.catalogue_item_id
+      WHERE i.estimate_id = $1 ORDER BY i.id`, [req.params.id]);
+  const revs = await pool.query("SELECT revision, total, changed_by, changed_at, note FROM app.estimate_revisions WHERE estimate_id = $1 ORDER BY revision", [req.params.id]);
+  const e = rows[0];
+  res.json({
+    ...e, total: String(e.total),
+    items: items.rows.map(i => ({ ...i, qty: String(i.qty), price: String(i.price), value: String(i.value) })),
+    revisions: revs.rows.map(r => ({ ...r, total: String(r.total) })),
+  });
+});
+// User directory (admin only): identity + role + status. Password material is never exposed.
+app.get("/api/users", requireAuth, requirePerm("*"), async (_req, res) => {
+  const { rows } = await pool.query("SELECT id, username, name_en, name_ar, role, is_active, created_at FROM app.users ORDER BY username");
+  res.json(rows);
+});
 app.post("/api/estimates/:id/transition", requireAuth, async (req, res) => {
   const s = (req as any).session as Session;
   const { rows } = await pool.query("SELECT status, revision, total FROM app.estimates WHERE id = $1", [req.params.id]);
@@ -190,9 +312,47 @@ app.post("/api/budget", requireAuth, requirePerm("budget.write"), async (req, re
   res.status(201).json({ id: rows[0].id });
 });
 // Tenders: creation + stage advancement through the enforced stage machine.
-app.get("/api/tenders", requireAuth, requirePerm("tenders.read"), async (_req, res) => {
-  const { rows } = await pool.query("SELECT id, legacy_type, legacy_no, title, stage FROM app.tenders ORDER BY id DESC");
-  res.json(rows);
+const TENDER_SORTS: Record<string, string> = { id: "id", title: "title", stage: "stage", legacy_no: "legacy_no" };
+const TENDER_STAGE_SET = new Set(["draft", "booklet", "published", "bids_open", "bids_closed", "exclusion_review", "envelope_committee", "financial_evaluation", "award_committee", "negotiation", "awarded", "contracted"]);
+app.get("/api/tenders", requireAuth, requirePerm("tenders.read"), async (req, res) => {
+  const paged = ["page", "pageSize", "q", "stage", "sort", "dir"].some(k => req.query[k] !== undefined);
+  if (!paged) {
+    const { rows } = await pool.query("SELECT id, legacy_type, legacy_no, title, stage FROM app.tenders ORDER BY id DESC");
+    return res.json(rows);
+  }
+  // Phase 10 (Section 6): server-side pagination for the tenders list,
+  // same contract as the School Map: whitelisted sorts, parameterized
+  // filters, primary-key tiebreak for stable pages.
+  const pageRaw = Number(req.query.page ?? 1);
+  const sizeRaw = Number(req.query.pageSize ?? 25);
+  if (!Number.isInteger(pageRaw) || pageRaw < 1) return res.status(400).json({ error: "page must be a positive integer" });
+  if (!Number.isInteger(sizeRaw) || sizeRaw < 1 || sizeRaw > 100) return res.status(400).json({ error: "pageSize must be an integer between 1 and 100" });
+  const sortCol = TENDER_SORTS[String(req.query.sort ?? "id")];
+  if (!sortCol) return res.status(400).json({ error: "unsupported sort field" });
+  const dirRaw = String(req.query.dir ?? "desc").toLowerCase();
+  if (dirRaw !== "asc" && dirRaw !== "desc") return res.status(400).json({ error: "dir must be asc or desc" });
+  const where: string[] = [];
+  const params: unknown[] = [];
+  if (req.query.stage !== undefined && req.query.stage !== "") {
+    const stage = String(req.query.stage);
+    if (!TENDER_STAGE_SET.has(stage)) return res.status(400).json({ error: "unknown tender stage" });
+    params.push(stage); where.push(`stage = $${params.length}`);
+  }
+  const q = String(req.query.q ?? "").trim();
+  if (q) {
+    const esc = q.replace(/[\\%_]/g, c => "\\" + c);
+    params.push(`%${esc}%`);
+    const p = `$${params.length}`;
+    where.push(`(title ILIKE ${p} ESCAPE '\\' OR COALESCE(legacy_no::text, '') ILIKE ${p} ESCAPE '\\')`);
+  }
+  const wsql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+  const totalRes = await pool.query(`SELECT COUNT(*)::int AS total FROM app.tenders${wsql}`, params);
+  const total = totalRes.rows[0].total as number;
+  const order = sortCol === "id" ? `id ${dirRaw}` : `${sortCol} ${dirRaw} NULLS LAST, id DESC`;
+  const rowsRes = await pool.query(
+    `SELECT id, legacy_type, legacy_no, title, stage FROM app.tenders${wsql} ORDER BY ${order} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, sizeRaw, (pageRaw - 1) * sizeRaw]);
+  return res.json({ rows: rowsRes.rows, total, page: pageRaw, pageSize: sizeRaw, pages: Math.max(1, Math.ceil(total / sizeRaw)) });
 });
 app.post("/api/tenders", requireAuth, requirePerm("tenders.write"), async (req, res) => {
   const b = req.body ?? {};
@@ -261,6 +421,37 @@ app.get("/api/reports/certificates-summary", requireAuth, requirePerm("reports.f
      FROM app.certificates GROUP BY status ORDER BY status`);
   res.json(rows.map(r => ({ ...r, gross: String(r.gross), deductions: String(r.deductions), net: String(r.net) })));
 });
+app.get("/api/overview", requireAuth, async (req, res) => {
+  try {
+    const counts = await pool.query(`SELECT
+      (SELECT COUNT(*)::int FROM app.buildings) AS buildings,
+      (SELECT COUNT(*)::int FROM app.tenders) AS tenders,
+      (SELECT COUNT(*)::int FROM app.certificates) AS certificates,
+      (SELECT COUNT(*)::int FROM app.expropriation_cases) AS expropriation_cases,
+      (SELECT COUNT(*)::int FROM app.estimates) AS estimates`);
+    const tStages = await pool.query("SELECT stage, COUNT(*)::int AS n FROM app.tenders GROUP BY stage ORDER BY n DESC");
+    const cStatus = await pool.query("SELECT status, COUNT(*)::int AS n FROM app.certificates GROUP BY status ORDER BY n DESC");
+    const queues = await pool.query(`SELECT
+      (SELECT COUNT(*)::int FROM app.certificates WHERE status = 'draft') AS certificates_draft,
+      (SELECT COUNT(*)::int FROM app.estimates WHERE status = 'draft') AS estimates_draft,
+      (SELECT COUNT(*)::int FROM mig.mapping_approvals WHERE status = 'active') AS approvals_active`);
+    let moneyAgg: unknown = null;
+    if (can((req as any).session.role as Role, "reports.finance")) {
+      const b = await pool.query(`SELECT COALESCE(SUM(allocated),0) AS allocated, COALESCE(SUM(committed),0) AS committed,
+        COALESCE(SUM(spent),0) AS spent FROM app.budget_allocations`);
+      const cs = await pool.query(`SELECT COALESCE(SUM(gross),0) AS gross, COALESCE(SUM(net),0) AS net,
+        COALESCE(SUM(net) FILTER (WHERE status = 'paid'),0) AS paid_net FROM app.certificates`);
+      const bb = b.rows[0], cc = cs.rows[0];
+      moneyAgg = {
+        budget: { allocated: String(bb.allocated), committed: String(bb.committed), spent: String(bb.spent),
+          available: money(String(bb.allocated)).minus(String(bb.committed)).minus(String(bb.spent)).toString() },
+        certificates: { gross: String(cc.gross), net: String(cc.net), paidNet: String(cc.paid_net) },
+      };
+    }
+    res.json({ counts: counts.rows[0], tendersByStage: tStages.rows, certificatesByStatus: cStatus.rows,
+      queues: queues.rows[0], money: moneyAgg });
+  } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
+});
 app.get("/api/reports/buildings-by-governorate", requireAuth, async (_req, res) => {
   const { rows } = await pool.query(
     `SELECT g.code, g.name_en, g.name_ar, COUNT(b.id)::int AS buildings
@@ -278,6 +469,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 // pipeline on one connection), batches, quarantine, audited reject resubmission,
 // approval-gated transforms, approvals register, legacy inventory.
 import { importFixedWidth, validateLayout, type Layout } from "./migration/engine.js";
+import { computeReconciliation, computeReconciliationReport, renderReconciliationReport } from "./migration/reconcile.js";
 import { persistImport, loadJobState } from "./migration/load.js";
 import { TRANSFORMS, runTransform } from "./migration/transform.js";
 import { readFileSync as rf2 } from "node:fs";
@@ -300,6 +492,13 @@ app.post("/api/migration/preview", requireAuth, requirePerm("migration.run"), ex
   res.json({ preview: records.slice(0, 25).map(r => r.values), ...report });
 });
 app.post("/api/migration/import", requireAuth, requirePerm("migration.run"), express.raw({ type: "application/octet-stream", limit: "64mb" }), async (req, res) => {
+  if (req.query.dataClass === "customer") {
+    const { createHash } = await import("node:crypto");
+    const fileSha256 = createHash("sha256").update(req.body as Buffer).digest("hex");
+    const auth = await pilotAuthorization({ datasetKey: String(req.query.dataset ?? ""), fileSha256 });
+    await audit((req as any).session.userId, auth.ok ? "pilot.import.authorized" : "pilot.import.refused", "pilot", auth.pilot ? String(auth.pilot.id) : "none", { dataset: String(req.query.dataset ?? ""), fileSha256, reasons: auth.reasons });
+    if (!auth.ok) return res.status(422).json({ error: `customer-data import refused: ${auth.reasons.join("; ")}` });
+  }
   const entry = MIG_LAYOUTS[String(req.query.layout ?? "pblbuldg")];
   if (!entry) return res.status(400).json({ error: "unknown layout" });
   const client = await pool.connect();
@@ -317,6 +516,189 @@ app.post("/api/migration/import", requireAuth, requirePerm("migration.run"), exp
   } catch (e: any) { res.status(422).json({ error: String(e.message || e) }); }
   finally { client.release(); }
 });
+/** Live import progress for one batch (Phase 8, Workstream 10). Computed from
+ *  the batch totals + checkpoint + run ledger — three indexed reads, no
+ *  per-record work. Throughput/ETA derive from the run ledger's wall-clock
+ *  span; ETA is explicitly an estimate and is null when it cannot be derived. */
+app.get("/api/migration/batches/:id/progress", requireAuth, requirePerm("migration.run"), async (req, res) => {
+ try {
+  const id = req.params.id;
+  const b = await pool.query("SELECT loaded, rejected, source_file FROM mig.batches WHERE batch_id = $1", [id]);
+  if (!b.rows.length) return res.status(404).json({ error: "batch not found" });
+  const js = await pool.query("SELECT next_offset, key_count FROM mig.job_state WHERE batch_id = $1", [id]);
+  const runs = await pool.query(
+    "SELECT COUNT(*)::int n, MIN(ran_at) first_at, MAX(ran_at) last_at FROM mig.batch_runs WHERE batch_id = $1", [id]);
+  const active = await pool.query(
+    "SELECT COUNT(*)::int n FROM mig.import_jobs WHERE batch_id = $1 AND state IN ('QUEUED','VALIDATING','RUNNING','RECONCILING','RECOVERING')", [id]);
+  const loaded = Number(b.rows[0].loaded), rejected = Number(b.rows[0].rejected);
+  const processed = loaded + rejected;
+  const checkpoint = js.rows.length ? Number(js.rows[0].next_offset) : processed;
+  // The source record total is only KNOWABLE once the file has been fully
+  // consumed (checkpoint = file records) and no job is still active. During
+  // an active import the endpoint reports counts + checkpoint and leaves
+  // percent/ETA null rather than inventing a denominator.
+  const isActive = Number(active.rows[0].n) > 0;
+  const total = !isActive && js.rows.length && checkpoint >= processed ? checkpoint : null;
+  const firstAt = runs.rows[0].first_at ? new Date(runs.rows[0].first_at).getTime() : null;
+  const lastAt = runs.rows[0].last_at ? new Date(runs.rows[0].last_at).getTime() : null;
+  const elapsedSec = firstAt && lastAt && lastAt > firstAt ? (lastAt - firstAt) / 1000 : null;
+  const rps = elapsedSec && processed > 0 ? processed / elapsedSec : null;
+  const remaining = total !== null ? total - processed : null;
+  res.json({
+    batchId: id, sourceFile: b.rows[0].source_file,
+    totalRecords: total, processed, loaded, rejected,
+    percentComplete: total ? Math.round((processed / total) * 10000) / 100 : null,
+    checkpointRecord: checkpoint,
+    keysIndexed: js.rows.length ? Number(js.rows[0].key_count) : loaded,
+    runs: Number(runs.rows[0].n),
+    status: isActive ? "in-progress" : total !== null && processed >= total ? "complete" : processed > 0 ? "recorded" : "not-started",
+    recordsPerSec: rps ? Math.round(rps * 10) / 10 : null,
+    etaSeconds: rps && remaining !== null && remaining > 0 ? Math.ceil(remaining / rps) : null,
+    etaIsEstimate: true,
+  });
+ } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
+});
+/** Executable reconciliation for one batch (Workstream D definitions). */
+app.get("/api/migration/batches/:id/reconciliation", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const rec = await computeReconciliation(pool, req.params.id);
+  if (!rec) return res.status(404).json({ error: "batch not found" });
+  res.json(rec);
+});
+/** Full reconciliation report: ?format=text renders the human-readable version;
+ *  default is the machine-readable JSON. Both carry the three separate outcomes. */
+app.get("/api/migration/batches/:id/reconciliation/report", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const rep = await computeReconciliationReport(pool, req.params.id);
+  if (!rep) return res.status(404).json({ error: "batch not found" });
+  if (req.query.format === "text") return res.type("text/plain").send(renderReconciliationReport(rep));
+  res.json(rep);
+});
+
+const INTAKE_STAGES = ["received", "registered", "verified", "profiled", "mapped", "approved", "imported", "reconciled", "reviewed", "accepted"];
+/** Controlled intake pipeline (Workstream C): register a received dataset, then
+ *  advance it stage by stage. Forward moves of exactly one stage only; 'rejected'
+ *  is reachable from any stage. Every transition is evidenced and audited. */
+app.post("/api/migration/intake", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { member, layoutName, layoutHash, sourceSha256, sizeBytes, batchId, dataClass } = req.body ?? {};
+  if (!member) return res.status(400).json({ error: "member is required" });
+  const ins = await pool.query(
+    `INSERT INTO mig.intake_datasets (member, layout_name, layout_hash, source_sha256, size_bytes, batch_id, data_class, created_by_user_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+    [member, layoutName ?? null, layoutHash ?? null, sourceSha256 ?? null, sizeBytes ?? null, batchId ?? null,
+     dataClass === "synthetic" ? "synthetic" : "customer", (req as any).session.userId]);
+  await pool.query(`INSERT INTO mig.intake_events (dataset_id, from_stage, to_stage, evidence, actor_user_id) VALUES ($1, NULL, 'received', $2, $3)`,
+    [ins.rows[0].id, "dataset received and registered in the intake pipeline", (req as any).session.userId]);
+  await audit((req as any).session.userId, "migration.intake.register", "intake_dataset", String(ins.rows[0].id), { member });
+  res.status(201).json({ id: ins.rows[0].id, stage: "received" });
+});
+app.get("/api/migration/intake", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  const r = await pool.query(
+    `SELECT d.*, u.username AS created_by FROM mig.intake_datasets d JOIN app.users u ON u.id = d.created_by_user_id ORDER BY d.id DESC LIMIT 200`);
+  res.json(r.rows);
+});
+app.post("/api/migration/intake/:id/advance", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { to, evidence } = req.body ?? {};
+  if (!evidence || typeof evidence !== "string") return res.status(400).json({ error: "evidence is required for every stage transition" });
+  const ds = await pool.query(`SELECT stage FROM mig.intake_datasets WHERE id=$1`, [req.params.id]);
+  if (!ds.rows.length) return res.status(404).json({ error: "dataset not found" });
+  const from = ds.rows[0].stage;
+  const okNext = to === "rejected" || INTAKE_STAGES.indexOf(to) === INTAKE_STAGES.indexOf(from) + 1;
+  if (!okNext) return res.status(422).json({ error: `cannot move from ${from} to ${to}: stages advance one step at a time (or to 'rejected')` });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`UPDATE mig.intake_datasets SET stage=$1, updated_at=now() WHERE id=$2`, [to, req.params.id]);
+    await client.query(`INSERT INTO mig.intake_events (dataset_id, from_stage, to_stage, evidence, actor_user_id) VALUES ($1,$2,$3,$4,$5)`,
+      [req.params.id, from, to, evidence, (req as any).session.userId]);
+    await client.query("COMMIT");
+  } catch (e) { await client.query("ROLLBACK"); throw e; } finally { client.release(); }
+  await audit((req as any).session.userId, "migration.intake.advance", "intake_dataset", String(req.params.id), { from, to });
+  res.json({ id: Number(req.params.id), from, to });
+});
+
+/** Import orchestration (Phase 5 Workstream C): execution-level jobs with
+ *  lease-based worker ownership. Governance stays in the intake pipeline —
+ *  a COMPLETED job is a technical outcome, never customer acceptance. */
+const JOB_TRANSITIONS: Record<string, string[]> = {
+  QUEUED: ["VALIDATING", "CANCELLED"],
+  VALIDATING: ["RUNNING", "FAILED", "CANCELLED"],
+  RUNNING: ["RECONCILING", "FAILED", "CANCELLED", "RECOVERING"],
+  RECONCILING: ["COMPLETED", "FAILED", "CANCELLED"],
+  RECOVERING: ["QUEUED", "RUNNING", "FAILED", "CANCELLED"],
+  FAILED: ["QUEUED", "CANCELLED"],
+  COMPLETED: [], CANCELLED: [],
+};
+app.post("/api/migration/jobs", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { member, layoutName, sourceSha256, datasetId, batchId } = req.body ?? {};
+  if (!member || !layoutName) return res.status(400).json({ error: "member and layoutName are required" });
+  try {
+    const ins = await pool.query(
+      `INSERT INTO mig.import_jobs (member, layout_name, source_sha256, dataset_id, batch_id, created_by_user_id)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+      [member, layoutName, sourceSha256 ?? null, datasetId ?? null, batchId ?? null, (req as any).session.userId]);
+    await pool.query(`INSERT INTO mig.import_job_events (job_id, from_state, to_state, actor, note) VALUES ($1, NULL, 'QUEUED', $2, 'job registered')`,
+      [ins.rows[0].id, (req as any).session.username ?? String((req as any).session.userId)]);
+    res.status(201).json({ id: ins.rows[0].id, state: "QUEUED" });
+  } catch (e: any) {
+    if (String(e.code) === "23505") return res.status(409).json({ error: "an active job already exists for this source extract" });
+    throw e;
+  }
+});
+app.get("/api/migration/jobs", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  const r = await pool.query(`SELECT * FROM mig.import_jobs ORDER BY id DESC LIMIT 200`);
+  res.json(r.rows);
+});
+app.post("/api/migration/jobs/:id/claim", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const worker = String((req.body ?? {}).worker ?? "");
+  if (!worker) return res.status(400).json({ error: "worker identity is required" });
+  const r = await pool.query(
+    `UPDATE mig.import_jobs SET claimed_by = $2, lease_expires_at = now() + interval '10 minutes',
+       attempts = attempts + 1, updated_at = now()
+      WHERE id = $1 AND state IN ('QUEUED','RUNNING','RECOVERING')
+        AND (claimed_by IS NULL OR lease_expires_at < now())
+      RETURNING id, state`, [req.params.id, worker]);
+  if (!r.rows.length) return res.status(409).json({ error: "job is not claimable (already claimed, live lease, or terminal)" });
+  await pool.query(`INSERT INTO mig.import_job_events (job_id, from_state, to_state, actor, note) VALUES ($1, $2, $2, $3, 'lease claimed')`,
+    [req.params.id, r.rows[0].state, worker]);
+  res.json({ id: Number(req.params.id), claimedBy: worker, state: r.rows[0].state });
+});
+app.post("/api/migration/jobs/:id/transition", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { to, note, failureClass } = req.body ?? {};
+  const job = await pool.query(`SELECT state, created_by_user_id FROM mig.import_jobs WHERE id = $1`, [req.params.id]);
+  if (!job.rows.length) return res.status(404).json({ error: "job not found" });
+  const from = job.rows[0].state;
+  if (to === "CANCELLED" && job.rows[0].created_by_user_id !== (req as any).session.userId && (req as any).session.role !== "admin")
+    return res.status(403).json({ error: "only the job's creator or an admin may cancel it" });
+  if (!(JOB_TRANSITIONS[from] ?? []).includes(to))
+    return res.status(422).json({ error: `invalid job transition ${from} -> ${to}` });
+  await pool.query(`UPDATE mig.import_jobs SET state = $1, failure_class = $2, error = $3, updated_at = now(),
+      claimed_by = CASE WHEN $1 IN ('COMPLETED','FAILED','CANCELLED') THEN claimed_by ELSE claimed_by END WHERE id = $4`,
+    [to, failureClass ?? null, note ?? null, req.params.id]);
+  await pool.query(`INSERT INTO mig.import_job_events (job_id, from_state, to_state, actor, note) VALUES ($1,$2,$3,$4,$5)`,
+    [req.params.id, from, to, String((req as any).session.userId), note ?? null]);
+  res.json({ id: Number(req.params.id), from, to });
+});
+
+/** Operational metrics (Phase 5 Workstream H): every figure is computed from
+ *  live database state. No source record content is ever included. */
+app.get("/api/migration/metrics", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  const b = await pool.query(`SELECT COUNT(*)::int AS batches, COALESCE(SUM(loaded),0)::bigint AS loaded,
+    COALESCE(SUM(rejected),0)::bigint AS rejected, MAX(finished_at) AS last_batch_at FROM mig.batches`);
+  const intake = await pool.query(`SELECT stage, COUNT(*)::int AS n FROM mig.intake_datasets GROUP BY stage ORDER BY stage`);
+  const jobs = await pool.query(`SELECT state, COUNT(*)::int AS n FROM mig.import_jobs GROUP BY state ORDER BY state`);
+  const appr = await pool.query(`SELECT COUNT(*)::int AS n FROM mig.mapping_approvals WHERE status = 'active'`);
+  const keys = await pool.query(`SELECT COUNT(*)::bigint AS n FROM mig.loaded_keys`);
+  res.json({ batches: b.rows[0].batches, recordsLoaded: Number(b.rows[0].loaded), recordsRejected: Number(b.rows[0].rejected),
+    lastBatchAt: b.rows[0].last_batch_at, intakeByStage: intake.rows, jobsByState: jobs.rows,
+    activeApprovals: appr.rows[0].n, indexedKeys: Number(keys.rows[0].n) });
+});
+
+/** Audit trail (Workstream F): admin-only, newest first. */
+app.get("/api/audit", requireAuth, requirePerm("*"), async (_req, res) => {
+  const r = await pool.query(
+    `SELECT a.id, a.action, a.entity, a.entity_id, a.detail, a.at, u.username FROM app.audit_log a LEFT JOIN app.users u ON u.id = a.user_id ORDER BY a.id DESC LIMIT 200`);
+  res.json(r.rows);
+});
+
 app.get("/api/migration/batches", requireAuth, requirePerm("migration.run"), async (_req, res) => {
   const r = await pool.query(`SELECT b.batch_id, b.source_file, b.layout_name, b.total_records, b.loaded, b.rejected, b.started_at,
     (SELECT json_object_agg(field || ':' || kind, amount) FROM mig.batch_totals t WHERE t.batch_id = b.batch_id) AS totals
@@ -350,7 +732,7 @@ app.post("/api/migration/rejects/:id/resubmit", requireAuth, requirePerm("migrat
   finally { client.release(); }
 });
 app.get("/api/migration/approvals", requireAuth, requirePerm("migration.run"), async (_req, res) => {
-  const r = await pool.query("SELECT legacy_member, legacy_field, target_column, transform_name, transform_hash, approved_by, evidence_ref, approved_at FROM mig.mapping_approvals ORDER BY transform_name, legacy_field");
+  const r = await pool.query("SELECT legacy_member, legacy_field, target_column, transform_name, transform_hash, approved_by, evidence_ref, approved_at, mode, status FROM mig.mapping_approvals ORDER BY transform_name, legacy_field");
   res.json(r.rows);
 });
 app.post("/api/migration/approvals", requireAuth, requirePerm("migration.approve"), async (req, res) => {
@@ -366,6 +748,8 @@ app.post("/api/migration/approvals", requireAuth, requirePerm("migration.approve
   try {
     await client.query("BEGIN");
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [spec.name]);
+    const who = await client.query("SELECT username FROM app.users WHERE id = $1", [s.userId]);
+    const approverName = who.rows[0]?.username ?? String(s.userId);
     const { transformHash } = await import("./migration/transform.js");
     const hash = transformHash(spec);
     for (const f of spec.fields) {
@@ -375,7 +759,7 @@ app.post("/api/migration/approvals", requireAuth, requirePerm("migration.approve
           approved_by = EXCLUDED.approved_by, approved_by_user_id = EXCLUDED.approved_by_user_id, approved_role = EXCLUDED.approved_role,
           mode = EXCLUDED.mode, status = 'active', evidence_ref = EXCLUDED.evidence_ref, approved_at = now(),
           revoked_by_user_id = NULL, revoked_at = NULL, revoke_reason = NULL`,
-        [spec.legacyMember, f.legacy, f.target, spec.name, hash, s.username ?? String(s.userId), s.userId, s.role, mode, evidence]);
+        [spec.legacyMember, f.legacy, f.target, spec.name, hash, approverName, s.userId, s.role, mode, evidence]);
       await client.query("INSERT INTO mig.mapping_approval_events (transform_name, legacy_member, legacy_field, event, actor_user_id, actor_role, transform_hash, evidence_ref) VALUES ($1,$2,$3,'approved',$4,$5,$6,$7)",
         [spec.name, spec.legacyMember, f.legacy, s.userId, s.role, hash, evidence]);
     }
@@ -415,6 +799,11 @@ app.post("/api/migration/transform", requireAuth, requirePerm("migration.run"), 
     const b = await client.query("SELECT data_class FROM mig.batches WHERE batch_id = $1", [batchId]);
     if (!b.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "batch not found" }); }
     const mode = b.rows[0].data_class === "customer" ? "customer" : "demo";
+    if (mode === "customer") {
+      const layoutRow = await client.query("SELECT layout_name FROM mig.batches WHERE batch_id = $1", [batchId]);
+      const auth = await pilotAuthorization({ datasetKey: layoutRow.rows[0]?.layout_name }, client);
+      if (!auth.ok) { await client.query("ROLLBACK"); return res.status(422).json({ error: `transform refused: pilot authorization is not current: ${auth.reasons.join("; ")}` }); }
+    }
     const inserted = await runTransform({ query: (t: string, v?: unknown[]) => client.query(t, v as any) }, spec, batchId, mode);
     await client.query("COMMIT");
     await audit((req as any).session.userId, "migration.transform", spec.name, batchId, { inserted, mode });
@@ -436,6 +825,289 @@ import { streamImportFile } from "./migration/stream.js";
 const UPLOAD_DIR = process.env.MIG_UPLOAD_DIR ?? new URL("../uploads", import.meta.url).pathname;
 const MAX_UPLOAD = Number(process.env.MIG_MAX_UPLOAD_MB ?? 512) * 1024 * 1024;
 const uploads = new Map<string, { path: string; size: number; sha256: string; by: number }>();
+// ---------------------------------------------------------------------------
+// Phase 12: governed pilot activation. A pilot becomes active only when
+// every mandatory condition is satisfied — automated conditions are
+// verified live by the server at verification AND activation time;
+// attestation conditions require an administrator to record an evidence
+// reference (a document/signature reference, never a bare checkbox).
+// Customer-data imports are refused while no pilot is active.
+// ---------------------------------------------------------------------------
+const PILOT_CONDITIONS: { key: string; kind: "auto" | "attestation" }[] = [
+  { key: "charter_approved", kind: "attestation" },
+  { key: "scope_approved", kind: "attestation" },
+  { key: "bd_decisions", kind: "attestation" },
+  { key: "transform_approvals", kind: "auto" },
+  { key: "extract_authorization", kind: "attestation" },
+  { key: "environment_approved", kind: "attestation" },
+  { key: "env_preflight", kind: "auto" },
+  { key: "backup_restore_verified", kind: "attestation" },
+  { key: "monitoring_alerts_verified", kind: "attestation" },
+  { key: "transfer_mechanism_approved", kind: "attestation" },
+  { key: "participants_assigned", kind: "attestation" },
+  { key: "security_prerequisites", kind: "attestation" },
+];
+async function verifyAutoCondition(key: string): Promise<{ ok: boolean; detail: string }> {
+  if (key === "env_preflight") {
+    const v = await pool.query("SHOW server_version");
+    if (!String(v.rows[0].server_version).startsWith("16")) return { ok: false, detail: "PostgreSQL 16 required" };
+    const ext = await pool.query("SELECT 1 FROM pg_available_extensions WHERE name = 'pg_trgm'");
+    if (!ext.rowCount) return { ok: false, detail: "pg_trgm extension unavailable" };
+    const idx = await pool.query("SELECT COUNT(*)::int n FROM pg_indexes WHERE schemaname = 'app' AND indexname LIKE '%trgm%'");
+    if ((idx.rows[0].n as number) < 3) return { ok: false, detail: `trigram indexes incomplete (${idx.rows[0].n}/3)` };
+    const mig = await pool.query("SELECT 1 FROM information_schema.tables WHERE table_schema = 'mig' AND table_name = 'import_jobs'");
+    if (!mig.rowCount) return { ok: false, detail: "migration control schema incomplete" };
+    return { ok: true, detail: "PostgreSQL 16, pg_trgm available, 3 trigram indexes, migration schema complete" };
+  }
+  if (key === "transform_approvals") {
+    const a = await pool.query("SELECT COUNT(*)::int n FROM mig.mapping_approvals WHERE mode = 'customer' AND status = 'active'");
+    if ((a.rows[0].n as number) < 1) return { ok: false, detail: "no active customer-mode mapping approvals" };
+    return { ok: true, detail: `${a.rows[0].n} active customer-mode mapping approval rows` };
+  }
+  return { ok: false, detail: "not an automated condition" };
+}
+type Q = { query(t: string, v?: unknown[]): Promise<any> };
+// Phase 13: continuous authorization. Eligibility is recomputed from CURRENT
+// state on every customer-data operation — verified evidence (unexpired,
+// unrevoked), live automated checks, dataset scope binding — never from the
+// fact that a pilot once activated.
+async function materializeExpiry(pilotId: number, q: Q = pool): Promise<void> {
+  const exp = await q.query("UPDATE app.pilot_evidence SET status = 'EXPIRED' WHERE pilot_id = $1 AND status = 'VERIFIED' AND expires_at IS NOT NULL AND expires_at < now() RETURNING condition_key", [pilotId]);
+  for (const row of exp.rows ?? []) await syncConditionFromEvidence(pilotId, row.condition_key, q);
+}
+async function syncConditionFromEvidence(pilotId: number, key: string, q: Q = pool): Promise<void> {
+  const v = await q.query("SELECT 1 FROM app.pilot_evidence WHERE pilot_id = $1 AND condition_key = $2 AND status = 'VERIFIED' AND (expires_at IS NULL OR expires_at >= now()) LIMIT 1", [pilotId, key]);
+  await q.query("UPDATE app.pilot_conditions SET status = $1, evidence_ref = $2, satisfied_at = CASE WHEN $1 = 'satisfied' THEN now() ELSE satisfied_at END WHERE pilot_id = $3 AND condition_key = $4",
+    [v.rowCount ? "satisfied" : "pending", v.rowCount ? "verified evidence on file" : null, pilotId, key]);
+}
+async function conditionReasons(pilotId: number, q: Q = pool): Promise<string[]> {
+  const reasons: string[] = [];
+  await materializeExpiry(pilotId, q);
+  for (const c of PILOT_CONDITIONS) {
+    if (c.kind === "attestation") {
+      const v = await q.query("SELECT 1 FROM app.pilot_evidence WHERE pilot_id = $1 AND condition_key = $2 AND status = 'VERIFIED' AND (expires_at IS NULL OR expires_at >= now()) LIMIT 1", [pilotId, c.key]);
+      if (!v.rowCount) reasons.push(`condition ${c.key}: no verified evidence`);
+    } else {
+      const chk = await verifyAutoCondition(c.key);
+      if (!chk.ok) reasons.push(`condition ${c.key}: ${chk.detail}`);
+    }
+  }
+  return reasons;
+}
+async function pilotAuthorization(opts: { datasetKey?: string; fileSha256?: string }, q: Q = pool): Promise<{ ok: boolean; reasons: string[]; pilot: any }> {
+  const reasons: string[] = [];
+  const pr = await q.query("SELECT * FROM app.pilots WHERE status IN ('active', 'suspended') ORDER BY id DESC LIMIT 1");
+  const pilot = pr.rows[0] ?? null;
+  if (!pilot) return { ok: false, reasons: ["no active pilot"], pilot: null };
+  if (pilot.status !== "active") reasons.push(`pilot is ${pilot.status}`);
+  reasons.push(...await conditionReasons(pilot.id, q));
+  if (opts.datasetKey !== undefined) {
+    if (!opts.datasetKey) reasons.push("no dataset specified for a customer-data operation");
+    else {
+      const ds = await q.query("SELECT * FROM app.pilot_datasets WHERE pilot_id = $1 AND dataset_key = $2", [pilot.id, opts.datasetKey]);
+      if (!ds.rows.length) reasons.push(`dataset ${opts.datasetKey} is not registered for this pilot`);
+      else if (ds.rows[0].status !== "authorized") reasons.push(`dataset ${opts.datasetKey} is ${ds.rows[0].status}, not authorized`);
+      else if (ds.rows[0].source_sha256 && opts.fileSha256 && ds.rows[0].source_sha256 !== opts.fileSha256) reasons.push("file hash does not match the authorized extract hash (file substitution refused)");
+      else if (ds.rows[0].source_sha256 && !opts.fileSha256 && opts.datasetKey) { /* transform path: batch hash already bound at import */ }
+    }
+  }
+  return { ok: reasons.length === 0, reasons, pilot };
+}
+async function pilotGateError(dataClass: string | undefined): Promise<string | null> {
+  if (dataClass !== "customer") return null;
+  const a = await pilotAuthorization({});
+  return a.ok ? null : `customer-data import refused: ${a.reasons.join("; ")}`;
+}
+app.get("/api/pilots", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT * FROM app.pilots ORDER BY id DESC");
+    res.json(rows);
+  } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
+});
+app.post("/api/pilots", requireAuth, requirePerm("*"), async (req, res) => {
+  const name = String((req.body ?? {}).name ?? "").trim();
+  const environment = String((req.body ?? {}).environment ?? "pilot").trim() || "pilot";
+  if (!name) return res.status(400).json({ error: "pilot name is required" });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const ins = await client.query("INSERT INTO app.pilots (name, environment, created_by_user_id) VALUES ($1,$2,$3) RETURNING id", [name, environment, (req as any).session.userId]);
+    const id = ins.rows[0].id;
+    for (const c of PILOT_CONDITIONS) await client.query("INSERT INTO app.pilot_conditions (pilot_id, condition_key, kind) VALUES ($1,$2,$3)", [id, c.key, c.kind]);
+    await client.query("COMMIT");
+    await audit((req as any).session.userId, "pilot.create", "pilot", String(id), { name, environment });
+    res.status(201).json({ id, name, environment, status: "draft" });
+  } catch (e: any) { await client.query("ROLLBACK").catch(() => {}); res.status(422).json({ error: String(e.message || e) }); }
+  finally { client.release(); }
+});
+app.get("/api/pilots/:id", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  try {
+    const p = await pool.query("SELECT * FROM app.pilots WHERE id = $1", [req.params.id]);
+    if (!p.rows.length) return res.status(404).json({ error: "pilot not found" });
+    const c = await pool.query("SELECT condition_key, kind, status, evidence_ref, satisfied_at FROM app.pilot_conditions WHERE pilot_id = $1 ORDER BY condition_key", [req.params.id]);
+    res.json({ ...p.rows[0], conditions: c.rows });
+  } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
+});
+app.get("/api/pilots/:id/evidence", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  try {
+    await materializeExpiry(Number(req.params.id));
+    const { rows } = await pool.query("SELECT * FROM app.pilot_evidence WHERE pilot_id = $1 ORDER BY id", [req.params.id]);
+    res.json(rows.map(r => ({ ...r, ref: `EV-${r.id}` })));
+  } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
+});
+app.post("/api/pilots/:id/evidence", requireAuth, requirePerm("pilot.evidence.submit"), async (req, res) => {
+  const spec = PILOT_CONDITIONS.find(c => c.key === (req.body ?? {}).conditionKey);
+  if (!spec || spec.kind !== "attestation") return res.status(400).json({ error: "evidence applies to attestation conditions" });
+  const b = req.body ?? {};
+  const ins = await pool.query(`INSERT INTO app.pilot_evidence (pilot_id, condition_key, document_type, signatory, effective_date, expires_at, created_by_user_id)
+    VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`, [req.params.id, spec.key, b.documentType ?? null, b.signatory ?? null, b.effectiveDate ?? null, b.expiresAt ?? null, (req as any).session.userId]);
+  const id = ins.rows[0].id;
+  await audit((req as any).session.userId, "pilot.evidence.create", "pilot", String(req.params.id), { evidenceId: id, condition: spec.key });
+  res.status(201).json({ id, ref: `EV-${id}`, status: "PENDING" });
+});
+app.post("/api/pilots/:id/evidence/:evId/submit", requireAuth, requirePerm("pilot.evidence.submit"), async (req, res) => {
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE id = $1 AND pilot_id = $2", [req.params.evId, req.params.id]);
+  if (!ev.rows.length) return res.status(404).json({ error: "evidence not found" });
+  const e = ev.rows[0];
+  if (e.status !== "PENDING") return res.status(422).json({ error: `evidence is ${e.status}; only PENDING evidence can be submitted` });
+  if (e.created_by_user_id !== (req as any).session.userId && (req as any).session.role !== "admin") return res.status(403).json({ error: "only the evidence creator may submit it" });
+  const documentRef = String((req.body ?? {}).documentRef ?? "").trim();
+  if (!documentRef) return res.status(400).json({ error: "documentRef is required" });
+  const declared = String((req.body ?? {}).docSha256 ?? "").trim();
+  await pool.query("UPDATE app.pilot_evidence SET status = 'SUBMITTED', document_ref = $1, doc_sha256 = $2, hash_status = $3, submitted_by_user_id = $4, submitted_at = now() WHERE id = $5",
+    [documentRef, declared || e.doc_sha256, declared ? "declared-unverified" : e.hash_status, (req as any).session.userId, e.id]);
+  await audit((req as any).session.userId, "pilot.evidence.submit", "pilot", String(req.params.id), { evidenceId: e.id, condition: e.condition_key, hashStatus: declared ? "declared-unverified" : e.hash_status });
+  res.json({ ok: true, status: "SUBMITTED" });
+});
+app.post("/api/pilots/:id/evidence/:evId/document", requireAuth, requirePerm("pilot.evidence.submit"), express.raw({ type: "application/octet-stream", limit: "16mb" }), async (req, res) => {
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE id = $1 AND pilot_id = $2", [req.params.evId, req.params.id]);
+  if (!ev.rows.length) return res.status(404).json({ error: "evidence not found" });
+  const e = ev.rows[0];
+  if (!["PENDING", "SUBMITTED"].includes(e.status)) return res.status(422).json({ error: `document bytes cannot change once evidence is ${e.status}` });
+  const { createHash } = await import("node:crypto");
+  const sha = createHash("sha256").update(req.body as Buffer).digest("hex");
+  await pool.query("UPDATE app.pilot_evidence SET doc_sha256 = $1, hash_status = 'verified-bytes' WHERE id = $2", [sha, e.id]);
+  await audit((req as any).session.userId, "pilot.evidence.document", "pilot", String(req.params.id), { evidenceId: e.id, sha256: sha, bytes: (req.body as Buffer).length });
+  res.json({ ok: true, sha256: sha, hashStatus: "verified-bytes" });
+});
+app.post("/api/pilots/:id/evidence/:evId/verify", requireAuth, requirePerm("pilot.evidence.verify"), async (req, res) => {
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE id = $1 AND pilot_id = $2", [req.params.evId, req.params.id]);
+  if (!ev.rows.length) return res.status(404).json({ error: "evidence not found" });
+  const e = ev.rows[0];
+  const decision = String((req.body ?? {}).decision ?? "");
+  if (!["VERIFIED", "REJECTED"].includes(decision)) return res.status(400).json({ error: "decision must be VERIFIED or REJECTED" });
+  if (e.status !== "SUBMITTED") { await audit((req as any).session.userId, "pilot.evidence.verify.denied", "pilot", String(req.params.id), { evidenceId: e.id, reason: `state ${e.status}` }); return res.status(422).json({ error: `only SUBMITTED evidence can be verified; this evidence is ${e.status}` }); }
+  if (e.submitted_by_user_id === (req as any).session.userId || e.created_by_user_id === (req as any).session.userId) { await audit((req as any).session.userId, "pilot.evidence.verify.denied", "pilot", String(req.params.id), { evidenceId: e.id, reason: "self-verification" }); return res.status(422).json({ error: "separation of duties: the submitter cannot verify their own evidence" }); }
+  if (decision === "VERIFIED") {
+    const old = await pool.query("SELECT id FROM app.pilot_evidence WHERE pilot_id = $1 AND condition_key = $2 AND status = 'VERIFIED' AND id <> $3", [req.params.id, e.condition_key, e.id]);
+    for (const o of old.rows) await pool.query("UPDATE app.pilot_evidence SET status = 'SUPERSEDED' WHERE id = $1", [o.id]);
+    await pool.query("UPDATE app.pilot_evidence SET status = 'VERIFIED', verifier_user_id = $1, verified_at = now(), verification_notes = $2, supersedes_id = $3 WHERE id = $4",
+      [(req as any).session.userId, (req.body ?? {}).notes ?? null, old.rows[0]?.id ?? null, e.id]);
+  } else {
+    await pool.query("UPDATE app.pilot_evidence SET status = 'REJECTED', verifier_user_id = $1, verified_at = now(), verification_notes = $2 WHERE id = $3",
+      [(req as any).session.userId, (req.body ?? {}).notes ?? null, e.id]);
+  }
+  await syncConditionFromEvidence(Number(req.params.id), e.condition_key);
+  await audit((req as any).session.userId, "pilot.evidence.verify", "pilot", String(req.params.id), { evidenceId: e.id, condition: e.condition_key, decision });
+  res.json({ ok: true, status: decision });
+});
+app.post("/api/pilots/:id/evidence/:evId/revoke", requireAuth, requirePerm("pilot.evidence.verify"), async (req, res) => {
+  const reason = String((req.body ?? {}).reason ?? "").trim();
+  if (!reason) return res.status(400).json({ error: "a revocation reason is required" });
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE id = $1 AND pilot_id = $2", [req.params.evId, req.params.id]);
+  if (!ev.rows.length) return res.status(404).json({ error: "evidence not found" });
+  const e = ev.rows[0];
+  if (e.status !== "VERIFIED") return res.status(422).json({ error: `only VERIFIED evidence can be revoked; this evidence is ${e.status}` });
+  await pool.query("UPDATE app.pilot_evidence SET status = 'REVOKED', revocation_reason = $1 WHERE id = $2", [reason, e.id]);
+  await syncConditionFromEvidence(Number(req.params.id), e.condition_key);
+  await audit((req as any).session.userId, "pilot.evidence.revoke", "pilot", String(req.params.id), { evidenceId: e.id, condition: e.condition_key, reason });
+  res.json({ ok: true, status: "REVOKED" });
+});
+app.get("/api/pilots/:id/datasets", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const { rows } = await pool.query("SELECT * FROM app.pilot_datasets WHERE pilot_id = $1 ORDER BY id", [req.params.id]);
+  res.json(rows);
+});
+app.post("/api/pilots/:id/datasets", requireAuth, requirePerm("*"), async (req, res) => {
+  const b = req.body ?? {};
+  if (!String(b.datasetKey ?? "").trim()) return res.status(400).json({ error: "datasetKey is required" });
+  try {
+    const ins = await pool.query(`INSERT INTO app.pilot_datasets (pilot_id, dataset_key, source_system, extract_ref, source_sha256, transform_name, registered_by_user_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`, [req.params.id, String(b.datasetKey).trim(), b.sourceSystem ?? "IBM i (AS/400) NEWLIBGAEB", b.extractRef ?? null, b.sourceSha256 ?? null, b.transformName ?? null, (req as any).session.userId]);
+    await audit((req as any).session.userId, "pilot.dataset.register", "pilot", String(req.params.id), { datasetId: ins.rows[0].id, datasetKey: String(b.datasetKey).trim() });
+    res.status(201).json({ id: ins.rows[0].id, status: "registered" });
+  } catch (e: any) { res.status(422).json({ error: String(e.message || e) }); }
+});
+app.post("/api/pilots/:id/datasets/:dsId/authorize", requireAuth, requirePerm("*"), async (req, res) => {
+  const v = await pool.query("SELECT 1 FROM app.pilot_evidence WHERE pilot_id = $1 AND condition_key = 'extract_authorization' AND status = 'VERIFIED' AND (expires_at IS NULL OR expires_at >= now()) LIMIT 1", [req.params.id]);
+  if (!v.rowCount) return res.status(422).json({ error: "dataset authorization requires VERIFIED extract-authorization evidence for this pilot" });
+  const upd = await pool.query("UPDATE app.pilot_datasets SET status = 'authorized', authorized_by_user_id = $1, authorized_at = now() WHERE id = $2 AND pilot_id = $3 RETURNING id", [(req as any).session.userId, req.params.dsId, req.params.id]);
+  if (!upd.rowCount) return res.status(404).json({ error: "dataset not found" });
+  await audit((req as any).session.userId, "pilot.dataset.authorize", "pilot", String(req.params.id), { datasetId: Number(req.params.dsId) });
+  res.json({ ok: true, status: "authorized" });
+});
+app.get("/api/pilots/:id/authorization", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  const a = await pilotAuthorization({});
+  res.json({ eligible: a.ok, reasons: a.reasons, pilot: a.pilot ? { id: a.pilot.id, status: a.pilot.status } : null });
+});
+app.post("/api/pilots/:id/suspend", requireAuth, requirePerm("*"), async (req, res) => {
+  const reason = String((req.body ?? {}).reason ?? "").trim();
+  if (!reason) return res.status(400).json({ error: "a suspension reason is required" });
+  const upd = await pool.query("UPDATE app.pilots SET status = 'suspended', suspended_by_user_id = $1, suspended_at = now(), suspension_reason = $2 WHERE id = $3 AND status = 'active' RETURNING id", [(req as any).session.userId, reason, req.params.id]);
+  if (!upd.rowCount) return res.status(422).json({ error: "only an active pilot can be suspended" });
+  await audit((req as any).session.userId, "pilot.suspend", "pilot", String(req.params.id), { reason });
+  res.json({ ok: true, status: "suspended" });
+});
+app.post("/api/pilots/:id/reactivate", requireAuth, requirePerm("*"), async (req, res) => {
+  const p = await pool.query("SELECT status FROM app.pilots WHERE id = $1", [req.params.id]);
+  if (!p.rows.length) return res.status(404).json({ error: "pilot not found" });
+  if (p.rows[0].status !== "suspended") return res.status(422).json({ error: `pilot is ${p.rows[0].status}; only a suspended pilot can be reactivated` });
+  // Fresh full evaluation: reactivation never restores a stale authorization.
+  const reasons = await conditionReasons(Number(req.params.id));
+  if (reasons.length) return res.status(422).json({ error: "reactivation refused: mandatory conditions are not currently satisfied", missing: reasons });
+  const upd = await pool.query("UPDATE app.pilots SET status = 'active', suspended_by_user_id = NULL, suspended_at = NULL, suspension_reason = NULL WHERE id = $1 AND status = 'suspended' RETURNING id", [req.params.id]);
+  if (!upd.rowCount) return res.status(422).json({ error: "pilot state changed concurrently" });
+  await audit((req as any).session.userId, "pilot.reactivate", "pilot", String(req.params.id), {});
+  res.json({ ok: true, status: "active" });
+});
+app.get("/api/pilots/:id/audit-export", requireAuth, requirePerm("migration.approve"), async (req, res) => {
+  const p = await pool.query("SELECT * FROM app.pilots WHERE id = $1", [req.params.id]);
+  if (!p.rows.length) return res.status(404).json({ error: "pilot not found" });
+  await materializeExpiry(Number(req.params.id));
+  const conds = await pool.query("SELECT * FROM app.pilot_conditions WHERE pilot_id = $1 ORDER BY condition_key", [req.params.id]);
+  const ev = await pool.query("SELECT * FROM app.pilot_evidence WHERE pilot_id = $1 ORDER BY id", [req.params.id]);
+  const ds = await pool.query("SELECT * FROM app.pilot_datasets WHERE pilot_id = $1 ORDER BY id", [req.params.id]);
+  const au = await pool.query("SELECT id, at, user_id, action, entity, entity_id, detail FROM app.audit_log WHERE entity = 'pilot' AND entity_id = $1 ORDER BY id", [String(req.params.id)]);
+  res.json({ generatedAt: new Date().toISOString(), pilot: p.rows[0], conditions: conds.rows, evidence: ev.rows.map(r => ({ ...r, ref: `EV-${r.id}` })), datasets: ds.rows, audit: au.rows });
+});
+app.post("/api/pilots/:id/conditions/:key/verify", requireAuth, requirePerm("*"), async (req, res) => {
+  const spec = PILOT_CONDITIONS.find(c => c.key === req.params.key);
+  if (!spec) return res.status(404).json({ error: "unknown condition" });
+  if (spec.kind !== "auto") return res.status(400).json({ error: "attestation condition — use attest with an evidence reference" });
+  const chk = await verifyAutoCondition(spec.key);
+  if (!chk.ok) return res.status(422).json({ error: `verification failed: ${chk.detail}` });
+  const upd = await pool.query("UPDATE app.pilot_conditions SET status = 'satisfied', evidence_ref = $1, satisfied_by_user_id = $2, satisfied_at = now() WHERE pilot_id = $3 AND condition_key = $4 RETURNING condition_key", [`auto: ${chk.detail}`, (req as any).session.userId, req.params.id, req.params.key]);
+  if (!upd.rowCount) return res.status(404).json({ error: "pilot not found" });
+  await audit((req as any).session.userId, "pilot.condition.verify", "pilot", String(req.params.id), { condition: req.params.key, detail: chk.detail });
+  res.json({ ok: true, condition: req.params.key, status: "satisfied", detail: chk.detail });
+});
+app.post("/api/pilots/:id/activate", requireAuth, requirePerm("*"), async (req, res) => {
+  const p = await pool.query("SELECT status FROM app.pilots WHERE id = $1", [req.params.id]);
+  if (!p.rows.length) return res.status(404).json({ error: "pilot not found" });
+  if (p.rows[0].status !== "draft") return res.status(422).json({ error: `pilot is ${p.rows[0].status}` });
+  const reasons = await conditionReasons(Number(req.params.id));
+  if (reasons.length) return res.status(422).json({ error: "mandatory activation conditions are not satisfied", missing: reasons });
+  const upd = await pool.query("UPDATE app.pilots SET status = 'active', activated_by_user_id = $1, activated_at = now() WHERE id = $2 AND status = 'draft' RETURNING id", [(req as any).session.userId, req.params.id]);
+  if (!upd.rowCount) return res.status(422).json({ error: "pilot state changed concurrently — activation already applied by another request" });
+  await audit((req as any).session.userId, "pilot.activate", "pilot", String(req.params.id), {});
+  res.json({ ok: true, status: "active" });
+});
+app.post("/api/pilots/:id/close", requireAuth, requirePerm("*"), async (req, res) => {
+  const upd = await pool.query("UPDATE app.pilots SET status = 'closed', closed_by_user_id = $1, closed_at = now() WHERE id = $2 AND status = 'active' RETURNING id", [(req as any).session.userId, req.params.id]);
+  if (!upd.rowCount) return res.status(422).json({ error: "only an active pilot can be closed" });
+  await audit((req as any).session.userId, "pilot.close", "pilot", String(req.params.id), {});
+  res.json({ ok: true, status: "closed" });
+});
+
 app.post("/api/migration/uploads", requireAuth, requirePerm("migration.run"), async (req, res) => {
   await mkdir(UPLOAD_DIR, { recursive: true });
   const id = randomUUID(); const path = `${UPLOAD_DIR}/${id}.bin`;
@@ -453,13 +1125,20 @@ app.post("/api/migration/uploads", requireAuth, requirePerm("migration.run"), as
 app.post("/api/migration/uploads/:id/import", requireAuth, requirePerm("migration.run"), async (req, res) => {
   const up = uploads.get(req.params.id);
   if (!up) return res.status(404).json({ error: "upload not found (already imported or expired)" });
+  const isCustomer = req.query.dataClass === "customer";
+  if (isCustomer) {
+    const auth = await pilotAuthorization({ datasetKey: String(req.query.dataset ?? ""), fileSha256: up.sha256 });
+    await audit((req as any).session.userId, auth.ok ? "pilot.import.authorized" : "pilot.import.refused", "pilot", auth.pilot ? String(auth.pilot.id) : "none", { dataset: String(req.query.dataset ?? ""), fileSha256: up.sha256, reasons: auth.reasons, path: "stream" });
+    if (!auth.ok) return res.status(422).json({ error: `customer-data import refused: ${auth.reasons.join("; ")}` });
+  }
   const entry = MIG_LAYOUTS[String(req.query.layout ?? "pblbuldg")];
   if (!entry) return res.status(400).json({ error: "unknown layout" });
   const client = await pool.connect();
   try {
     const db = { query: (t: string, v?: unknown[]) => client.query(t, v as any) };
     const r = await streamImportFile(db, up.path, entry.layout, { table: entry.table, layoutName: String(req.query.layout ?? "pblbuldg"),
-      dataClass: req.query.dataClass === "customer" ? "customer" : "synthetic", importedByUserId: (req as any).session.userId });
+      dataClass: isCustomer ? "customer" : "synthetic", importedByUserId: (req as any).session.userId,
+      afterChunk: isCustomer ? async () => { const re = await pilotAuthorization({ datasetKey: String(req.query.dataset ?? ""), fileSha256: up.sha256 }); if (!re.ok) throw new Error(`authorization lost during import — aborted at a chunk boundary; committed chunks remain staged only and cannot be transformed: ${re.reasons.join("; ")}`); } : undefined });
     await audit((req as any).session.userId, "migration.import.stream", r.batchId, "", { totalRecords: r.totalRecords, chunks: r.chunksCommitted });
     if (req.query.retain !== "1") { await unlink(up.path).catch(() => {}); uploads.delete(req.params.id); }
     res.json(r);
