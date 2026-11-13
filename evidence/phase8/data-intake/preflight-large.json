@@ -1,0 +1,19 @@
+{
+ "fileBytes": 29000000,
+ "sha256": "9714dcf0c96a7eb0a5b4206ec0a442313669e43845bfa4ac3fe5056dc9891e85",
+ "sha256MatchesManifest": null,
+ "recordLength": 58,
+ "wholeRecords": 500000,
+ "trailingBytes": 0,
+ "recordCountMatchesManifest": null,
+ "sampleRecordsChecked": 200,
+ "sampleParseFailures": 0,
+ "arabicCharsInSample": 0,
+ "nulBytesInSample": 0,
+ "duplicateKeysInSample": 0,
+ "keyField": "BLCD",
+ "findings": [
+  "no Arabic characters decoded in the sample — if this file should contain Arabic, verify the CCSID before importing"
+ ],
+ "verdict": "REVIEW"
+}

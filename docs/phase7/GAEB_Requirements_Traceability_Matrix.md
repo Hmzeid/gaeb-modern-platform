@@ -30,3 +30,8 @@ evidence exists — never code presence alone.
 | R-20 | Customer UAT | 30-case pack | pack prepared | uat pack | all | NOT STARTED (B-12) |
 | R-21 | Independent security approval | evidence index | self-assessment | security docs | — | NOT STARTED (B-11) |
 | R-22 | Real GAEB data migration | full pipeline | rehearsal (synthetic) | — | pilot | BLOCKED (no extracts) |
+
+## Phase 8 addendum (2026-11-12)
+| R-23 | Live import monitoring (progress, checkpoint, throughput, ETA-as-estimate) | progress endpoint + Migration Center live panel (2s polling) | E2E progress assertions | live endpoint output sampled in phase8 evidence | UAT-25 (extended) | VERIFIED |
+| R-17 update | Docker deployment | unchanged implementation | GitHub audit: runners were never the blocker; workflow files cannot be pushed with the OAuth token (fresh rejection captured Phase 8) | docs/phase8/GITHUB_CICD_AUDIT.md | — | NOT VERIFIED (blocked upstream by R-19) |
+| R-19 update | CI enforcement | workflows validated; activation attempted via push AND Contents API this phase — both refused by GitHub for the OAuth token; SSH transport blocked by sandbox egress | — | evidence/phase8/cicd/ + audit doc | — | BLOCKED (owner credential action, 3 routes documented) |
