@@ -88,6 +88,59 @@ export function ReportsView(ctx: Ctx) {
 }
 
 /* ═══════════════ ADMINISTRATION (audit) ═══════════════ */
+
+function PilotPanel({ ctx }: { ctx: Ctx & { role: string } }) {
+  const { t } = ctx;
+  const [pilots, setPilots] = useState<any[]>([]);
+  const [detail, setDetail] = useState<any>(null);
+  const [name, setName] = useState("");
+  const isAdmin = ctx.role === "admin";
+  const loadPilots = async () => { try { setPilots(await api("/api/pilots")); } catch { /* requires migration.run */ } };
+  useEffect(() => { loadPilots(); }, []);
+  const open = async (id: number) => { try { setDetail(await api(`/api/pilots/${id}`)); } catch (e: any) { ctx.notify(e.message, true); } };
+  const act = async (fn: () => Promise<any>, reopen = true) => { try { await fn(); await loadPilots(); if (reopen && detail) await open(detail.id); } catch (e: any) { ctx.notify(e.message, true); } };
+  const attest = (key: string) => { const ref = window.prompt(t.evidence_ref); if (ref) act(() => api(`/api/pilots/${detail.id}/conditions/${key}/attest`, { method: "POST", body: JSON.stringify({ evidenceRef: ref }) })); };
+  return (
+    <Panel title={t.pilots}>
+      <p className="hint" style={{ marginTop: 0 }}>{t.pilot_hint}</p>
+      {isAdmin && (
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-ink2)" }}>{t.pilot_name}
+            <input className="inp" style={{ width: 300 }} value={name} onChange={e => setName(e.target.value)} /></label>
+          <button className="btn" onClick={() => act(async () => { const p: any = await api("/api/pilots", { method: "POST", body: JSON.stringify({ name }) }); setName(""); await open(p.id); }, false)}>{t.new_pilot}</button>
+        </div>
+      )}
+      {pilots.length > 0 && (
+        <table className="dt" style={{ marginTop: 10 }}><thead><tr><th>#</th><th>{t.pilot_name}</th><th>{t.pilot_env}</th><th>{t.status}</th></tr></thead>
+          <tbody>{pilots.map((p: any) => (
+            <tr key={p.id} onClick={() => open(p.id)} style={{ cursor: "pointer" }}><td>{p.id}</td><td>{p.name}</td><td>{p.environment}</td><td><StatusChip s={p.status} t={t} /></td></tr>
+          ))}</tbody></table>
+      )}
+      {detail && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+            <b>{detail.name}</b><StatusChip s={detail.status} t={t} />
+            {isAdmin && detail.status === "draft" && <button className="btn sm" onClick={() => act(() => api(`/api/pilots/${detail.id}/activate`, { method: "POST", body: "{}" }))}>{t.activate_pilot}</button>}
+            {isAdmin && detail.status === "active" && <button className="btn sm danger" onClick={() => act(() => api(`/api/pilots/${detail.id}/close`, { method: "POST", body: "{}" }))}>{t.close_pilot}</button>}
+          </div>
+          <table className="dt"><thead><tr><th>{t.conditions}</th><th>{t.kind}</th><th>{t.status}</th><th>{t.evidence}</th><th>{t.actions}</th></tr></thead>
+            <tbody>{detail.conditions.map((c: any) => (
+              <tr key={c.condition_key}>
+                <td>{(t as any)[`cond_${c.condition_key}`] ?? c.condition_key}</td>
+                <td>{c.kind === "auto" ? t.auto_lbl : t.attest_lbl}</td>
+                <td><StatusChip s={c.status} t={t} /></td>
+                <td style={{ fontSize: 12 }}>{c.evidence_ref ?? "—"}</td>
+                <td>{isAdmin && detail.status === "draft" && c.status !== "satisfied" && (c.kind === "auto"
+                  ? <button className="btn sm sec" onClick={() => act(() => api(`/api/pilots/${detail.id}/conditions/${c.condition_key}/verify`, { method: "POST", body: "{}" }))}>{t.verify_btn}</button>
+                  : <button className="btn sm sec" onClick={() => attest(c.condition_key)}>{t.attest}</button>)}</td>
+              </tr>))}
+            </tbody></table>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 export function AdminView(ctx: Ctx & { username: string; role: string }) {
   const { t, lang } = ctx;
   const [audit, setAudit] = useState<any[]>([]);
@@ -115,6 +168,7 @@ export function AdminView(ctx: Ctx & { username: string; role: string }) {
             </tbody></table>
         </Panel>
       )}
+      <PilotPanel ctx={ctx} />
       <Panel title={t.audit}>
         {denied ? <Empty text={t.err} /> : audit.length === 0 ? <Empty text={t.empty} /> : (
           <table className="dt"><thead><tr><th>{t.decreeDate}</th><th>{t.by}</th><th>{t.actions}</th><th>{t.member}</th></tr></thead>
