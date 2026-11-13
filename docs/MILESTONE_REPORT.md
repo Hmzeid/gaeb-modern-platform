@@ -279,3 +279,24 @@ documented as such in docs/release/PHASE5_*. Suite: 58/58, 0 skipped.
 Gate changes: Scalability improvement VERIFIED; Backup/restore VERIFIED at the
 logical+restart level (physical pg_dump cycle NOT verified — no pg_dump binary
 in the sandbox distribution; all other gates unchanged.
+
+## Addendum 9 — Phase 6 (2026-11-12, branch phase-6-customer-acceptance)
+Baseline 58/58 reproduced on phase-5-certification (6c16204). Headline: the
+backup gap is CLOSED at both levels — PostgreSQL 16.15 client tools installed
+from Ubuntu 24.04 repos; pg_dump custom-format backup restored into a clean DB
+with all 18 evidence tables fingerprint-matching AND application-level
+reconciliation re-verified on the restored DB; pg_basebackup physical backup
+(828 MB, 3m50s) booted as a standalone cluster with all 18 tables / 2,480 rows
+fingerprint-matching. PITR and multi-host DR remain NOT VERIFIED (declared).
+CI: activation patch generated (evidence/phase6/ci-activation.patch); API
+checks show Actions enabled but main NOT branch-protected; token scope still
+blocks the push. Docker still unavailable locally — gate unchanged, honestly.
+Performance regression check: 506,209 records @ 5,261 rec/s (Phase 5: 4,818)
+— no regression. npm audit unreachable from the sandbox (registry policy 403)
+— recorded, not spun. Delivered: pilot environment package (requirements,
+deployment runbook, checklist), real-data pilot report (BLOCKED, accurate),
+business equivalence results with the 7 decisions owed, Phase 6 security
+assessment + evidence index + residual risk register (RR-01..06), UAT
+execution pack + 30-case results sheet + sign-off, operations acceptance pack,
+6-document customer acceptance dossier (acceptance form UNSIGNED), production
+readiness review. Suite at close: 58/58, 0 skipped.
