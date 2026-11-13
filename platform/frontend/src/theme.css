@@ -1,0 +1,12 @@
+:root { --ink:#14213d; --accent:#0b6e4f; --line:#d8dee9; --bg:#f4f6f9; }
+* { box-sizing: border-box; } body { margin:0; font-family: "Segoe UI", Tahoma, Arial, sans-serif; background:var(--bg); color:var(--ink); }
+.wrap { max-width: 960px; margin: 0 auto; padding: 20px; }
+header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+h1 { font-size: 20px; } h2 { font-size: 16px; margin-top:0; }
+.card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px; margin:14px 0; display:block; }
+label { display:block; margin:8px 0; font-size:13px; } input { display:block; width:100%; padding:8px; margin-top:4px; border:1px solid var(--line); border-radius:6px; }
+button { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:8px 14px; cursor:pointer; margin-inline-start:6px; }
+table { width:100%; border-collapse:collapse; font-size:13px; } th, td { border-bottom:1px solid var(--line); padding:6px; text-align:start; }
+.err { color:#b00020; }
+.tabs { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
+.tab { background:#e4e9f0; color:var(--ink); } .tab.active { background:var(--accent); color:#fff; }

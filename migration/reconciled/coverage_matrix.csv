@@ -1,0 +1,503 @@
+object_kind,subsystem,legacy_member,legacy_type,source_file,modern_status,notes
+data_file,Budget,CBABDALW,PF,BALANC5,Partially implemented,Budget allocations (POC)
+data_file,Budget,CBABDGLW,PF,BALANC5,Not implemented,
+data_file,Budget,CBABGALW,PF,BALANC5,Partially implemented,Budget allowances (POC)
+data_file,Budget,CBARECPF,PF,BALANC5,Partially implemented,Budget receipts (POC)
+data_file,Budget,CBAXX1PF,PF,BALANC5,Not implemented,
+data_file,Budget,CBAXX2PF,PF,BALANC5,Not implemented,
+data_file,Budget,CBAXX9PF,PF,BALANC5,Not implemented,
+data_file,Budget,CBGRECPF,PF,BALANC5,Not implemented,
+data_file,Budget,CBGREXPF,PF,BALANC5,Not implemented,
+data_file,Budget,CANDO,LF,BALANC5,Not implemented,Converts to index/view over CBABDALW in target schema
+data_file,Budget,CANDO11,LF,BALANC5,Not implemented,Converts to index/view over CBABDALW in target schema
+data_file,Budget,CBABDALF,LF,BALANC5,Not implemented,Converts to index/view over CBABDALW in target schema
+data_file,Budget,CBABDALX,LF,BALANC5,Not implemented,Converts to index/view over CBABDALW in target schema
+data_file,Budget,CBABDW,LF,BALANC5,Not implemented,Converts to index/view over CBABDALW in target schema
+data_file,Budget,CBABD2LW,LF,BALANC5,Not implemented,Converts to index/view over PBAALW in target schema
+data_file,Budget,CBABGALF,LF,BALANC5,Not implemented,Converts to index/view over CBABGALW in target schema
+data_file,Budget,CBABGGY4,LF,BALANC5,Not implemented,Converts to index/view over CBGRECPF in target schema
+data_file,Budget,CBABGH,LF,BALANC5,Not implemented,Converts to index/view over CBABDALW in target schema
+data_file,Budget,CBABGXH,LF,BALANC5,Not implemented,Converts to index/view over CBABDALW in target schema
+data_file,Budget,CBABGY16,LF,BALANC5,Not implemented,Converts to index/view over CBGREXPF in target schema
+data_file,Budget,CBABGY2,LF,BALANC5,Not implemented,Converts to index/view over CBGRECPF in target schema
+data_file,Budget,CBABGY2L,LF,BALANC5,Not implemented,Converts to index/view over CBGRECPF in target schema
+data_file,Budget,CBABGY3,LF,BALANC5,Not implemented,Converts to index/view over CBGRECPF in target schema
+data_file,Budget,CBABGY3Y,LF,BALANC5,Not implemented,Converts to index/view over PBGREXPF in target schema
+data_file,Budget,CBABGY5,LF,BALANC5,Not implemented,Converts to index/view over CBGRECPF in target schema
+data_file,Budget,CBABGY6,LF,BALANC5,Not implemented,Converts to index/view over CBGREXPF in target schema
+data_file,Budget,CBAGGGLW,LF,BALANC5,Not implemented,Converts to index/view over CBABGALW in target schema
+data_file,Budget,CBAXX2LF,LF,BALANC5,Not implemented,Converts to index/view over CBAXX2PF in target schema
+data_file,Budget,CBAXX3LF,LF,BALANC5,Not implemented,Converts to index/view over CBAXX2PF in target schema
+data_file,Budget,CBAXX4LF,LF,BALANC5,Not implemented,Converts to index/view over CBAXX2PF in target schema
+data_file,Budget,CBAXX5LF,LF,BALANC5,Not implemented,Converts to index/view over CBAXX2PF in target schema
+data_file,Budget,CBAXX6LF,LF,BALANC5,Not implemented,Converts to index/view over CBAXX2PF in target schema
+data_file,Budget,CBAXX7LF,LF,BALANC5,Not implemented,Converts to index/view over CBAXX2PF in target schema
+data_file,Budget,CBGRECLX,LF,BALANC5,Not implemented,Converts to index/view over CBGREXPF in target schema
+data_file,Budget,CBGRECLY,LF,BALANC5,Not implemented,Converts to index/view over CBGRECPF in target schema
+data_file,Budget,CBGRECL1,LF,BALANC5,Not implemented,Converts to index/view over CBGRECPF in target schema
+data_file,Budget,CBGRECL3,LF,BALANC5,Not implemented,Converts to index/view over CBGRECPF in target schema
+data_file,Budget,CBGRECL3X,LF,BALANC5,Not implemented,Converts to index/view over CBGRECPF in target schema
+data_file,Budget,CBGRECX1,LF,BALANC5,Not implemented,Converts to index/view over CBGREXPF in target schema
+data_file,Budget,LOGLAWS,LF,BALANC5,Not implemented,Converts to index/view over CBABDALW in target schema
+data_file,Budget,LOGLAWS1,LF,BALANC5,Not implemented,Converts to index/view over PBABDALW in target schema
+data_file,Budget,LOGLAW8S,LF,BALANC5,Not implemented,Converts to index/view over CBABDALW in target schema
+data_file,Budget,PBLEDARA,LF,BALANC5,Not implemented,Converts to index/view over PBLBULDG in target schema
+data_file,School Map,PLNDMDPF,PF,DMGSRC,Not implemented,
+data_file,School Map,SCHPF5,PF,SCHSRC,Not implemented,
+data_file,School Map,PBLADDIT,PF,PBL,Not implemented,
+data_file,School Map,SEM001PF,PF,SRCPLAN,Not implemented,
+data_file,School Map,FARM02PF,PF,SRCBLCD,Not implemented,
+data_file,School Map,SCHSUM,PF,SRCPLAN,Not implemented,
+data_file,School Map,SCHDES1F,PF,SCHSRC,Not implemented,
+data_file,School Map,BULDCD1F,PF,PRTFL,Not implemented,
+data_file,School Map,FARM01PF,PF,SRCBLCD,Not implemented,
+data_file,School Map,PBLSROMN,PF,SRCBLCD,Not implemented,
+data_file,School Map,BULDCOD1,PF,PRTFL,Not implemented,
+data_file,School Map,BULDCODF,PF,PRTFL,Not implemented,
+data_file,School Map,PLN02PF,PF,SRCPLAN,Not implemented,
+data_file,School Map,PLN01PF,PF,SRCPLAN,Not implemented,
+data_file,School Map,PROJSRPF,PF,PRTFL25,Not implemented,
+data_file,School Map,PELCOURS,PF,PBL,Not implemented,
+data_file,School Map,DELB01PF,PF,DMGSRC,Not implemented,
+data_file,School Map,SCH05SPF,PF,SRCPLAN,Not implemented,
+data_file,School Map,PLN105PF,PF,SRCPLAN,Not implemented,
+data_file,School Map,PBLWALL,PF,PBL,Not implemented,
+data_file,School Map,SCHDBF07,PF,SCHSRC,Not implemented,
+data_file,School Map,SCHDBF77,PF,SCHSRC,Not implemented,
+data_file,School Map,PBLFLOOR,PF,PBL,Not implemented,
+data_file,School Map,PBLGATES,PF,TES,Not implemented,
+data_file,School Map,TES002PF,PF,SRCPLAN,Not implemented,
+data_file,School Map,TES001PF,PF,SRCPLAN,Not implemented,
+data_file,School Map,PBLINSPL,PF,PBL,Not implemented,
+data_file,School Map,PBLSPPLS,PF,PBL,Not implemented,
+data_file,School Map,PBLELSUP,PF,PBL,Not implemented,
+data_file,School Map,SCHPLNPF,PF,SCHSRC,Not implemented,
+data_file,School Map,SCHDBFPD,PF,SCHSRC,Not implemented,
+data_file,School Map,PBLGASES,PF,PBL,Not implemented,
+data_file,School Map,PBLINTRV,PF,TES,Not implemented,
+data_file,School Map,PBLSROOM,PF,TES,Not implemented,
+data_file,School Map,PBLSROM,PF,PBL,Not implemented,
+data_file,School Map,PBLSROM,PF,PBL,Not implemented,
+data_file,School Map,PBLROOMS,PF,PBL,Not implemented,
+data_file,School Map,PBLEFECT,PF,PBL,Not implemented,
+data_file,School Map,PBLAREAS,PF,TES,Not implemented,
+data_file,School Map,PBLLEVEL,PF,TES,Not implemented,
+data_file,School Map,PBLLEVEL,PF,PBL,Not implemented,
+data_file,School Map,CLOS00PF,PF,SRCCLOS,Not implemented,
+data_file,School Map,PBLDMG17,PF,DMGSRC,Not implemented,
+data_file,School Map,PBLSWLOK,PF,PBL,Not implemented,
+data_file,School Map,PBLBULDG,PF,PBL,Partially implemented,School Map buildings registry (POC)
+data_file,School Map,SCHMHMPF,PF,SRCPLAN,Not implemented,
+data_file,School Map,PLN501PF,PF,SRCPLAN,Not implemented,
+data_file,Technical Abstracts,INV001PF,PF,BIL02SRC,Partially implemented,Payment certificates (POC)
+data_file,Technical Abstracts,INV002PF,PF,BIL02SRC,Not implemented,
+data_file,Technical Abstracts,INV003PF,PF,BIL02SRC,Not implemented,
+data_file,Technical Abstracts,INV004PF,PF,BIL02SRC,Not implemented,
+data_file,Technical Abstracts,INV005PF,PF,BIL02SRC,Not implemented,
+data_file,Technical Abstracts,INV006PF,PF,BIL02SRC,Not implemented,
+data_file,Technical Abstracts,INV007PF,PF,BIL02SRC,Not implemented,
+data_file,Technical Abstracts,INV008PF,PF,BIL02SRC,Not implemented,
+data_file,Technical Abstracts,INV009PF,PF,BIL02SRC,Not implemented,
+data_file,Technical Abstracts,INV010PF,PF,BIL02SRC,Not implemented,
+data_file,Technical Abstracts,INVO01PF,PF,NGHADA,Partially implemented,Payment certificates (POC)
+data_file,Technical Abstracts,INV001PF,PF,NGHADA,Partially implemented,Payment certificates (POC)
+data_file,Technical Abstracts,INV010PF,PF,NGHADA,Not implemented,
+data_file,Technical Abstracts,INV001PF,PF,NGHADA,Partially implemented,Payment certificates (POC)
+data_file,Technical Abstracts,INV010PF,PF,NGHADA,Not implemented,
+data_file,Technical Abstracts,INM001PF,PF,BILM5SRC,Partially implemented,Maintenance certificates (POC)
+data_file,Technical Abstracts,INM002PF,PF,BILM5SRC,Not implemented,
+data_file,Technical Abstracts,INM003PF,PF,BILM5SRC,Not implemented,
+data_file,Technical Abstracts,INM004PF,PF,BILM5SRC,Not implemented,
+data_file,Technical Abstracts,INM005PF,PF,BILM5SRC,Not implemented,
+data_file,Technical Abstracts,INM006PF,PF,BILM5SRC,Not implemented,
+data_file,Technical Abstracts,INM007PF,PF,BILM5SRC,Not implemented,
+data_file,Technical Abstracts,INM009PF,PF,BILM5SRC,Not implemented,
+data_file,Technical Abstracts,INM010PF,PF,BILM5SRC,Not implemented,
+data_file,Technical Abstracts,MXM001PF,PF,BILM5SRC,Not implemented,
+data_file,Purchases & Contracts,#BYPRTGR,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,PBYPARTT,PF,CONTRACT,Partially implemented,Purchases tender parts (POC)
+data_file,Purchases & Contracts,#BYSUT#,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,#BYMBER,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,PBYMANT,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,#BYOF,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,#BYSUTN,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,#BYNOTES,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,#BYCMT,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,#BYSHW,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,PBYCLAIM,PF,CONTRACT,Partially implemented,Purchases claims (POC)
+data_file,Purchases & Contracts,#BYOFFRS,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,PBYSUPL1,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,PBYSUPL2,PF,CONTRACT,Not implemented,
+data_file,Purchases & Contracts,PBYTENDR,PF,CONTRACT,Partially implemented,Purchases tenders (POC)
+data_file,Purchases & Contracts,#BYPBLSH,PF,CONTRACT,Not implemented,
+data_file,Real Estate,REMV07PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV09PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV05PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV10PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV09PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV04PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV12PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV03PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV02PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV06PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV08PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,REMV01PF,PF,SRCRENT1,Partially implemented,Expropriation cases (POC)
+data_file,Real Estate,GRN002PF,PF,SRCMAP2,Not implemented,
+data_file,Real Estate,PRC002PF,PF,RECORD,Partially implemented,Land registry (POC)
+data_file,Real Estate,PBLLND05,PF,SRCMAP1,Not implemented,
+data_file,Real Estate,GRN001PF,PF,SRCMAP2,Not implemented,
+data_file,Real Estate,PBLLND02,PF,SRCMAP1,Not implemented,
+data_file,Real Estate,GRN001PF,PF,SRCMAP2,Not implemented,
+data_file,Real Estate,PBLLND01,PF,SRCMAP1,Not implemented,
+data_file,Real Estate,PBLLND04,PF,SRCMAP1,Partially implemented,Land registry (POC)
+data_file,Real Estate,RNT008PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,PBLLND16,PF,SRCMAP1,Not implemented,
+data_file,Real Estate,RENT03PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,RENT02PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,REMV04PF,PF,SRCRENT1,Not implemented,
+data_file,Real Estate,RNT011PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,RNT009PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,PBLLND03,PF,SRCMAP1,Not implemented,
+data_file,Real Estate,PBLLND50,PF,SRCMAP1,Not implemented,
+data_file,Real Estate,PBLLND15,PF,SRCMAP1,Not implemented,
+data_file,Real Estate,GRN002PF,PF,SRCMAP2,Not implemented,
+data_file,Real Estate,RNT004PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,RNT003PF,PF,SRCRENT,Partially implemented,Leases (POC)
+data_file,Real Estate,RNT007PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,RNT006PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,RNT002PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,RNT001PF,PF,SRCRENT,Not implemented,
+data_file,Real Estate,RENT05PF,PF,SRCRENT,Not implemented,
+program,Budget,CAINGHIR,CL,BALANC5,Not implemented,
+program,Budget,CBAXGTAR,RPG,BALANC5,Not implemented,
+program,Budget,CLOW13GG#,RPG,BALANC5,Not implemented,
+program,Budget,CLOW13GGX,RPG,BALANC5,Not implemented,
+program,Budget,CLOW13GGX#,RPG,BALANC5,Not implemented,
+program,Budget,CLOW13GX,RPG,BALANC5,Not implemented,
+program,Budget,CLOW13GX1,RPG,BALANC5,Not implemented,
+program,Budget,CWQRYF29,RPG,BALANC5,Not implemented,
+program,Budget,FBA336XR,RPG,BALANC5,Not implemented,
+program,Budget,MBA014ORE,RPG,BALANC5,Not implemented,
+program,Budget,TBA009ARN,RPG,BALANC5,Not implemented,
+program,Budget,TBA009ARN1,RPG,BALANC5,Not implemented,
+program,Budget,CBAXGTARX,RPG,BALANC5,Not implemented,
+program,Budget,TBA009FRS,RPG,BALANC5,Not implemented,
+program,Budget,CBAXGTAR1,RPG,BALANC5,Not implemented,
+program,Budget,CBA0GTAF,RPG,BALANC5,Not implemented,
+program,Budget,CBA0GTAR,RPG,BALANC5,Not implemented,
+program,Budget,CBA0GTAR1,RPG,BALANC5,Not implemented,
+program,Budget,CBA0XXAR,RPG,BALANC5,Not implemented,
+program,Budget,CBA0XXUR,RPG,BALANC5,Not implemented,
+program,Budget,CBA0XXURS,RPG,BALANC5,Not implemented,
+program,Budget,CBA0XXUR1,RPG,BALANC5,Not implemented,
+program,Budget,CAINGHIRS,RPG,BALANC5,Not implemented,
+program,Budget,CBA00GOR,RPG,BALANC5,Not implemented,
+program,Budget,CBA00GOR#,RPG,BALANC5,Not implemented,
+program,Budget,CBA00GORF,RPG,BALANC5,Not implemented,
+program,Budget,CBA00GORH,RPG,BALANC5,Not implemented,
+program,Budget,CBA001UR,RPG,BALANC5,Not implemented,
+program,Budget,CBA007ORX,RPG,BALANC5,Not implemented,
+program,Budget,CBA009ARK,RPG,BALANC5,Not implemented,
+program,Budget,CBA009ARL,RPG,BALANC5,Not implemented,
+program,Budget,CBA009ARN,RPG,BALANC5,Not implemented,
+program,Budget,CBA009ARX,RPG,BALANC5,Not implemented,
+program,Budget,CBAGG9FR,RPG,BALANC5,Not implemented,
+program,Budget,CBA009ARZ,RPG,BALANC5,Not implemented,
+program,Budget,CBA009AR1,RPG,BALANC5,Not implemented,
+program,Budget,CBA009FR,RPG,BALANC5,Not implemented,
+program,Budget,CBA009FR#,RPG,BALANC5,Not implemented,
+program,Budget,CBA009OR,RPG,BALANC5,Partially implemented,Budget payment entry family — POC implements allocations/payments; cloned variants collapse to one module (planned)
+program,Budget,CBA009ORL,RPG,BALANC5,Not implemented,
+program,Budget,CBA009ORL1,RPG,BALANC5,Not implemented,
+program,Budget,CBA009ORR,RPG,BALANC5,Not implemented,
+program,Budget,CBA009ORW,RPG,BALANC5,Not implemented,
+program,Budget,CBA009ORW1,RPG,BALANC5,Not implemented,
+program,Budget,CBAGG9FR1,RPG,BALANC5,Not implemented,
+program,Budget,CBA01GOR,RPG,BALANC5,Not implemented,
+program,Budget,CBA01GOR#,RPG,BALANC5,Not implemented,
+program,Budget,CBA01GORT,RPG,BALANC5,Not implemented,
+program,Budget,CBA011AR,RPG,BALANC5,Not implemented,
+program,Budget,CBA014ORB,RPG,BALANC5,Not implemented,
+program,Budget,CBA014OR7X,RPG,BALANC5,Not implemented,
+program,Budget,CBA116SR,RPG,BALANC5,Not implemented,
+program,Budget,CBA116UR,RPG,BALANC5,Not implemented,
+program,Budget,CBA118GR1,RPG,BALANC5,Not implemented,
+program,Budget,CBA2XXAR,RPG,BALANC5,Not implemented,
+program,Budget,CBAGG9OR,RPG,BALANC5,Not implemented,
+program,Budget,CBA2XXIR,RPG,BALANC5,Not implemented,
+program,Budget,CBA2XXIR2,RPG,BALANC5,Not implemented,
+program,Budget,CBA3XXIR,RPG,BALANC5,Not implemented,
+program,Budget,CBA306IR,RPG,BALANC5,Not implemented,
+program,Budget,CBA306IR1,RPG,BALANC5,Not implemented,
+program,Budget,CBA306IR7,RPG,BALANC5,Not implemented,
+program,Budget,CBA316IR,RPG,BALANC5,Not implemented,
+program,Budget,CBA316IR#,RPG,BALANC5,Not implemented,
+program,Budget,CBA316IRS,RPG,BALANC5,Not implemented,
+program,Budget,CBA33IS,RPG,BALANC5,Not implemented,
+program,Budget,CBAGG9OR1,RPG,BALANC5,Not implemented,
+program,Budget,CBA33XFR,RPG,BALANC5,Not implemented,
+program,Budget,CBA333OR,RPG,BALANC5,Not implemented,
+program,Budget,CBA333ORS,RPG,BALANC5,Not implemented,
+program,Budget,CBA333OR9,RPG,BALANC5,Not implemented,
+program,Budget,CBA333XR,RPG,BALANC5,Not implemented,
+program,Budget,CBA334IR1,RPG,BALANC5,Not implemented,
+program,Budget,CBA334ORA,RPG,BALANC5,Not implemented,
+program,Budget,CBA334ORB,RPG,BALANC5,Not implemented,
+program,Budget,CBA334ORG,RPG,BALANC5,Not implemented,
+program,Budget,CBA334ORK,RPG,BALANC5,Not implemented,
+program,Budget,CBAG09FRS,RPG,BALANC5,Not implemented,
+program,Budget,CBA334ORR,RPG,BALANC5,Not implemented,
+program,Budget,CBA334ORU,RPG,BALANC5,Not implemented,
+program,Budget,CBA334ORU1,RPG,BALANC5,Not implemented,
+program,Budget,CBA334ORU2,RPG,BALANC5,Not implemented,
+program,Budget,CBA334ORU5,RPG,BALANC5,Not implemented,
+program,Budget,CBA334XR,RPG,BALANC5,Not implemented,
+program,Budget,CBA335ORS,RPG,BALANC5,Not implemented,
+program,Budget,CBA336OR,RPG,BALANC5,Not implemented,
+program,Budget,CBA336ORY,RPG,BALANC5,Not implemented,
+program,Budget,CBA336ORY1,RPG,BALANC5,Not implemented,
+program,Budget,CBAG09OR4,RPG,BALANC5,Not implemented,
+program,Budget,CBA336XR,RPG,BALANC5,Not implemented,
+program,Budget,CBA4XXIR,RPG,BALANC5,Not implemented,
+program,Budget,CBA406IR,RPG,BALANC5,Not implemented,
+program,Budget,CBA416IR,RPG,BALANC5,Not implemented,
+program,Budget,CBA416IR#,RPG,BALANC5,Not implemented,
+program,Budget,CBA416IRO,RPG,BALANC5,Not implemented,
+program,Budget,CBA5XXIR,RPG,BALANC5,Not implemented,
+program,Budget,CBA516IR,RPG,BALANC5,Not implemented,
+program,Budget,CBA516IR#,RPG,BALANC5,Not implemented,
+program,Budget,CBA6XXIR,RPG,BALANC5,Not implemented,
+program,Budget,CBAG09OR5,RPG,BALANC5,Not implemented,
+program,Budget,CBA706UR,RPG,BALANC5,Not implemented,
+program,Budget,CBA707IR,RPG,BALANC5,Not implemented,
+program,Budget,CBA8X6UR,RPG,BALANC5,Not implemented,
+program,Budget,CBA806IR1,RPG,BALANC5,Not implemented,
+program,Budget,CBA806UR,RPG,BALANC5,Not implemented,
+program,Budget,CBA807UR,RPG,BALANC5,Not implemented,
+program,Budget,CBX316IR,RPG,BALANC5,Not implemented,
+program,Budget,CLOWIS#,RPG,BALANC5,Not implemented,
+program,Budget,CLOWIS#1,RPG,BALANC5,Not implemented,
+program,Budget,CLOW13GG,RPG,BALANC5,Not implemented,
+program,School Map,PLAN02AR,RPG,SRCPLAN,Not implemented,
+program,School Map,PLAN03AR,RPG,SRCPLAN,Not implemented,
+program,School Map,PLAN04AR,RPG,SRCPLAN,Not implemented,
+program,School Map,PLAN02AR,RPG,SRCPLAN,Not implemented,
+program,School Map,BLCD20AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD24AR,RPG,SRCBLCD,Not implemented,
+program,School Map,DUL054AR,RPG,BULD2,Not implemented,
+program,School Map,DUL014AR,RPG,BULD2,Not implemented,
+program,School Map,DUL055AR,RPG,BULD2,Not implemented,
+program,School Map,BLCD38AR,RPG,SRCBLCD,Not implemented,
+program,School Map,PLNW01AR,RPG,PRTFL25,Not implemented,
+program,School Map,BLC002AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLC003AR,RPG,SRCBLCD,Not implemented,
+program,School Map,DUL017AR,RPG,BULD2,Not implemented,
+program,School Map,BLCD21AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD22AR,RPG,SRCBLCD,Not implemented,
+program,School Map,DUL020AR,RPG,BULD2,Not implemented,
+program,School Map,DUL002AR,RPG,BULD2,Not implemented,
+program,School Map,BLCD06AR,RPG,SRCBLCD,Not implemented,
+program,School Map,FARM01AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD01AR,RPG,SRCBLCD,Partially implemented,Building registry hub — POC implements registry CRUD; sub-program dispatch (BLCD02–24) not yet implemented
+program,School Map,BLCD99AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD18AR,RPG,SRCBLCD,Not implemented,
+program,School Map,DUL018AR,RPG,BULD2,Not implemented,
+program,School Map,BLCD04AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD07AR,RPG,SRCBLCD,Not implemented,
+program,School Map,ATHAR01R,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD32AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD26AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD02AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD08AR,RPG,SRCBLCD,Not implemented,
+program,School Map,PROJMANR,RPG,PRTFLHATEM,Not implemented,
+program,School Map,BLCD05AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD16AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD30AR,RPG,SRCBLCD,Partially implemented,Data-quality report — not yet implemented as report; listed partial via dashboard concept only
+program,School Map,DUL003AR,RPG,BULD2,Not implemented,
+program,School Map,DUL011AR,RPG,BULD2,Not implemented,
+program,School Map,DUL051AR,RPG,BULD2,Not implemented,
+program,School Map,DUL008AR,RPG,BULD2,Not implemented,
+program,School Map,DUL016AR,RPG,BULD2,Not implemented,
+program,School Map,DUL024AR,RPG,BULD2,Not implemented,
+program,School Map,BLCD23AR,RPG,SRCBLCD,Not implemented,
+program,School Map,DUL023AR,RPG,BULD2,Not implemented,
+program,School Map,DUL026AR,RPG,BULD2,Not implemented,
+program,School Map,DUL030AR,RPG,BULD2,Not implemented,
+program,School Map,DUL052AR,RPG,BULD2,Not implemented,
+program,School Map,DUL053AR,RPG,BULD2,Not implemented,
+program,School Map,DUL056AR,RPG,BULD2,Not implemented,
+program,School Map,DULYY3AR,RPG,BULD2,Not implemented,
+program,School Map,DUL022AR,RPG,BULD2,Not implemented,
+program,School Map,DUL025AR,RPG,BULD2,Not implemented,
+program,School Map,BLCD15AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD40AR,RPG,SRCBLCD,Not implemented,
+program,School Map,DUL012AR,RPG,BULD2,Not implemented,
+program,School Map,SPCD01AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD12AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD03AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD17AR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD29AR,RPG,SRCBLCD,Not implemented,
+program,School Map,SDDT01AR,RPG,SRCBLCD,Not implemented,
+program,School Map,DUL019AR,RPG,BULD2,Not implemented,
+program,School Map,ROM001UR,RPG,SRCBLCD,Not implemented,
+program,School Map,BLCD10AR,RPG,SRCBLCD,Not implemented,
+program,School Map,PLN01AR,RPG,SRCPLAN,Not implemented,
+program,School Map,PLN101TS,RPG,SRCPLAN,Not implemented,
+program,School Map,PLN302AR,RPG,SRCPLAN,Not implemented,
+program,School Map,PLN301AR,RPG,SRCPLAN,Not implemented,
+program,School Map,PLN300AR,RPG,SRCPLAN,Not implemented,
+program,School Map,PLAN01AR,RPG,SRCPLAN,Not implemented,
+program,School Map,RSV001AR,RPG,SRCPLAN,Not implemented,
+program,School Map,PLN105AR,RPG,SRCPLAN,Not implemented,
+program,School Map,PLAN001R,RPG,SCHSRC,Not implemented,
+program,School Map,BLCD25AR,RPG,SRCBLCD,Not implemented,
+program,School Map,فودافون 202611.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,School Map,BLCD33AR,RPG,SRCBLCD,Not implemented,
+program,School Map,PROJ01AR,RPG,PRTFL25,Not implemented,
+program,School Map,SCHCOORD1,OTHER,SRCBLCD,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,School Map,BLCD01PF,OTHER,SRCBLCD,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,School Map,BLCD04PF,OTHER,SRCBLCD,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,School Map,BLCD05PF,OTHER,SRCBLCD,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,School Map,BLCD03PF,OTHER,SRCBLCD,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,School Map,BLCD02PF,OTHER,SRCBLCD,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,School Map,SUM408R,RPG,SRCPLAN,Partially implemented,Statistics roll-up — POC dashboard aggregates (partial)
+program,School Map,PBLSCHOL,OTHER,SUB01SRC,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Technical Abstracts,INV001IR,RPG,NGHADA,Not implemented,
+program,Technical Abstracts,INV001AR1,RPG,NGHADA,Partially implemented,"Abstract entry — POC implements certificate items, quantity×price, typed deductions, status workflow; billing/payment separation partial"
+program,Technical Abstracts,Session B - [24 x 80]_11.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Technical Abstracts,Session B - [24 x 80]_12.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Technical Abstracts,Session B - [24 x 80]_13.pdf,RPG,,Not implemented,
+program,Technical Abstracts,Session B - [24 x 80]_14.pdf,RPG,,Not implemented,
+program,Technical Abstracts,Session B - [24 x 80]_15.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Technical Abstracts,PAG001MR,RPG,NGHADA,Not implemented,
+program,Technical Abstracts,EXM001IR,RPG,NGHADA,Not implemented,
+program,Technical Abstracts,INV001HR,RPG,NGHADA,Not implemented,
+program,Technical Abstracts,ENG001MR,RPG,ENG01SRC,Not implemented,
+program,Technical Abstracts,CPV001AR,RPG,NGHADA,Not implemented,
+program,Technical Abstracts,DXMS01MR,RPG,NGHADA,Not implemented,
+program,Technical Abstracts,INV005AR,RPG,NGHADA,Partially implemented,Abstract entry variant — see INV001AR1
+program,Technical Abstracts,EXM001IR1,RPG,NGHADA,Not implemented,
+program,Technical Abstracts,BILM01AR,RPG,BILM5SRC,Not implemented,
+program,Technical Abstracts,INM001AR1,RPG,BILM5SRC,Partially implemented,Maintenance abstracts — POC partial
+program,Technical Abstracts,INM001HR,RPG,BILM5SRC,Not implemented,
+program,Technical Abstracts,INM001IR,RPG,BILM5SRC,Not implemented,
+program,Technical Abstracts,INM002IR,RPG,BILM5SRC,Not implemented,
+program,Technical Abstracts,INM002R#,RPG,BILM5SRC,Not implemented,
+program,Technical Abstracts,MXM001IR,RPG,BILM5SRC,Not implemented,
+program,Technical Abstracts,MXM001RP,RPG,BILM5SRC,Not implemented,
+program,Technical Abstracts,PAGM01MR,RPG,BILM5SRC,Not implemented,
+program,Technical Abstracts,PAGS01RP,RPG,BILM5SRC,Not implemented,
+program,Purchases & Contracts,#BY011AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY016AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY013AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY045AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY005A1,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY007AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY004AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY054AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY003AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY009AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY008AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,DBY005AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY016R2,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY051AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,#BY001AR,RPG,CONTRACT,Not implemented,
+program,Purchases & Contracts,PBYSUPL,OTHER,CONTRACT,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),استعلام اسعار مقايسات.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),استعلام بيانات القائمه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),استعلام قائمه اسعار.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),استعلام قائمه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),استعلام مقايسه مبني.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),استعلام مقايسه مشروع.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),استعلام مقايسه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),استعلام ملاحق مبني.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),استعلامات مقايسه مشروع.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),اضافه قائمه اسعار الهيئه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),اضافه مقايسه مكتب بريد.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),اضافه مقايسه نموذج.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),البيانات الاساسيه للمشروع.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),الغاء مقايسه مشروع.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),الغاء مقايسه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),القائمه الريئيسه للنماذج.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),القائمه الريسييه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),تسجيل اسعار مقاول.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),تسجيل بيانات جدول زمني تطوير.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),تسجيل بيانات قائمه اسعار الهيئه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),تسجيل مقايسه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),تعديل قائمه الهيئه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),تعديل مقايسه مشروع.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),تعديل مقايسه نموذج.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),تعديل مقايسه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),قائمه اسعار بنود المقايسات.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),متابعه موقف ادخال مقايسه.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),مقايسه مبني تسجيل اسعار مقاول.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),مقايسه مكاتب بريد.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),مقايسه مكتب بريي.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Estimates (BOQ),PMP55555,RPG,ADM04SRC,Not implemented,
+program,Estimates (BOQ),PMPITMAR,RPG,ADM04SRC,Partially implemented,Estimate item entry — POC implements catalogue-based BOQ items (partial)
+program,Estimates (BOQ),PMPITMIR,RPG,ADM04SRC,Not implemented,
+program,Estimates (BOQ),PMPT200R,RPG,ADM04SRC,Not implemented,
+program,Estimates (BOQ),PMPT200R,RPG,ADM04SRC,Not implemented,
+program,Estimates (BOQ),PMPT200R2,RPG,ADM04SRC,Not implemented,
+program,Estimates (BOQ),PMPT200R3,RPG,ADM04SRC,Not implemented,
+program,Estimates (BOQ),PMPT200R4,RPG,ADM04SRC,Not implemented,
+program,Real Estate,1.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,buld1lf.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,pblbral1.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,pblmokf.pdf,OTHER,,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,REMV07AR,RPG,SRCRENT1,Not implemented,
+program,Real Estate,REMV05AR,RPG,SRCRENT1,Not implemented,
+program,Real Estate,REMV11AR,RPG,SRCRENT1,Not implemented,
+program,Real Estate,REMV10AR,RPG,SRCRENT1,Not implemented,
+program,Real Estate,REMV03AR,RPG,SRCRENT1,Not implemented,
+program,Real Estate,REMV02AR,RPG,SRCRENT1,Partially implemented,Expropriation post-decree — POC partial
+program,Real Estate,REMV08AR,RPG,SRCRENT1,Not implemented,
+program,Real Estate,REMV04AR,RPG,SRCRENT1,Not implemented,
+program,Real Estate,REMV12AR,RPG,SRCRENT1,Not implemented,
+program,Real Estate,REMV01AR,RPG,SRCRENT1,Partially implemented,Expropriation pre-decree entry — POC implements case record; decree gate enforced in production backend
+program,Real Estate,PBLLND10,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,LND10AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,GRN002AR,RPG,SRCMAP2,Partially implemented,Real-estate approval + printed approval — POC partial (no print template yet)
+program,Real Estate,PRC002AR,RPG,RECORD,Not implemented,
+program,Real Estate,LND16AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,GRN002AR,RPG,SRCMAP2,Partially implemented,Real-estate approval + printed approval — POC partial (no print template yet)
+program,Real Estate,LND13AR,RPG,SRCMAP1,Partially implemented,Land approval — POC partial (lands CRUD)
+program,Real Estate,LND04AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND06AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND26AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LGNM01AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND51AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND05AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,PRC002AR,RPG,RECORD,Not implemented,
+program,Real Estate,RENT06AR,RPG,SRCRENT,Not implemented,
+program,Real Estate,LND08AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,GRN001AR,RPG,SRCMAP2,Not implemented,
+program,Real Estate,RNT000AR,RPG,SRCRENT,Not implemented,
+program,Real Estate,LND28AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND50AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND09AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND15AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND11AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND12AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND07AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,RNT001AR,RPG,SRCRENT,Not implemented,
+program,Real Estate,RNTM00AR,RPG,SRCRENT,Not implemented,
+program,Real Estate,RENT03AR,RPG,SRCRENT,Not implemented,
+program,Real Estate,REMV02AR,RPG,SRCRENT1,Partially implemented,Expropriation post-decree — POC partial
+program,Real Estate,RENT05AR,RPG,SRCRENT,Not implemented,
+program,Real Estate,LND27AR,RPG,SRCMAP1,Not implemented,
+program,Real Estate,LND013PF,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,PBLLND13,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,PBLLND14,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,PBLLND06,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,LNDOWNOL,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,PBLLND09,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,PBLLND08,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,PBLLND12,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,RNTM02PF,OTHER,SRCRENT,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,RNTM03PF,OTHER,SRCRENT,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,RNTM01PF,OTHER,SRCRENT,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,PBLLND26,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,PBLLND07,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,PBLLND11,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review
+program,Real Estate,LND014PF,OTHER,SRCMAP1,Not implemented,Member type unconfirmed by POC parser (likely display/printer/menu source) — requires source review

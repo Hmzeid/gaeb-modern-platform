@@ -9,3 +9,10 @@ dist/
 .harness/
 client/dist-cvm/
 *.tsbuildinfo
+platform/node_modules/
+platform/dist/
+platform/.env
+.env
+
+platform/frontend/node_modules/
+platform/frontend/dist/
