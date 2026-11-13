@@ -1,0 +1,13 @@
+{
+  "environment": "sandbox shared 1.5 vCPU, PostgreSQL 16.4 same host — floor figures, not production guarantees",
+  "phase7Runs": [
+    { "records": 108473, "seconds": 19.36, "recordsPerSec": 5604, "rssBeforeMB": 100.4, "rssAfterMB": 214.4 },
+    { "records": 506209, "seconds": 93.47, "recordsPerSec": 5416, "rssBeforeMB": 159.8, "rssAfterMB": 210.2 },
+    { "records": 1012418, "seconds": 202.66, "recordsPerSec": 4996, "rssBeforeMB": 211.7, "rssAfterMB": 191.9 },
+    { "records": 2024836, "seconds": 446.68, "recordsPerSec": 4533, "rssBeforeMB": 296.7, "rssAfterMB": 200.7 }
+  ],
+  "comparison": {
+    "phase5_1012418": 4940, "phase6_506209": 5261, "phase5_506209": 4818, "preFix_451972": 2737,
+    "note": "Phase 7 matches Phase 5/6 at equal sizes (no regression). The 2M point declines ~9% vs 1M on this shared disk; memory stays bounded (ending RSS below starting at 1M and 2M). No SLA is derived from these figures."
+  }
+}

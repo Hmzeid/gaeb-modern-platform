@@ -300,3 +300,25 @@ assessment + evidence index + residual risk register (RR-01..06), UAT
 execution pack + 30-case results sheet + sign-off, operations acceptance pack,
 6-document customer acceptance dossier (acceptance form UNSIGNED), production
 readiness review. Suite at close: 58/58, 0 skipped.
+
+## Addendum 10 — Phase 7 (2026-11-12, branch phase-7-pilot-activation)
+Baseline 58/58 reproduced on b7f0686; close 65/65 (added preflight 3 +
+security-negative 4). NEW VERIFIED GATE: point-in-time recovery — dedicated
+drill cluster with WAL archiving, base backup, target-time restore:
+transaction A present, transaction B absent, promoted in 27.4s
+(tools/pitr-drill.mjs). Also: login throttling implemented (P7-F1 remediated,
+429 after 10 failures/10min per ip+user) + correlation IDs; streaming
+preflight intake validator (checksum REJECT, truncation/duplicate/Arabic
+findings); SBOM 98 components, all permissive licenses, lockfile hashed;
+benchmark ladder re-run incl. first 2M point: 108k@5,604 / 506k@5,416 /
+1.01M@4,996 / 2.02M@4,533 rec/s, RSS bounded — no regression; health-check
+tool verified in both directions (exit 0 clean / exit 1 naming FAILED jobs);
+logical + physical backup re-executed PASS (one physical comparison was
+invalidated by concurrent suite mutation, documented and re-run clean);
+business decision register corrected to 8 decisions BD-01..08 (the "seven"
+bundled CHKDIG+CHK5DAYS); RTM with 22 requirements; 16-item pilot package;
+UX review recorded one known gap (no live import progress in UI — Phase 8).
+Unchanged externals: CI BLOCKED (token scope), Docker NOT VERIFIED (no host),
+npm audit registry-blocked, real data BLOCKED, UAT/security approval external.
+Environment note: the VM replacement wiped the apt-installed PG client tools;
+reinstalled from the local apt cache via dpkg.
