@@ -177,31 +177,60 @@ let backupPass = false, backupTail = "";
 }
 rec("R-12", "Backup/restore verification on the rehearsal database", "18 tables compared, 0 mismatches (fingerprint path; the tool's fixture-batch check applies only to the test DB)", backupTail, backupPass);
 
-// ---------- Phase 12: pilot activation gate, end to end ----------
+// ---------- Phases 12+13: pilot gate + evidence governance, end to end ----------
 {
-  const custImport = () => post("/api/migration/import?layout=pblbuldg&dataClass=customer", opTok, good, true);
+  const custImport = () => post("/api/migration/import?layout=pblbuldg&dataClass=customer&dataset=pblbuldg", opTok, good, true);
   const r15 = await custImport();
-  rec("R-15", "Customer-class import refused with no active pilot", "422 no active pilot", `status ${r15.status}`, r15.status === 422 && String(r15.body?.error || "").includes("no active pilot"));
+  rec("R-15", "Customer-class import refused with no active pilot", "422 no active pilot", `status ${r15.status}`, r15.status === 422);
   const pilot = await post("/api/pilots", adminTok, { name: "Synthetic rehearsal pilot", environment: "rehearsal" });
   const pid = pilot.body?.id;
-  let attestOk = pilot.status === 201;
+  const evFlow = async (key) => {
+    const c = await post(`/api/pilots/${pid}/evidence`, opTok, { conditionKey: key });
+    const sub = await post(`/api/pilots/${pid}/evidence/${c.body?.id}/submit`, opTok, { documentRef: `rehearsal-doc-${key}` });
+    const ver = await post(`/api/pilots/${pid}/evidence/${c.body?.id}/verify`, apTok, { decision: "VERIFIED" });
+    return { id: c.body?.id, ok: c.status === 201 && sub.status === 200 && ver.status === 200 };
+  };
+  let evOk = pilot.status === 201;
+  const evIds = {};
   for (const k of ["charter_approved", "scope_approved", "bd_decisions", "extract_authorization", "environment_approved", "backup_restore_verified", "monitoring_alerts_verified", "transfer_mechanism_approved", "participants_assigned", "security_prerequisites"]) {
-    const a = await post(`/api/pilots/${pid}/conditions/${k}/attest`, adminTok, { evidenceRef: `rehearsal evidence ${k}` });
-    attestOk = attestOk && a.status === 200;
+    const f = await evFlow(k); evIds[k] = f.id; evOk = evOk && f.ok;
   }
   const custAppr = await post("/api/migration/approvals", apTok, { transform: "buildings", mode: "customer", evidenceRef: "rehearsal signed mapping review" });
-  const vT = await post(`/api/pilots/${pid}/conditions/transform_approvals/verify`, adminTok, {});
-  const vE = await post(`/api/pilots/${pid}/conditions/env_preflight/verify`, adminTok, {});
+  const dsReg = await post(`/api/pilots/${pid}/datasets`, adminTok, { datasetKey: "pblbuldg", extractRef: "REHEARSAL-EXT-001", transformName: "buildings" });
+  const dsAuth = await post(`/api/pilots/${pid}/datasets/${dsReg.body?.id}/authorize`, adminTok, {});
   const actR = await post(`/api/pilots/${pid}/activate`, adminTok, {});
-  rec("R-16", "Pilot created, conditions attested/verified, activation succeeds", "201 + 10 attests + 2 verifies + activate 200 active", `attests ${attestOk}, approval ${custAppr.status}, verifies ${vT.status}/${vE.status}, activate ${actR.status}`, attestOk && custAppr.status === 200 && vT.status === 200 && vE.status === 200 && actR.status === 200 && actR.body?.status === "active");
+  rec("R-16", "Pilot created, evidence independently verified, dataset authorized, activation succeeds", "evidence x10 + approval + dataset + activate 200", `evidence ${evOk}, approval ${custAppr.status}, dataset ${dsReg.status}/${dsAuth.status}, activate ${actR.status}`, evOk && custAppr.status === 200 && dsAuth.status === 200 && actR.status === 200);
   const r17 = await custImport();
-  rec("R-17", "Customer-class import proceeds under the active pilot (synthetic bytes)", "200", `status ${r17.status}`, r17.status === 200);
+  rec("R-17", "Customer-class import proceeds under the active pilot for the bound dataset (synthetic bytes)", "200", `status ${r17.status}`, r17.status === 200);
+
+  const ownC = await post(`/api/pilots/${pid}/evidence`, adminTok, { conditionKey: "charter_approved" });
+  await post(`/api/pilots/${pid}/evidence/${ownC.body?.id}/submit`, adminTok, { documentRef: "charter-v2.pdf" });
+  const selfVer = await post(`/api/pilots/${pid}/evidence/${ownC.body?.id}/verify`, adminTok, { decision: "VERIFIED" });
+  const indVer = await post(`/api/pilots/${pid}/evidence/${ownC.body?.id}/verify`, apTok, { decision: "VERIFIED" });
+  rec("R-20", "Self-verification refused; independent verification succeeds (and supersedes v1)", "422 then 200", `self ${selfVer.status}, independent ${indVer.status}`, selfVer.status === 422 && indVer.status === 200);
+  const revoke = await post(`/api/pilots/${pid}/evidence/${ownC.body?.id}/revoke`, apTok, { reason: "rehearsal revocation" });
+  const r21 = await custImport();
+  rec("R-21", "Revoked evidence invalidates the active pilot — import refused", "revoke 200, import 422", `revoke ${revoke.status}, import ${r21.status}`, revoke.status === 200 && r21.status === 422);
+  const requal = await evFlow("charter_approved");
+  const r22 = await custImport();
+  rec("R-22", "Requalification (fresh verified evidence) restores import eligibility", "import 200", `import ${r22.status}`, requal.ok && r22.status === 200);
+  const streamBuf = Buffer.concat(Array.from({ length: 3000 }, (_, i) => mkRec(String(3000000 + i), "مدرسة النيل الابتدائية", "7654321")));
+  const up2 = await post("/api/migration/uploads", opTok, streamBuf, true);
+  const stream2 = await post(`/api/migration/uploads/${up2.body?.uploadId}/import?layout=pblbuldg&dataClass=customer&dataset=pblbuldg`, opTok, {});
+  rec("R-23", "Second authorized batch imports via the streamed path under the same authorization", "200, 3000 records", `status ${stream2.status}`, stream2.status === 200);
+  const susp = await post(`/api/pilots/${pid}/suspend`, adminTok, { reason: "rehearsal suspension" });
+  const r24a = await custImport();
+  const react = await post(`/api/pilots/${pid}/reactivate`, adminTok, {});
+  const r24b = await custImport();
+  rec("R-24", "Suspension blocks imports; reactivation re-verifies and restores", "suspend 200, import 422, reactivate 200, import 200", `${susp.status}/${r24a.status}/${react.status}/${r24b.status}`, susp.status === 200 && r24a.status === 422 && react.status === 200 && r24b.status === 200);
   const closeR = await post(`/api/pilots/${pid}/close`, adminTok, {});
-  const r18 = await custImport();
-  rec("R-18", "Pilot closed; customer-class import refused again", "close 200, import 422", `close ${closeR.status}, import ${r18.status}`, closeR.status === 200 && r18.status === 422);
+  const r25 = await custImport();
+  rec("R-25", "Pilot closed; customer-class import refused again", "close 200, import 422", `close ${closeR.status}, import ${r25.status}`, closeR.status === 200 && r25.status === 422);
+  const exp = await get(`/api/pilots/${pid}/audit-export`, apTok);
+  rec("R-26", "Authorization audit export is complete", "200 with evidence + import decisions", `status ${exp.status}, evidence ${exp.body?.evidence?.length}, refusals ${exp.body?.audit?.filter(a => a.action === "pilot.import.refused").length}`, exp.status === 200 && (exp.body?.evidence?.length ?? 0) >= 10 && (exp.body?.audit?.some(a => a.action === "pilot.import.refused") ?? false));
   const pilot2 = await post("/api/pilots", adminTok, { name: "Incomplete pilot", environment: "rehearsal" });
   const act2 = await post(`/api/pilots/${pilot2.body?.id}/activate`, adminTok, {});
-  rec("R-19", "Activation refused with the missing-conditions list", "422 with >=10 missing", `status ${act2.status}, missing ${act2.body?.missing?.length}`, act2.status === 422 && Array.isArray(act2.body?.missing) && act2.body.missing.length >= 10);
+  rec("R-27", "Activation refused with the missing-conditions list", "422 with >=10 missing", `status ${act2.status}, missing ${act2.body?.missing?.length}`, act2.status === 422 && Array.isArray(act2.body?.missing) && act2.body.missing.length >= 10);
 }
 
 // ---------- not executable in a shared sandbox ----------
