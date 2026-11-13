@@ -492,6 +492,8 @@ app.post("/api/migration/preview", requireAuth, requirePerm("migration.run"), ex
   res.json({ preview: records.slice(0, 25).map(r => r.values), ...report });
 });
 app.post("/api/migration/import", requireAuth, requirePerm("migration.run"), express.raw({ type: "application/octet-stream", limit: "64mb" }), async (req, res) => {
+  const gate = await pilotGateError(req.query.dataClass === "customer" ? "customer" : undefined);
+  if (gate) return res.status(422).json({ error: gate });
   const entry = MIG_LAYOUTS[String(req.query.layout ?? "pblbuldg")];
   if (!entry) return res.status(400).json({ error: "unknown layout" });
   const client = await pool.connect();
@@ -813,6 +815,130 @@ import { streamImportFile } from "./migration/stream.js";
 const UPLOAD_DIR = process.env.MIG_UPLOAD_DIR ?? new URL("../uploads", import.meta.url).pathname;
 const MAX_UPLOAD = Number(process.env.MIG_MAX_UPLOAD_MB ?? 512) * 1024 * 1024;
 const uploads = new Map<string, { path: string; size: number; sha256: string; by: number }>();
+// ---------------------------------------------------------------------------
+// Phase 12: governed pilot activation. A pilot becomes active only when
+// every mandatory condition is satisfied — automated conditions are
+// verified live by the server at verification AND activation time;
+// attestation conditions require an administrator to record an evidence
+// reference (a document/signature reference, never a bare checkbox).
+// Customer-data imports are refused while no pilot is active.
+// ---------------------------------------------------------------------------
+const PILOT_CONDITIONS: { key: string; kind: "auto" | "attestation" }[] = [
+  { key: "charter_approved", kind: "attestation" },
+  { key: "scope_approved", kind: "attestation" },
+  { key: "bd_decisions", kind: "attestation" },
+  { key: "transform_approvals", kind: "auto" },
+  { key: "extract_authorization", kind: "attestation" },
+  { key: "environment_approved", kind: "attestation" },
+  { key: "env_preflight", kind: "auto" },
+  { key: "backup_restore_verified", kind: "attestation" },
+  { key: "monitoring_alerts_verified", kind: "attestation" },
+  { key: "transfer_mechanism_approved", kind: "attestation" },
+  { key: "participants_assigned", kind: "attestation" },
+  { key: "security_prerequisites", kind: "attestation" },
+];
+async function verifyAutoCondition(key: string): Promise<{ ok: boolean; detail: string }> {
+  if (key === "env_preflight") {
+    const v = await pool.query("SHOW server_version");
+    if (!String(v.rows[0].server_version).startsWith("16")) return { ok: false, detail: "PostgreSQL 16 required" };
+    const ext = await pool.query("SELECT 1 FROM pg_available_extensions WHERE name = 'pg_trgm'");
+    if (!ext.rowCount) return { ok: false, detail: "pg_trgm extension unavailable" };
+    const idx = await pool.query("SELECT COUNT(*)::int n FROM pg_indexes WHERE schemaname = 'app' AND indexname LIKE '%trgm%'");
+    if ((idx.rows[0].n as number) < 3) return { ok: false, detail: `trigram indexes incomplete (${idx.rows[0].n}/3)` };
+    const mig = await pool.query("SELECT 1 FROM information_schema.tables WHERE table_schema = 'mig' AND table_name = 'import_jobs'");
+    if (!mig.rowCount) return { ok: false, detail: "migration control schema incomplete" };
+    return { ok: true, detail: "PostgreSQL 16, pg_trgm available, 3 trigram indexes, migration schema complete" };
+  }
+  if (key === "transform_approvals") {
+    const a = await pool.query("SELECT COUNT(*)::int n FROM mig.mapping_approvals WHERE mode = 'customer' AND status = 'active'");
+    if ((a.rows[0].n as number) < 1) return { ok: false, detail: "no active customer-mode mapping approvals" };
+    return { ok: true, detail: `${a.rows[0].n} active customer-mode mapping approval rows` };
+  }
+  return { ok: false, detail: "not an automated condition" };
+}
+async function activePilot() {
+  const r = await pool.query("SELECT id, name FROM app.pilots WHERE status = 'active' ORDER BY id LIMIT 1");
+  return r.rows[0] ?? null;
+}
+async function pilotGateError(dataClass: string | undefined): Promise<string | null> {
+  if (dataClass !== "customer") return null;
+  const p = await activePilot();
+  return p ? null : "customer-data import refused: no active pilot. Customer data may only enter the platform under an activated pilot (all mandatory activation conditions satisfied).";
+}
+app.get("/api/pilots", requireAuth, requirePerm("migration.run"), async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT * FROM app.pilots ORDER BY id DESC");
+    res.json(rows);
+  } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
+});
+app.post("/api/pilots", requireAuth, requirePerm("*"), async (req, res) => {
+  const name = String((req.body ?? {}).name ?? "").trim();
+  const environment = String((req.body ?? {}).environment ?? "pilot").trim() || "pilot";
+  if (!name) return res.status(400).json({ error: "pilot name is required" });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const ins = await client.query("INSERT INTO app.pilots (name, environment, created_by_user_id) VALUES ($1,$2,$3) RETURNING id", [name, environment, (req as any).session.userId]);
+    const id = ins.rows[0].id;
+    for (const c of PILOT_CONDITIONS) await client.query("INSERT INTO app.pilot_conditions (pilot_id, condition_key, kind) VALUES ($1,$2,$3)", [id, c.key, c.kind]);
+    await client.query("COMMIT");
+    await audit((req as any).session.userId, "pilot.create", "pilot", String(id), { name, environment });
+    res.status(201).json({ id, name, environment, status: "draft" });
+  } catch (e: any) { await client.query("ROLLBACK").catch(() => {}); res.status(422).json({ error: String(e.message || e) }); }
+  finally { client.release(); }
+});
+app.get("/api/pilots/:id", requireAuth, requirePerm("migration.run"), async (req, res) => {
+  try {
+    const p = await pool.query("SELECT * FROM app.pilots WHERE id = $1", [req.params.id]);
+    if (!p.rows.length) return res.status(404).json({ error: "pilot not found" });
+    const c = await pool.query("SELECT condition_key, kind, status, evidence_ref, satisfied_at FROM app.pilot_conditions WHERE pilot_id = $1 ORDER BY condition_key", [req.params.id]);
+    res.json({ ...p.rows[0], conditions: c.rows });
+  } catch (e: any) { res.status(500).json({ error: String(e.message || e) }); }
+});
+app.post("/api/pilots/:id/conditions/:key/attest", requireAuth, requirePerm("*"), async (req, res) => {
+  const spec = PILOT_CONDITIONS.find(c => c.key === req.params.key);
+  if (!spec) return res.status(404).json({ error: "unknown condition" });
+  if (spec.kind !== "attestation") return res.status(400).json({ error: "automated condition — use verify, which checks the live system" });
+  const evidenceRef = String((req.body ?? {}).evidenceRef ?? "").trim();
+  if (!evidenceRef) return res.status(400).json({ error: "an evidence reference (document / signature reference) is required — a bare checkbox is not authorization" });
+  const upd = await pool.query("UPDATE app.pilot_conditions SET status = 'satisfied', evidence_ref = $1, satisfied_by_user_id = $2, satisfied_at = now() WHERE pilot_id = $3 AND condition_key = $4 RETURNING condition_key", [evidenceRef, (req as any).session.userId, req.params.id, req.params.key]);
+  if (!upd.rowCount) return res.status(404).json({ error: "pilot not found" });
+  await audit((req as any).session.userId, "pilot.condition.attest", "pilot", String(req.params.id), { condition: req.params.key, evidenceRef });
+  res.json({ ok: true, condition: req.params.key, status: "satisfied" });
+});
+app.post("/api/pilots/:id/conditions/:key/verify", requireAuth, requirePerm("*"), async (req, res) => {
+  const spec = PILOT_CONDITIONS.find(c => c.key === req.params.key);
+  if (!spec) return res.status(404).json({ error: "unknown condition" });
+  if (spec.kind !== "auto") return res.status(400).json({ error: "attestation condition — use attest with an evidence reference" });
+  const chk = await verifyAutoCondition(spec.key);
+  if (!chk.ok) return res.status(422).json({ error: `verification failed: ${chk.detail}` });
+  const upd = await pool.query("UPDATE app.pilot_conditions SET status = 'satisfied', evidence_ref = $1, satisfied_by_user_id = $2, satisfied_at = now() WHERE pilot_id = $3 AND condition_key = $4 RETURNING condition_key", [`auto: ${chk.detail}`, (req as any).session.userId, req.params.id, req.params.key]);
+  if (!upd.rowCount) return res.status(404).json({ error: "pilot not found" });
+  await audit((req as any).session.userId, "pilot.condition.verify", "pilot", String(req.params.id), { condition: req.params.key, detail: chk.detail });
+  res.json({ ok: true, condition: req.params.key, status: "satisfied", detail: chk.detail });
+});
+app.post("/api/pilots/:id/activate", requireAuth, requirePerm("*"), async (req, res) => {
+  const p = await pool.query("SELECT status FROM app.pilots WHERE id = $1", [req.params.id]);
+  if (!p.rows.length) return res.status(404).json({ error: "pilot not found" });
+  if (p.rows[0].status !== "draft") return res.status(422).json({ error: `pilot is ${p.rows[0].status}` });
+  const conds = await pool.query("SELECT condition_key, kind, status FROM app.pilot_conditions WHERE pilot_id = $1", [req.params.id]);
+  const missing: string[] = [];
+  for (const c of conds.rows) {
+    if (c.kind === "auto") { const chk = await verifyAutoCondition(c.condition_key); if (!chk.ok) missing.push(`${c.condition_key} (${chk.detail})`); }
+    else if (c.status !== "satisfied") missing.push(c.condition_key);
+  }
+  if (missing.length) return res.status(422).json({ error: "mandatory activation conditions are not satisfied", missing });
+  await pool.query("UPDATE app.pilots SET status = 'active', activated_by_user_id = $1, activated_at = now() WHERE id = $2", [(req as any).session.userId, req.params.id]);
+  await audit((req as any).session.userId, "pilot.activate", "pilot", String(req.params.id), {});
+  res.json({ ok: true, status: "active" });
+});
+app.post("/api/pilots/:id/close", requireAuth, requirePerm("*"), async (req, res) => {
+  const upd = await pool.query("UPDATE app.pilots SET status = 'closed', closed_by_user_id = $1, closed_at = now() WHERE id = $2 AND status = 'active' RETURNING id", [(req as any).session.userId, req.params.id]);
+  if (!upd.rowCount) return res.status(422).json({ error: "only an active pilot can be closed" });
+  await audit((req as any).session.userId, "pilot.close", "pilot", String(req.params.id), {});
+  res.json({ ok: true, status: "closed" });
+});
+
 app.post("/api/migration/uploads", requireAuth, requirePerm("migration.run"), async (req, res) => {
   await mkdir(UPLOAD_DIR, { recursive: true });
   const id = randomUUID(); const path = `${UPLOAD_DIR}/${id}.bin`;
@@ -830,6 +956,8 @@ app.post("/api/migration/uploads", requireAuth, requirePerm("migration.run"), as
 app.post("/api/migration/uploads/:id/import", requireAuth, requirePerm("migration.run"), async (req, res) => {
   const up = uploads.get(req.params.id);
   if (!up) return res.status(404).json({ error: "upload not found (already imported or expired)" });
+  const gate = await pilotGateError(req.query.dataClass === "customer" ? "customer" : undefined);
+  if (gate) return res.status(422).json({ error: gate });
   const entry = MIG_LAYOUTS[String(req.query.layout ?? "pblbuldg")];
   if (!entry) return res.status(400).json({ error: "unknown layout" });
   const client = await pool.connect();

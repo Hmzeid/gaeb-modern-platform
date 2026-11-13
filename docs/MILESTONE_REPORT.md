@@ -436,3 +436,23 @@ VERIFIED; G2 CONDITIONAL (charter/host/authorization/BD-07/BD-08);
 G3 NOT STARTED; G4 NOT AUTHORIZED. GitHub workflow scope still
 absent (4th check). Customer acceptance and production readiness
 are not claimed.
+
+## Addendum 17 — Phase 12: Pilot Activation & Release Qualification (2026-11-13)
+
+The pilot activation checklist became server-enforced code:
+migration 012 (app.pilots, app.pilot_conditions) + pilot registry
+API — 12 mandatory conditions, two verified live by the server
+(env preflight; customer-mode mapping approvals), ten attestations
+requiring evidence references (bare checkbox refused, 400);
+activation re-verifies automated conditions; customer-class
+imports refused (422) on both import paths unless a pilot is
+active. Admin UI Pilot activation panel (EN/AR, +50 dictionary
+keys). Integration suite covers the full gate incl. security
+negatives (65/65); synthetic dry run extended to 28/28 (R-15..R-19
+pilot sequence). Test setup now applies migrations 001-012 (was
+001-009). Customer activation package, BD workshop kit, UAT kit,
+executive presentation delivered in docs/phase12-pilot-activation/.
+GitHub workflow scope still absent (5th check) — recorded once as
+a single owner blocker (~2-min fix). Gates: G1 VERIFIED; G2
+CONDITIONAL, now enforceable; G3 NOT STARTED; G4 NOT AUTHORIZED.
+Engineering-controlled blockers: none.

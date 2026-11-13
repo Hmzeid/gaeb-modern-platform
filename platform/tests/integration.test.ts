@@ -52,7 +52,7 @@ async function runE2E(admin: pg.Client) {
   const db = { query: (t: string, v?: unknown[]) => admin.query(t, v as any) };
   await admin.query("DROP SCHEMA IF EXISTS app CASCADE; DROP SCHEMA IF EXISTS mig CASCADE; DROP SCHEMA IF EXISTS school_map CASCADE; DROP SCHEMA IF EXISTS purchases CASCADE; DROP SCHEMA IF EXISTS real_estate CASCADE; DROP SCHEMA IF EXISTS abstracts CASCADE");
   const migDir = new URL("../../migrations/", import.meta.url);
-  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql", "006_secure_approvals.sql", "007_intake.sql", "008_scalable_checkpoint.sql", "009_import_jobs.sql"])
+  for (const f of ["001_operational_schema.sql", "002_estimates.sql", "003_migration_meta.sql", "004_migration_integrity.sql", "005_transform_keys.sql", "006_secure_approvals.sql", "007_intake.sql", "008_scalable_checkpoint.sql", "009_import_jobs.sql", "010_buildings_pagination_indexes.sql", "011_buildings_trigram_search.sql", "012_pilots.sql"])
     await admin.query(readFileSync(new URL(f, migDir), "utf8"));
   await admin.query(readFileSync(new URL("../../../migration/reconciled/schema_v2.sql", import.meta.url), "utf8"));
   for (const [u, role] of [["admin1", "admin"], ["tech1", "technical"], ["budget1", "budget"]] as const)
@@ -415,5 +415,47 @@ async function runE2E(admin: pg.Client) {
     assert.equal(tBadStage.status, 400, "unknown stage rejected");
     const tBadSort = await fetch("http://127.0.0.1:18099/api/tenders?page=1&sort=title%3BDROP", { headers: H });
     assert.equal(tBadSort.status, 400, "tenders sort whitelist enforced");
+
+    // --- Phase 12: governed pilot activation gate ---
+    const fx = readFileSync(new URL("./fixture_extract.bin", import.meta.url));
+    const rawImport = (tok: string, cls: string) => fetch(`http://127.0.0.1:18099/api/migration/import?layout=pblbuldg&dataClass=${cls}`, { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/octet-stream" }, body: fx });
+    const refused1 = await rawImport(techToken, "customer");
+    assert.equal(refused1.status, 422, "customer-data import refused with no active pilot");
+    const pilotByTech = await post("/api/pilots", techToken, { name: "Phase 12 gate test" });
+    assert.equal(pilotByTech.status, 403, "pilot creation is admin-only");
+    const pilotRes = await post("/api/pilots", adminToken, { name: "Phase 12 gate test", environment: "test" });
+    assert.equal(pilotRes.status, 201, "admin creates a pilot");
+    const pilotId = (await pilotRes.json()).id;
+    const pilotDetail = await (await fetch(`http://127.0.0.1:18099/api/pilots/${pilotId}`, { headers: H })).json();
+    assert.equal(pilotDetail.conditions.length, 12, "pilot carries the 12 mandatory conditions");
+    assert.ok(pilotDetail.conditions.every((c: any) => c.status === "pending"), "all conditions start pending");
+    const earlyActivate = await post(`/api/pilots/${pilotId}/activate`, adminToken, {});
+    assert.equal(earlyActivate.status, 422, "activation refused while conditions are missing");
+    const earlyBody = await earlyActivate.json();
+    assert.ok(Array.isArray(earlyBody.missing) && earlyBody.missing.length >= 10, "refusal lists the missing conditions");
+    const attestNoEvidence = await post(`/api/pilots/${pilotId}/conditions/charter_approved/attest`, adminToken, {});
+    assert.equal(attestNoEvidence.status, 400, "attestation without an evidence reference is refused");
+    const attestByTech = await post(`/api/pilots/${pilotId}/conditions/charter_approved/attest`, techToken, { evidenceRef: "x" });
+    assert.equal(attestByTech.status, 403, "attestation is admin-only");
+    for (const key of ["charter_approved", "scope_approved", "bd_decisions", "extract_authorization", "environment_approved", "backup_restore_verified", "monitoring_alerts_verified", "transfer_mechanism_approved", "participants_assigned", "security_prerequisites"]) {
+      const a = await post(`/api/pilots/${pilotId}/conditions/${key}/attest`, adminToken, { evidenceRef: `integration-test evidence for ${key}` });
+      assert.equal(a.status, 200, `attest ${key}`);
+    }
+    const verifyTooEarly = await post(`/api/pilots/${pilotId}/conditions/transform_approvals/verify`, adminToken, {});
+    assert.equal(verifyTooEarly.status, 422, "transform_approvals auto-check fails before customer-mode approvals exist");
+    const custApproval = await post("/api/migration/approvals", budgetToken, { transform: "buildings", mode: "customer", evidenceRef: "integration-test signed mapping review" });
+    assert.equal(custApproval.status, 200, "customer-mode approval with evidence reference");
+    const verifyT = await post(`/api/pilots/${pilotId}/conditions/transform_approvals/verify`, adminToken, {});
+    assert.equal(verifyT.status, 200, "transform_approvals verifies against live approvals");
+    const verifyEnv = await post(`/api/pilots/${pilotId}/conditions/env_preflight/verify`, adminToken, {});
+    assert.equal(verifyEnv.status, 200, "env_preflight verifies against the live database");
+    const activate = await post(`/api/pilots/${pilotId}/activate`, adminToken, {});
+    assert.equal(activate.status, 200, "activation succeeds when every condition is satisfied");
+    const allowed = await rawImport(techToken, "customer");
+    assert.equal(allowed.status, 200, "customer-data import proceeds under the active pilot");
+    const closeRes = await post(`/api/pilots/${pilotId}/close`, adminToken, {});
+    assert.equal(closeRes.status, 200, "pilot closes");
+    const refused2 = await rawImport(techToken, "customer");
+    assert.equal(refused2.status, 422, "customer-data import refused again after pilot closure");
   } finally { server.kill(); }
 }
