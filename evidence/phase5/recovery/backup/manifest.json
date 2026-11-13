@@ -1,0 +1,238 @@
+{
+  "mig.batches": {
+    "rows": 1,
+    "fingerprint": "451605c30fdb0a2d66f347569a92e26e0ee35dc1f013465aca19d623f86a9550",
+    "columns": [
+      "batch_id",
+      "source_file",
+      "source_sha256",
+      "layout_name",
+      "total_records",
+      "loaded",
+      "rejected",
+      "control_totals",
+      "source_totals",
+      "started_at",
+      "finished_at",
+      "data_class",
+      "imported_by_user_id"
+    ]
+  },
+  "mig.batch_runs": {
+    "rows": 1,
+    "fingerprint": "f0028ec69cc1c3e70909578c98c29e350fde1208ca94ff136de483a272dc968f",
+    "columns": [
+      "id",
+      "batch_id",
+      "start_offset",
+      "source_sha256",
+      "loaded",
+      "rejected_new",
+      "ran_at"
+    ]
+  },
+  "mig.batch_totals": {
+    "rows": 4,
+    "fingerprint": "5c0c821b588cd1ecdb45867b0e63ef9d3ae7631fa385163119ae804705f80d86",
+    "columns": [
+      "batch_id",
+      "field",
+      "kind",
+      "amount"
+    ]
+  },
+  "mig.rejects": {
+    "rows": 1,
+    "fingerprint": "b94fdc5fbaa828311f6119ee639f9d2807e3ee80877b02ac94d02498dc7daefd",
+    "columns": [
+      "id",
+      "batch_id",
+      "record_offset",
+      "reason",
+      "raw_hex",
+      "resubmitted_batch",
+      "created_at"
+    ]
+  },
+  "mig.job_state": {
+    "rows": 1,
+    "fingerprint": "3a534be55a9449d3db884387b4156dbf574ce4da1b0451716480cdeffab4fbd8",
+    "columns": [
+      "batch_id",
+      "next_offset",
+      "loaded_keys",
+      "updated_at"
+    ]
+  },
+  "mig.loaded_keys": {
+    "rows": 0,
+    "note": "table absent in source"
+  },
+  "mig.mapping_approvals": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "legacy_member",
+      "legacy_field",
+      "target_table",
+      "target_column",
+      "transform_name",
+      "transform_hash",
+      "approved_by",
+      "evidence_ref",
+      "approved_at",
+      "approved_by_user_id",
+      "approved_role",
+      "mode",
+      "status",
+      "revoked_by_user_id",
+      "revoked_at",
+      "revoke_reason"
+    ]
+  },
+  "mig.mapping_approval_events": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "transform_name",
+      "legacy_member",
+      "legacy_field",
+      "event",
+      "actor_user_id",
+      "actor_role",
+      "transform_hash",
+      "evidence_ref",
+      "at"
+    ]
+  },
+  "mig.layouts": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "name",
+      "sha256",
+      "layout_json",
+      "registered_by",
+      "registered_at"
+    ]
+  },
+  "mig.intake_datasets": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "member",
+      "layout_name",
+      "layout_hash",
+      "source_sha256",
+      "size_bytes",
+      "batch_id",
+      "data_class",
+      "stage",
+      "created_by_user_id",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "mig.intake_events": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "dataset_id",
+      "from_stage",
+      "to_stage",
+      "evidence",
+      "actor_user_id",
+      "created_at"
+    ]
+  },
+  "mig.import_jobs": {
+    "rows": 0,
+    "note": "table absent in source"
+  },
+  "mig.import_job_events": {
+    "rows": 0,
+    "note": "table absent in source"
+  },
+  "app.users": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "username",
+      "password_hash",
+      "name_en",
+      "name_ar",
+      "role",
+      "is_active",
+      "created_at"
+    ]
+  },
+  "app.audit_log": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "at",
+      "user_id",
+      "action",
+      "entity",
+      "entity_id",
+      "detail"
+    ]
+  },
+  "app.buildings": {
+    "rows": 0,
+    "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "legacy_blcd",
+      "name_en",
+      "name_ar",
+      "governorate_code",
+      "center_code",
+      "village_code",
+      "stage_code",
+      "plot_area",
+      "building_area",
+      "floors",
+      "classrooms",
+      "status",
+      "created_at"
+    ]
+  },
+  "school_map.pblbuldg": {
+    "rows": 2,
+    "fingerprint": "72635305f4ca5ed744ef36b01ff664e1cef07873449f8c6bc2f83baf539e1e20",
+    "columns": [
+      "becd",
+      "blrd",
+      "blcd",
+      "shnm",
+      "edara",
+      "tycd",
+      "dscd",
+      "vgcd",
+      "cicd",
+      "street",
+      "strno",
+      "bltl",
+      "ldowcd",
+      "blowcd",
+      "tyc",
+      "vilg",
+      "bgcd",
+      "tblno",
+      "cotmk",
+      "cotes",
+      "cotev",
+      "nousiv",
+      "_batch_id",
+      "_source_offset",
+      "_raw_hex"
+    ]
+  }
+}

@@ -1,0 +1,3 @@
+{"batch_id":"mig-5cbfe0debb151a8a","next_offset":1200,"loaded_keys":[],"updated_at":"2026-11-12T19:43:21.917Z","key_count":"1199"}
+{"batch_id":"mig-978d8617cbbef36e","next_offset":5,"loaded_keys":[],"updated_at":"2026-11-12T19:43:23.844Z","key_count":"4"}
+{"batch_id":"mig-integration-fixture","next_offset":4,"loaded_keys":["1000001","1000002"],"updated_at":"2026-11-12T19:43:20.660Z","key_count":"0"}

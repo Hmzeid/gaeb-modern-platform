@@ -7,3 +7,11 @@
 | R-03 | F-02 audit WORM | Medium | Platform | Nightly signed export of app.audit_log + mig approval events to append-only storage | Open — scoped, not built |
 | R-04 | F-03 session idle timeout | Low | Platform | Add idle expiry alongside absolute TTL | Open — scoped, not built |
 | R-05 | Customer security requirements unknown (B-11) | Gate | GAEB security | Supply hosting/security requirements and perform the authorized review | BLOCKED — external |
+
+## Phase 5 progress (2026-11-12)
+- R-02 remains blocked on the GitHub `workflow` token scope (verified scopes:
+  gist, read:org, repo). Dependency audit step exists in ci/ci.yml, advisory.
+- New adversarial coverage executed: approval identity forgery (Phase 4),
+  cross-chunk duplicate integrity, job-claim races (second claim 409),
+  unauthorized job cancellation (403). No new critical/high findings.
+- Security approval gate unchanged: NOT GRANTED (B-11/R-05 with GAEB).

@@ -1,4 +1,5 @@
 import type { Pool } from "pg";
+import { money } from "../money.js";
 
 /**
  * Executable reconciliation (Workstream D). Definitions — these are the meanings
@@ -35,6 +36,74 @@ export interface Reconciliation {
   sourceTotals: Record<string, string>;
   quarantineReasons: { reason: string; count: number }[];
   runs: number;
+}
+
+/** Full reconciliation REPORT (Phase 5 Workstream D): the computed reconciliation
+ *  plus provenance — source checksum, execution history, transform definition
+ *  hash and approval reference — rendered as machine-readable JSON or a
+ *  human-readable text report. The three outcomes are always stated separately:
+ *  technical reconciliation (computed here), business equivalence (pending
+ *  customer evidence), customer acceptance (pending customer decision). A
+ *  technical pass is never labelled business approval. */
+export interface ReconciliationReport extends Reconciliation {
+  sourceSha256: string;
+  layoutName: string;
+  importedBy: string | null;
+  transform: { name: string; definitionHash: string; approvals: { field: string; approvedBy: string; mode: string; status: string; evidenceRef: string }[] } | null;
+  technicalOutcome: "PASSED" | "FAILED";
+  businessEquivalence: "PENDING — customer evidence not yet supplied";
+  customerAcceptance: "PENDING — customer decision not yet recorded";
+  generatedAt: string;
+}
+
+export async function computeReconciliationReport(pool: Pool, batchId: string): Promise<ReconciliationReport | null> {
+  const rec = await computeReconciliation(pool, batchId);
+  if (!rec) return null;
+  const meta = await pool.query(
+    `SELECT source_sha256, layout_name, u.username AS imported_by FROM mig.batches b
+       LEFT JOIN app.users u ON u.id = b.imported_by_user_id WHERE b.batch_id = $1`, [batchId]);
+  // The transform whose legacy member matches this batch's member, if any.
+  const { TRANSFORMS, transformHash } = await import("./transform.js");
+  const spec = Object.values(TRANSFORMS).find((t: any) => t.legacyMember.toLowerCase() === rec.member.toLowerCase());
+  let transform: ReconciliationReport["transform"] = null;
+  if (spec) {
+    const appr = await pool.query(
+      `SELECT legacy_field, approved_by, mode, status, evidence_ref FROM mig.mapping_approvals
+        WHERE transform_name = $1 ORDER BY legacy_field`, [(spec as any).name]);
+    transform = { name: (spec as any).name, definitionHash: transformHash(spec as any),
+      approvals: appr.rows.map((r: any) => ({ field: r.legacy_field, approvedBy: r.approved_by, mode: r.mode, status: r.status, evidenceRef: r.evidence_ref })) };
+  }
+  return { ...rec, sourceSha256: meta.rows[0].source_sha256, layoutName: meta.rows[0].layout_name,
+    importedBy: meta.rows[0].imported_by, transform,
+    technicalOutcome: rec.countEquationHolds ? "PASSED" : "FAILED",
+    businessEquivalence: "PENDING — customer evidence not yet supplied",
+    customerAcceptance: "PENDING — customer decision not yet recorded",
+    generatedAt: new Date().toISOString() };
+}
+
+export function renderReconciliationReport(r: ReconciliationReport): string {
+  const lines = [
+    `GAEB MIGRATION — RECONCILIATION REPORT`, ``,
+    `Batch: ${r.batchId}  Member: ${r.member}  Class: ${r.dataClass}`,
+    `Layout: ${r.layoutName}  Source SHA-256: ${r.sourceSha256}`,
+    `Imported by: ${r.importedBy ?? "(offline CLI)"}  Import runs: ${r.runs}  Generated: ${r.generatedAt}`, ``,
+    `EQUATIONS`,
+    `  source records      = ${r.sourceRecords}`,
+    `  loaded + quarantine = ${r.loadedRecords} + ${r.quarantinedRecords} = ${r.loadedRecords + r.quarantinedRecords}`,
+    `  count equation holds: ${r.countEquationHolds}`,
+    `  duplicate occurrences preserved as evidence: ${r.duplicateOccurrences}`, ``,
+    `TOTALS (exact decimal)`,
+    ...Object.keys(r.sourceTotals).map(f => `  ${f}: source ${r.sourceTotals[f]}  loaded ${r.controlTotals[f] ?? "0"}  delta ${money(r.sourceTotals[f]).minus(money(r.controlTotals[f] ?? "0")).toString()}`), ``,
+    `QUARANTINE`,
+    ...(r.quarantineReasons.length ? r.quarantineReasons.map(q => `  ${q.count} x ${q.reason}`) : [`  (none)`]), ``,
+  ];
+  if (r.transform) lines.push(`TRANSFORM`, `  ${r.transform.name}  definition hash ${r.transform.definitionHash}`,
+    ...r.transform.approvals.map(a => `  ${a.field}: approved by ${a.approvedBy} (${a.mode}, ${a.status}) evidence: ${a.evidenceRef || "—"}`), ``);
+  lines.push(`OUTCOMES (always stated separately)`,
+    `  Technical reconciliation: ${r.technicalOutcome}`,
+    `  Business equivalence: ${r.businessEquivalence}`,
+    `  Customer acceptance: ${r.customerAcceptance}`);
+  return lines.join("\n");
 }
 
 export async function computeReconciliation(pool: Pool, batchId: string): Promise<Reconciliation | null> {
